@@ -140,6 +140,7 @@ app.put("/api/state", (req, res) => {
     balance: typeof body.balance === "number" ? body.balance : 0,
     inventory: Array.isArray(body.inventory) ? body.inventory : [],
     invCounter: typeof body.invCounter === "number" ? body.invCounter : 0,
+    level: typeof body.level === "number" ? body.level : 0,
     dailyBonusAt: typeof body.dailyBonusAt === "number" ? body.dailyBonusAt : null,
     freeCaseAt: typeof body.freeCaseAt === "number" ? body.freeCaseAt : null,
     updatedAt: Date.now(),

@@ -274,11 +274,6 @@
 <script src="steam-auth.js"></script>
 <script src="nav-i18n.js"></script>
 <script>
-/* Demo player level — this project has no real XP/leveling system yet,
-   so this is a fixed placeholder (matches the "4" shown on the avatar
-   badge elsewhere) just to demonstrate the locked/unlocked card states. */
-const PLAYER_LEVEL = 45;
-
 const STORAGE_KEY = "cs2sim_state_v1";
 const DAILY_BONUS_KEY = "cs2sim_daily_bonus_at";
 const DAILY_BONUS_COOLDOWN_MS = 24 * 60 * 60 * 1000;
@@ -290,21 +285,26 @@ function fmt(n){
 function loadState(){
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
-    if(!raw) return {balance: START_BALANCE, inventory: [], invCounter: 0};
+    if(!raw) return {balance: START_BALANCE, inventory: [], invCounter: 0, level: 0};
     const parsed = JSON.parse(raw);
     return {
       balance: typeof parsed.balance === "number" ? parsed.balance : START_BALANCE,
       inventory: Array.isArray(parsed.inventory) ? parsed.inventory : [],
-      invCounter: typeof parsed.invCounter === "number" ? parsed.invCounter : 0
+      invCounter: typeof parsed.invCounter === "number" ? parsed.invCounter : 0,
+      level: typeof parsed.level === "number" ? parsed.level : 0
     };
   }catch(e){
-    return {balance: START_BALANCE, inventory: [], invCounter: 0};
+    return {balance: START_BALANCE, inventory: [], invCounter: 0, level: 0};
   }
 }
 function saveState(state){
   try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
 }
 let state = loadState();
+/* Nowe konto (i każdy świeżo zalogowany przez Steam profil) startuje na
+   poziomie 0 — poziom jest teraz częścią zapisywanego stanu (w chmurze
+   dla kont Steam), nie na sztywno wpisaną liczbą. */
+let PLAYER_LEVEL = state.level;
 function renderBalance(){
   document.getElementById("balance").textContent = fmt(state.balance);
 }
@@ -332,13 +332,14 @@ document.getElementById("topUpBtn").onclick = () => {
   saveState(state);
 };
 document.getElementById("resetBtn").onclick = () => {
-  state = {balance: START_BALANCE, inventory: [], invCounter: 0};
+  state = {balance: START_BALANCE, inventory: [], invCounter: 0, level: 0};
+  PLAYER_LEVEL = 0;
   renderBalance();
   saveState(state);
   localStorage.removeItem(DAILY_BONUS_KEY);
-  FREE_CASES.concat(LEVEL_CASES).forEach(c => localStorage.removeItem(c.key));
+  FREE_CASES.concat(BONUS_FREE_CASES, LEVEL_CASES).forEach(c => localStorage.removeItem(c.key));
   renderDailyBonusBtn();
-  renderCards();
+  buildCards();
   showToast("Konto zresetowane.");
 };
 
@@ -369,8 +370,10 @@ setInterval(renderDailyBonusBtn, 1000);
 
 /* ---------------- free / level-gated case cards ---------------- */
 const FREE_CASES = [
-  {id:"free", key:"cs2sim_darmowe_free_at", name:"Free Case", tag:"DARMOWA", icon:"📦", accent:"var(--good)", cooldownMs:3*60*60*1000},
-  {id:"farm", key:"cs2sim_darmowe_farm_at", name:"Farm case", tag:"DARMOWA", icon:"📦", accent:"var(--r-gold)", cooldownMs:3*60*60*1000}
+  {id:"free", key:"cs2sim_darmowe_free_at", name:"Free Case", tag:"DARMOWA", icon:"📦", accent:"var(--good)", cooldownMs:3*60*60*1000}
+];
+const BONUS_FREE_CASES = [
+  {id:"farm", key:"cs2sim_darmowe_farm_at", name:"Farm case", tag:"LVL 5", icon:"📦", accent:"var(--r-gold)", level:5, cooldownMs:3*60*60*1000}
 ];
 const LEVEL_CASES = [
   {id:"lvl10", key:"cs2sim_darmowe_lvl10_at", name:"Skrzynka Nowicjusza", tag:"LVL 10", icon:"📦", accent:"var(--r-gold)", level:10, cooldownMs:3*60*60*1000},
@@ -426,7 +429,7 @@ function buildCards(){
     topFreeGrid.appendChild(node);
     cardEntries.push([node, c, false]);
   });
-  LEVEL_CASES.forEach(c => {
+  BONUS_FREE_CASES.concat(LEVEL_CASES).forEach(c => {
     const locked = PLAYER_LEVEL < c.level;
     const node = cardNode(c, locked);
     levelFreeGrid.appendChild(node);

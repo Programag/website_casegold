@@ -313,8 +313,6 @@
 <script src="rarity-data.js"></script>
 <script src="nav-i18n.js"></script>
 <script>
-const PLAYER_LEVEL = 45;
-
 const STORAGE_KEY = "cs2sim_state_v1";
 const DAILY_BONUS_KEY = "cs2sim_daily_bonus_at";
 const DAILY_BONUS_COOLDOWN_MS = 24 * 60 * 60 * 1000;
@@ -326,21 +324,23 @@ function fmt(n){
 function loadState(){
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
-    if(!raw) return {balance: START_BALANCE, inventory: [], invCounter: 0};
+    if(!raw) return {balance: START_BALANCE, inventory: [], invCounter: 0, level: 0};
     const parsed = JSON.parse(raw);
     return {
       balance: typeof parsed.balance === "number" ? parsed.balance : START_BALANCE,
       inventory: Array.isArray(parsed.inventory) ? parsed.inventory : [],
-      invCounter: typeof parsed.invCounter === "number" ? parsed.invCounter : 0
+      invCounter: typeof parsed.invCounter === "number" ? parsed.invCounter : 0,
+      level: typeof parsed.level === "number" ? parsed.level : 0
     };
   }catch(e){
-    return {balance: START_BALANCE, inventory: [], invCounter: 0};
+    return {balance: START_BALANCE, inventory: [], invCounter: 0, level: 0};
   }
 }
 function saveState(state){
   try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
 }
 let state = loadState();
+const PLAYER_LEVEL = state.level;
 function renderBalance(){
   document.getElementById("balance").textContent = fmt(state.balance);
 }
@@ -367,7 +367,7 @@ document.getElementById("topUpBtn").onclick = () => {
   saveState(state);
 };
 document.getElementById("resetBtn").onclick = () => {
-  state = {balance: START_BALANCE, inventory: [], invCounter: 0};
+  state = {balance: START_BALANCE, inventory: [], invCounter: 0, level: 0};
   renderBalance();
   saveState(state);
   localStorage.removeItem(DAILY_BONUS_KEY);
@@ -505,7 +505,7 @@ function rarityColor(it){
 
 const CASE_DEFS = {
   free:  {name:"Free Case",          tag:"DARMOWA", icon:"🎁", accent:"var(--good)",         key:"cs2sim_darmowe_free_at",  cooldownMs:3*60*60*1000},
-  farm:  {name:"Farm case",          tag:"DARMOWA", icon:"🎁", accent:"var(--r-gold)",       key:"cs2sim_darmowe_farm_at",  cooldownMs:3*60*60*1000},
+  farm:  {name:"Farm case",          tag:"LVL 5",   icon:"🎁", accent:"var(--r-gold)",       key:"cs2sim_darmowe_farm_at",  cooldownMs:3*60*60*1000,    level:5},
   lvl10: {name:"Skrzynka Nowicjusza",tag:"LVL 10",  icon:"🏆", accent:"var(--r-gold)",       key:"cs2sim_darmowe_lvl10_at", cooldownMs:3*60*60*1000,    level:10},
   lvl20: {name:"Skrzynka Odkrywcy",  tag:"LVL 20",  icon:"🏆", accent:"var(--good)",         key:"cs2sim_darmowe_lvl20_at", cooldownMs:3*60*60*1000,    level:20},
   lvl30: {name:"Skrzynka Weterana",  tag:"LVL 30",  icon:"🏆", accent:"var(--r-covert)",     key:"cs2sim_darmowe_lvl30_at", cooldownMs:3*60*60*1000,    level:30},

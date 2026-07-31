@@ -36,6 +36,7 @@
         balance: s.balance,
         inventory: s.inventory,
         invCounter: s.invCounter,
+        level: typeof s.level === "number" ? s.level : 0,
       }));
       if (s.dailyBonusAt) localStorage.setItem(DAILY_KEY, String(s.dailyBonusAt));
       if (s.freeCaseAt) localStorage.setItem(FREE_CASE_KEY, String(s.freeCaseAt));
@@ -56,6 +57,7 @@
       balance: state.balance,
       inventory: state.inventory,
       invCounter: state.invCounter,
+      level: typeof state.level === "number" ? state.level : 0,
       dailyBonusAt: Number(localStorage.getItem(DAILY_KEY) || 0) || null,
       freeCaseAt: Number(localStorage.getItem(FREE_CASE_KEY) || 0) || null,
     };
@@ -112,7 +114,17 @@
         avatar.appendChild(img);
         avatar.title = me.user.displayName || "";
       }
-      if (avatarWrap) avatarWrap.onclick = null;
+      if (avatarWrap) {
+        avatarWrap.onclick = null;
+        avatarWrap.title = "";
+        const badge = avatarWrap.querySelector(".lvl-badge");
+        if (badge) {
+          let lvl = 0;
+          try { lvl = JSON.parse(localStorage.getItem(STATE_KEY) || "{}").level || 0; } catch (e) {}
+          badge.textContent = String(lvl);
+          badge.title = "";
+        }
+      }
 
       if (menu && !document.getElementById("steamAuthRow")) {
         const row = document.createElement("div");
