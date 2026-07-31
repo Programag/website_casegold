@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SKRZYNKA // Ulepszenia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0d12;
+    --panel:#141821;
+    --panel-2:#1b202b;
+    --line:#262c3a;
+    --text:#e9ecf3;
+    --muted:#7d879b;
+    --hazard:#ff9500;
+    --hazard-dim:#3a2712;
+    --good:#3ddc84;
+    --good-dim:#123822;
+    --bad:#ff5a5a;
+    --bad-dim:#3a1414;
+    --accent:#3ec8ff;
+    --r-milspec:#4b69ff;
+    --r-restricted:#8847ff;
+    --r-classified:#d32ce6;
+    --r-covert:#eb4b4b;
+    --r-gold:#ffd700;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 500px at 50% -10%, #1a2030 0%, transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+  }
+  .page-body{padding:24px 16px 60px;}
+  .hazard-bar{
+    height:8px;
+    background:repeating-linear-gradient(135deg,var(--hazard) 0 14px,#111 14px 28px);
+    opacity:.9;
+  }
+  .wrap{max-width:1300px;margin:0 auto;}
+
+  /* ---------------- top navigation (shared across pages) ---------------- */
+  .topnav{
+    display:flex; align-items:center; gap:14px;
+    padding:14px 20px; border-bottom:1px solid var(--line);
+    background:rgba(11,13,18,.8); backdrop-filter:blur(10px);
+    position:sticky; top:0; z-index:50; flex-wrap:wrap;
+  }
+  .brand{
+    display:flex; align-items:center; gap:8px; white-space:nowrap;
+    font-family:'Oswald',sans-serif; font-weight:700; letter-spacing:1px; text-transform:uppercase; font-size:18px;
+  }
+  .brand-icon{
+    width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center;
+    background:var(--hazard-dim); border:1px solid var(--hazard); font-size:16px;
+  }
+  .brand .accent{color:var(--hazard);}
+  .brand-socials{display:flex; gap:8px; color:var(--muted); font-size:15px;}
+  .brand-socials span{cursor:pointer;}
+  .brand-socials span:hover{color:var(--text);}
+  .nav-links{
+    display:flex; align-items:center; gap:14px; flex:1; flex-wrap:wrap;
+  }
+  .nav-link{
+    text-decoration:none; color:var(--muted); font-size:13.5px; font-weight:500;
+    text-transform:uppercase; letter-spacing:.5px; font-family:'Oswald',sans-serif;
+    padding-bottom:16px; margin-bottom:-15px; border-bottom:2px solid transparent;
+    display:flex; align-items:center; gap:6px; white-space:nowrap; cursor:pointer;
+    background:none; border-top:none; border-left:none; border-right:none;
+  }
+  .nav-link:hover{color:var(--text);}
+  .nav-link.active{color:var(--hazard); border-bottom-color:var(--hazard);}
+  .beta-tag{
+    font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700;
+    background:rgba(136,71,255,.14); color:var(--r-restricted);
+    padding:2px 5px; border-radius:4px; letter-spacing:.5px;
+  }
+  .nav-right{display:flex; align-items:center; gap:8px;}
+  .daily-btn{
+    background:var(--panel-2); border:1px solid var(--hazard-dim); color:var(--text);
+    padding:8px 11px; border-radius:9px; cursor:pointer; font-size:12.5px; font-weight:600;
+    display:flex; align-items:center; gap:6px; white-space:nowrap; font-family:'Inter',sans-serif;
+  }
+  .daily-btn:hover{border-color:var(--hazard); color:var(--hazard);}
+  .daily-btn:disabled{opacity:.5; cursor:not-allowed;}
+  .wallet-chip{
+    display:flex; align-items:center; gap:6px;
+    background:var(--panel-2); border:1px solid var(--line);
+    padding:6px 6px 6px 12px; border-radius:9px;
+  }
+  .wallet-chip .wc-amount{font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--good); font-size:14.5px; white-space:nowrap;}
+  .wallet-chip .wc-add{
+    width:26px; height:26px; border-radius:7px; border:none; cursor:pointer;
+    background:var(--hazard); color:#181000; font-weight:800; font-size:15px; line-height:1;
+  }
+  .icon-btn{
+    width:34px; height:34px; border-radius:9px; background:var(--panel-2); border:1px solid var(--line);
+    color:var(--muted); cursor:pointer; font-size:16px; position:relative;
+  }
+  .icon-btn:hover{color:var(--hazard); border-color:var(--hazard);}
+  .settings-wrap{position:relative;}
+  .settings-menu{
+    display:none; position:absolute; top:calc(100% + 8px); right:0; z-index:60;
+    background:var(--panel); border:1px solid var(--line); border-radius:10px; overflow:hidden;
+    min-width:180px; box-shadow:0 12px 30px -10px rgba(0,0,0,.6);
+  }
+  .settings-menu.open{display:block;}
+  .settings-menu button{
+    display:block; width:100%; text-align:left; background:none; border:none; color:var(--text);
+    padding:10px 14px; font-size:13px; cursor:pointer; font-family:'Inter',sans-serif;
+  }
+  .settings-menu button:hover{background:var(--panel-2); color:var(--hazard);}
+  .avatar-wrap{position:relative; display:flex;}
+  .avatar{
+    width:34px; height:34px; border-radius:50%; background:var(--panel-2); border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center; font-size:17px;
+  }
+  .lvl-badge{
+    position:absolute; bottom:-4px; right:-4px; background:var(--r-gold); color:#3a2a00;
+    font-size:9px; font-weight:800; padding:1px 5px; border-radius:8px; border:2px solid var(--bg);
+    font-family:'JetBrains Mono',monospace;
+  }
+  .page-title{margin-bottom:26px;}
+
+  header{
+    display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:16px; margin-bottom:26px;
+  }
+  h1{font-family:'Oswald',sans-serif;font-weight:700;letter-spacing:2px;text-transform:uppercase;font-size:clamp(28px,4vw,42px);margin:0;line-height:1;}
+  h1 span{color:var(--hazard);}
+  .sub{color:var(--muted);font-size:13px;letter-spacing:.5px;margin-top:6px;}
+  .wallet{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 18px;text-align:right;min-width:230px;}
+  .wallet .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;}
+  .wallet .amount{font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;color:var(--good);}
+  .wallet .amount.low{color:var(--bad);}
+  .wallet-actions{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
+  .mini-btn{flex:1;background:var(--panel-2);border:1px solid var(--line);color:var(--text);font-size:11px;padding:6px 8px;border-radius:6px;cursor:pointer;font-family:'Inter',sans-serif;text-decoration:none;text-align:center;white-space:nowrap;}
+  .mini-btn:hover{border-color:var(--hazard);color:var(--hazard);}
+  .mini-btn.active{border-color:var(--hazard);color:var(--hazard);background:var(--hazard-dim);}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:24px;margin-bottom:22px;}
+
+  /* ---------------- Upgrade panel: 3 columns ---------------- */
+  .upgrade-grid{display:grid;grid-template-columns:1fr 1.05fr 1fr;gap:26px;align-items:start;}
+  .upgrade-grid > div{min-width:0;}
+  @media (max-width:920px){.upgrade-grid{grid-template-columns:1fr;}}
+
+  .col-title{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:1px;font-size:14.5px;text-align:center;margin-bottom:2px;}
+  .col-title .stitle-sub{display:block;font-family:'Inter',sans-serif;text-transform:none;letter-spacing:0;font-size:11.5px;color:var(--muted);font-weight:400;margin-top:2px;}
+
+  .slot-box{
+    height:110px;margin-top:14px;
+    border:1.5px dashed var(--line);border-radius:12px;
+    background:var(--panel-2);
+    display:flex;align-items:center;justify-content:center;gap:10px;padding:8px;
+  }
+  .slot-box .empty-hint{color:var(--muted);font-size:11.5px;font-family:'JetBrains Mono',monospace;text-align:center;flex:none;}
+  /* input slot can hold many chips at once — scroll horizontally instead of
+     wrapping, so it never grows past its box and spills out of the panel */
+  #inputSlot{
+    justify-content:flex-start;
+    overflow-x:auto; overflow-y:hidden; flex-wrap:nowrap;
+    min-width:0; max-width:100%;
+    scrollbar-width:thin; scrollbar-color:var(--hazard) var(--panel-2);
+  }
+  #inputSlot::-webkit-scrollbar{height:6px;}
+  #inputSlot::-webkit-scrollbar-track{background:var(--panel-2); border-radius:4px;}
+  #inputSlot::-webkit-scrollbar-thumb{background:var(--line); border-radius:4px;}
+  #inputSlot::-webkit-scrollbar-thumb:hover{background:var(--hazard);}
+  .slot-chip{
+    width:74px;height:74px;background:var(--panel);border:1px solid var(--line);
+    border-top:3px solid var(--rarity,var(--r-milspec));border-radius:8px;
+    display:flex;align-items:center;justify-content:center;position:relative;
+    flex:none;
+  }
+  .slot-chip img{max-width:80%;max-height:80%;object-fit:contain;}
+  .slot-chip .fb{font-size:8px;color:var(--muted);font-family:'JetBrains Mono',monospace;text-align:center;padding:0 4px;}
+
+  .funds-row{margin-top:14px;}
+  .funds-label{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin-bottom:8px;flex-wrap:wrap;}
+  .funds-label b{color:var(--text);font-family:'JetBrains Mono',monospace;font-weight:600;}
+  .funds-label .fmax{margin-left:auto;background:var(--panel-2);border:1px solid var(--line);color:var(--accent);font-size:10.5px;padding:3px 8px;border-radius:5px;cursor:pointer;font-family:'JetBrains Mono',monospace;}
+  .funds-label .fmax:hover{border-color:var(--accent);}
+  input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:3px;background:var(--line);outline:none;cursor:pointer;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--good);border:2px solid var(--panel);box-shadow:0 0 0 1px var(--good);cursor:pointer;}
+  input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--good);border:2px solid var(--panel);cursor:pointer;}
+
+  .total-row{margin-top:14px;font-size:13px;color:var(--muted);text-align:center;}
+  .total-row b{color:var(--text);font-family:'JetBrains Mono',monospace;}
+
+  /* ---------------- Wheel (center column) ---------------- */
+  .wheel-wrap{position:relative;width:210px;height:210px;margin:6px auto 0;}
+  .wheel-dial{
+    width:100%;height:100%;border-radius:50%;
+    position:relative;
+    box-shadow:0 0 0 1px var(--line), inset 0 0 30px rgba(0,0,0,.35);
+  }
+  .wheel-colors{
+    position:absolute;inset:0;border-radius:50%;
+    background:conic-gradient(var(--good) 0deg var(--win-deg,324deg), var(--bad) var(--win-deg,324deg) 360deg);
+    transform:rotate(var(--wheel-rotate,0deg));
+    transform-origin:50% 50%;
+    transition:transform .25s ease;
+  }
+  .wheel-dial::after{
+    content:"";position:absolute;inset:16px;border-radius:50%;
+    background:radial-gradient(circle at 50% 40%, #171c27 0%, #0f1219 100%);
+    box-shadow:inset 0 0 20px rgba(0,0,0,.6);
+    z-index:1;
+  }
+  .wheel-needle{
+    position:absolute;left:50%;top:50%;width:3px;height:88px;
+    background:linear-gradient(to top, var(--text), #fff);
+    transform-origin:bottom center;
+    transform:translate(-50%,-100%) rotate(0deg);
+    border-radius:2px;
+    z-index:3;
+    box-shadow:0 0 6px rgba(255,255,255,.5);
+  }
+  .wheel-needle::after{
+    content:"";position:absolute;left:50%;bottom:-6px;width:12px;height:12px;
+    background:var(--text);border-radius:50%;transform:translateX(-50%);
+    box-shadow:0 0 8px rgba(255,255,255,.6);
+  }
+  .wheel-center-text{
+    position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    z-index:2;pointer-events:none;
+  }
+  .chance-value{font-family:'Oswald',sans-serif;font-size:28px;font-weight:700;letter-spacing:.5px;}
+  .chance-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px;}
+
+  .values-row{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:16px;font-family:'JetBrains Mono',monospace;font-size:13.5px;}
+  .values-row .slash{color:var(--muted);}
+  #randomizeBtn{background:var(--panel-2);border:1px solid var(--line);color:var(--muted);width:26px;height:26px;border-radius:6px;cursor:pointer;font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;}
+  #randomizeBtn:hover{color:var(--hazard);border-color:var(--hazard);}
+
+  .preset-row{display:flex;gap:8px;justify-content:center;margin-top:16px;flex-wrap:wrap;}
+  .preset-btn, .chance-btn{
+    background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+    font-family:'JetBrains Mono',monospace;font-size:12.5px;font-weight:700;
+    padding:9px 12px;border-radius:8px;cursor:pointer;min-width:46px;text-align:center;
+  }
+  .preset-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .chance-btn.risky{color:var(--bad);}
+  .chance-btn.mid{color:var(--hazard);}
+  .chance-btn.safe{color:var(--good);}
+  .chance-btn.risky:hover{border-color:var(--bad);}
+  .chance-btn.mid:hover{border-color:var(--hazard);}
+  .chance-btn.safe:hover{border-color:var(--good);}
+  .chance-btn.selected.risky{background:var(--bad-dim);border-color:var(--bad);}
+  .chance-btn.selected.mid{background:var(--hazard-dim);border-color:var(--hazard);}
+  .chance-btn.selected.safe{background:var(--good-dim);border-color:var(--good);}
+
+  .chance-slider-row{margin-top:16px;padding:0 4px;}
+
+  .upgrade-btn{
+    display:block;width:100%;margin-top:20px;
+    font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:1.5px;font-size:16px;font-weight:600;
+    background:linear-gradient(180deg, var(--accent), #1a9fd8);
+    color:#04202b;border:none;padding:14px 20px;border-radius:8px;cursor:pointer;
+    box-shadow:0 4px 0 #157fae;transition:transform .1s ease, box-shadow .1s ease;
+  }
+  .upgrade-btn:hover:not(:disabled){transform:translateY(-1px);}
+  .upgrade-btn:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 #157fae;}
+  .upgrade-btn:disabled{opacity:.4;cursor:not-allowed;box-shadow:none;}
+
+  .outcome-banner{
+    margin-top:16px;text-align:center;font-family:'Oswald',sans-serif;text-transform:uppercase;
+    letter-spacing:1px;font-size:14px;padding:10px;border-radius:8px;display:none;
+  }
+  .outcome-banner.show{display:block;}
+  .outcome-banner.win{background:var(--good-dim);color:var(--good);border:1px solid var(--good);}
+  .outcome-banner.lose{background:var(--bad-dim);color:var(--bad);border:1px solid var(--bad);}
+
+  /* ---------------- Lower browse panels ---------------- */
+  .browse-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  @media (max-width:820px){.browse-grid{grid-template-columns:1fr;}}
+  .browse-panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;}
+  .browse-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
+  .browse-head h3{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:1px;font-size:15px;margin:0;}
+  .browse-head h3 span{color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:12px;margin-left:6px;}
+  .sort-btn{background:var(--panel-2);border:1px solid var(--line);color:var(--muted);font-size:11.5px;padding:6px 10px;border-radius:6px;cursor:pointer;font-family:'JetBrains Mono',monospace;}
+  .sort-btn:hover{color:var(--hazard);border-color:var(--hazard);}
+  .search-row{display:flex;gap:8px;margin-bottom:12px;}
+  .search-row input[type=text]{
+    flex:1;background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+    padding:9px 12px;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;
+  }
+  .search-row input[type=text]:focus{outline:none;border-color:var(--accent);}
+  .search-row input[type=number]{
+    width:100px;background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+    padding:9px 10px;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:12.5px;
+  }
+  .browse-grid-items{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;
+    max-height:420px;overflow-y:auto;padding-right:4px;
+  }
+  .empty-note{color:var(--muted);font-size:13px;padding:14px;border:1px dashed var(--line);border-radius:10px;text-align:center;grid-column:1/-1;}
+  .browse-item{
+    background:var(--panel-2);border:1px solid var(--line);border-top:3px solid var(--rarity,var(--r-milspec));
+    border-radius:8px;padding:8px;display:flex;flex-direction:column;align-items:center;cursor:pointer;
+    transition:border-color .12s ease, transform .08s ease;
+  }
+  .browse-item:hover{transform:translateY(-2px);}
+  .browse-item.selected{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);}
+  .browse-item.disabled{opacity:.35;cursor:not-allowed;filter:grayscale(.6);}
+  .browse-item.disabled:hover{transform:none;}
+  .browse-item .img-slot{height:58px;width:100%;display:flex;align-items:center;justify-content:center;margin-bottom:4px;}
+  .browse-item img{max-height:54px;max-width:90%;object-fit:contain;}
+  .browse-item .fallback{font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace;text-align:center;}
+  .browse-item .wp{font-size:10.5px;font-weight:600;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+  .browse-item .nm{font-size:9px;color:var(--muted);text-align:center;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+  .browse-item .pr{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--hazard);}
+
+  .log{margin-top:22px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);max-height:120px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;padding:10px 14px;background:var(--panel);}
+  .log div{padding:2px 0;border-bottom:1px solid var(--line);}
+  .log div:last-child{border-bottom:none;}
+  footer{text-align:center;color:var(--muted);font-size:11px;margin-top:34px;letter-spacing:.5px;}
+</style>
+</head>
+<body>
+
+<div class="hazard-bar"></div>
+
+<nav class="topnav">
+  <div class="brand"><span class="brand-icon">📦</span>Skrzynka <span class="accent">// Symulator</span></div>
+  <div class="brand-socials">
+    <span title="Discord">◎</span><span title="Instagram">📷</span><span title="TikTok">🎵</span>
+  </div>
+  <div class="nav-links">
+    <a class="nav-link" href="index.html">Skrzynki</a>
+    <a class="nav-link" href="darmowe.html">Darmowe</a>
+    <a class="nav-link" href="battle.html">Case Battle</a>
+    <a class="nav-link active" href="upgrade.html">Upgrader</a>
+    <button class="nav-link" data-soon>Zadania</button>
+    <a class="nav-link" href="equipment.html">Ekwipunek</a>
+  </div>
+  <div class="nav-right">
+    <button class="daily-btn" id="dailyBonusBtn">🎁 Daily Bonus</button>
+    <div class="wallet-chip">
+      <span class="wc-amount" id="balance">50,00 zł</span>
+      <button class="wc-add" id="topUpBtn" title="Doładuj +20,00 zł">+</button>
+    </div>
+    <div class="settings-wrap">
+      <button class="icon-btn" id="settingsBtn">⚙</button>
+      <div class="settings-menu" id="settingsMenu">
+        <button id="muteBtn">🔊 Dźwięk</button>
+        <button id="resetBtn">Zresetuj konto</button>
+        <button id="inventoryBtn">Ekwipunek</button>
+      </div>
+    </div>
+    <div class="avatar-wrap">
+      <div class="avatar">🙂</div>
+      <span class="lvl-badge">4</span>
+    </div>
+  </div>
+</nav>
+
+<div class="page-body">
+<div class="wrap">
+
+  <div class="page-title">
+    <h1>Ulepszenia <span>//</span> Skrzynki</h1>
+    <div class="sub">Wirtualna waluta. Zero realnej wartości. Tylko dla zabawy.</div>
+  </div>
+
+  <!-- ===================== UPGRADE PANEL ===================== -->
+  <div class="panel">
+    <div class="upgrade-grid">
+
+      <!-- LEFT: your item -->
+      <div>
+        <div class="col-title">Wybierz swoje przedmioty<span class="stitle-sub">Przedmioty do ulepszenia</span></div>
+        <div class="slot-box" id="inputSlot"><div class="empty-hint">Wybierz przedmiot<br>z ekwipunku poniżej</div></div>
+        <div class="funds-row">
+          <div class="funds-label">
+            <span>💰 Użyj środków</span>
+            <b id="fundsUsedLabel">0,00</b> / <span id="fundsMaxLabel">0,00 zł</span>
+            <button class="fmax" id="fundsMaxBtn">MAX</button>
+          </div>
+          <input type="range" id="fundsSlider" min="0" max="0" step="0.01" value="0">
+        </div>
+        <div class="total-row">Łącznie: <b id="inputTotalLabel">0,00 zł</b> (<span id="inputCountLabel">0</span> skiny)</div>
+      </div>
+
+      <!-- CENTER: wheel + controls -->
+      <div>
+        <div class="wheel-wrap">
+          <div class="wheel-dial" id="wheelDial">
+            <div class="wheel-colors" id="wheelColors"></div>
+            <div class="wheel-needle" id="wheelNeedle"></div>
+          </div>
+          <div class="wheel-center-text">
+            <div class="chance-value" id="chanceValue">0%</div>
+            <div class="chance-label">szansa na wygraną</div>
+          </div>
+        </div>
+        <div class="values-row">
+          <span id="valLeftShow">0,00 zł</span>
+          <span class="slash">/</span>
+          <span id="valRightShow">0,00 zł</span>
+          <button id="randomizeBtn" title="Losowy cel">⟳</button>
+        </div>
+        <div class="preset-row">
+          <button class="preset-btn" data-mult="2">x2</button>
+          <button class="preset-btn" data-mult="4">x4</button>
+          <button class="preset-btn" data-mult="8">x8</button>
+          <button class="chance-btn mid" data-chance="35">35%</button>
+          <button class="chance-btn risky" data-chance="5">5%</button>
+          <button class="chance-btn safe" data-chance="75">75%</button>
+        </div>
+        <div class="chance-slider-row">
+          <input type="range" id="chanceSlider" min="0" max="360" step="1" value="0">
+        </div>
+        <button class="upgrade-btn" id="upgradeBtn" disabled>Ulepsz</button>
+        <div class="outcome-banner" id="outcomeBanner"></div>
+      </div>
+
+      <!-- RIGHT: target item -->
+      <div>
+        <div class="col-title">Wybierz przedmioty<span class="stitle-sub">Które chcesz otrzymać</span></div>
+        <div class="slot-box" id="targetSlot"><div class="empty-hint">Wybierz przedmiot<br>z listy poniżej</div></div>
+        <div class="total-row">Łącznie: <b id="targetTotalLabel">0,00 zł</b> (<span id="targetCountLabel">0</span> skiny)</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===================== BROWSE PANELS ===================== -->
+  <div class="browse-grid">
+    <div class="browse-panel">
+      <div class="browse-head">
+        <h3>Mój ekwipunek <span id="invSelectedLabel">0 wybrano</span></h3>
+        <button class="sort-btn" id="invSortBtn">Cena ↓</button>
+      </div>
+      <div class="search-row">
+        <input type="text" id="invSearch" placeholder="🔍 Szukaj">
+      </div>
+      <div class="browse-grid-items" id="invGrid"></div>
+    </div>
+
+    <div class="browse-panel">
+      <div class="browse-head">
+        <h3>Przedmioty do otrzymania <span id="targetCountAll">(0)</span> <span id="targetSelectedLabel">0 wybrano</span></h3>
+        <button class="sort-btn" id="targetSortBtn">Cena ↑</button>
+      </div>
+      <div class="search-row">
+        <input type="text" id="targetSearch" placeholder="🔍 Szukaj">
+        <input type="number" id="targetMaxPrice" placeholder="Cena do">
+      </div>
+      <div class="browse-grid-items" id="targetGrid"></div>
+    </div>
+  </div>
+
+  <div class="log" id="log"></div>
+  <footer>Symulacja edukacyjna / rozrywkowa — fikcyjna waluta, brak realnych transakcji.</footer>
+</div>
+</div>
+
+<script src="skin-images.js"></script>
+<script src="rarity-data.js"></script>
+<script src="nav-i18n.js"></script>
+<script>
+/* =========================================================================
+   PULA PRZEDMIOTÓW DO OTRZYMANIA — połączone pule wszystkich skrzynek
+   (te same przedmioty co w skrzynkach / bitwach), posortowane po cenie.
+   ========================================================================= */
+const UPGRADE_TARGET_ITEMS = [
+  {weapon:"MP5-SD", skin:"Co-Processor", wear:"MW", price:0.92},
+  {weapon:"P90", skin:"Grim", wear:"FT", price:1.12},
+  {weapon:"AUG", skin:"Triqua", wear:"FT", price:1.16},
+  {weapon:"Tec-9", skin:"Fubar", wear:"FT", price:1.2},
+  {weapon:"Glock-18", skin:"Off World", wear:"FT", price:1.24},
+  {weapon:"UMP-45", skin:"Labyrinth", wear:"FT", price:1.28},
+  {weapon:"USP-S", skin:"Check Engine", wear:"FT", price:1.32},
+  {weapon:"P90", skin:"Facility Negative", wear:"MW", price:1.4},
+  {weapon:"FAMAS", skin:"Survivor Z", wear:"FT", price:1.56},
+  {weapon:"MAC-10", skin:"Classic Crate", wear:"FT", price:1.6},
+  {weapon:"G3SG1", skin:"Orange Crash", wear:"FT", price:1.64},
+  {weapon:"Five-SeveN", skin:"Capillary", wear:"FT", price:1.64},
+  {weapon:"MAC-10", skin:"Oceanic", wear:"FT", price:1.66},
+  {weapon:"P250", skin:"Valence", wear:"FT", price:1.68},
+  {weapon:"SSG 08", skin:"Abyss", wear:"FT", price:1.72},
+  {weapon:"Desert Eagle", skin:"Oxide Blaze", wear:"FT", price:1.72},
+  {weapon:"Desert Eagle", skin:"Urban Rubble", wear:"FT", price:1.84},
+  {weapon:"SG 553", skin:"Aerial", wear:"WW", price:1.84},
+  {weapon:"MP7", skin:"Akoben", wear:"FT", price:1.88},
+  {weapon:"SCAR-20", skin:"Blueprint", wear:"MW", price:1.88},
+  {weapon:"P2000", skin:"Oceanic", wear:"MW", price:1.92},
+  {weapon:"PP-Bizon", skin:"Jungle Slipstream", wear:"FT", price:1.96},
+  {weapon:"UMP-45", skin:"Arctic Wolf", wear:"FT", price:2.16},
+  {weapon:"M4A1-S", skin:"Nitro", wear:"FT", price:2.16},
+  {weapon:"G3SG1", skin:"Orange Crash", wear:"FN", price:2.2},
+  {weapon:"M249", skin:"System Lock", wear:"WW", price:2.2},
+  {weapon:"UMP-45", skin:"Briefing", wear:"MW", price:2.32},
+  {weapon:"MP7", skin:"Urban Hazard", wear:"FN", price:2.32},
+  {weapon:"MAG-7", skin:"SWAG-7", wear:"FT", price:2.32},
+  {weapon:"Glock-18", skin:"Catacombs", wear:"FT", price:2.36},
+  {weapon:"Desert Eagle", skin:"Urban Rubble", wear:"WW", price:2.64},
+  {weapon:"Glock-18", skin:"Warhawk", wear:"MW", price:2.72},
+  {weapon:"Glock-18", skin:"Ocean Topo", wear:"FN", price:2.82},
+  {weapon:"Tec-9", skin:"Ice Cap", wear:"MW", price:2.84},
+  {weapon:"Five-SeveN", skin:"Scumbria", wear:"BS", price:2.92},
+  {weapon:"P2000", skin:"Oceanic", wear:"FT", price:3.16},
+  {weapon:"MP7", skin:"Cirrus", wear:"FT", price:3.2},
+  {weapon:"USP-S", skin:"Torque", wear:"FT", price:3.2},
+  {weapon:"Tec-9", skin:"Jambiya", wear:"FT", price:3.28},
+  {weapon:"R8 Revolver", skin:"Crimson Web", wear:"BS", price:3.84},
+  {weapon:"AWP", skin:"Pit Viper", wear:"FT", price:3.92},
+  {weapon:"Glock-18", skin:"Moonrise", wear:"FT", price:4.04},
+  {weapon:"CZ75-Auto", skin:"Tacticat", wear:"FT", price:4.08},
+  {weapon:"UMP-45", skin:"Exposure", wear:"FT", price:4.08},
+  {weapon:"Sticker", skin:"Nelu the Bear", wear:"-", price:4.27},
+  {weapon:"Glock-18", skin:"Bunsen Burner", wear:"FT", price:4.32},
+  {weapon:"Galil AR", skin:"Rocket Pop", wear:"FT", price:5},
+  {weapon:"Glock-18", skin:"Weasel", wear:"FT", price:5.28},
+  {weapon:"CZ75-Auto", skin:"Pole Position", wear:"FT", price:5.4},
+  {weapon:"Negev", skin:"Loudmouth", wear:"FT", price:5.83},
+  {weapon:"SSG 08", skin:"Ghost Crusader", wear:"FT", price:6.04},
+  {weapon:"Negev", skin:"Power Loader", wear:"WW", price:6.08},
+  {weapon:"AK-47", skin:"Elite Build", wear:"WW", price:6.4},
+  {weapon:"AWP", skin:"Pit Viper", wear:"MW", price:6.52},
+  {weapon:"Glock-18", skin:"Moonrise", wear:"MW", price:7},
+  {weapon:"SSG 08", skin:"Slashed", wear:"WW", price:7.36},
+  {weapon:"MP9", skin:"Ruby Poison Dart", wear:"FT", price:7.36},
+  {weapon:"P90", skin:"Elite Build", wear:"FT", price:7.76},
+  {weapon:"P90", skin:"Chopper", wear:"MW", price:8.04},
+  {weapon:"P250", skin:"Wingshot", wear:"FT", price:8.12},
+  {weapon:"Glock-18", skin:"Weasel", wear:"MW", price:8.36},
+  {weapon:"AK-47", skin:"Elite Build", wear:"FT", price:8.48},
+  {weapon:"FAMAS", skin:"Hexane", wear:"FT", price:8.52},
+  {weapon:"P90", skin:"Chopper", wear:"FT", price:8.6},
+  {weapon:"CZ75-Auto", skin:"Tigris", wear:"FT", price:9.44},
+  {weapon:"P250", skin:"Supernova", wear:"FT", price:9.64},
+  {weapon:"CZ75-Auto", skin:"Pole Position", wear:"MW", price:10},
+  {weapon:"AWP", skin:"Worm God", wear:"FT", price:10.2},
+  {weapon:"Galil AR", skin:"Sandstorm", wear:"FT", price:10.24},
+  {weapon:"AWP", skin:"Phobos", wear:"FT", price:10.44},
+  {weapon:"Five-SeveN", skin:"Urban Hazard", wear:"MW", price:10.84},
+  {weapon:"MAC-10", skin:"Ultraviolet", wear:"FT", price:11.48},
+  {weapon:"AWP", skin:"Worm God", wear:"MW", price:12},
+  {weapon:"Galil AR", skin:"Stone Cold", wear:"FT", price:12.08},
+  {weapon:"CZ75-Auto", skin:"Tigris", wear:"MW", price:13.6},
+  {weapon:"AK-47", skin:"Emerald Pinstripe", wear:"FT", price:14.24},
+  {weapon:"USP-S", skin:"Guardian", wear:"MW", price:14.4},
+  {weapon:"Tec-9", skin:"Sandstorm", wear:"MW", price:14.64},
+  {weapon:"M4A4", skin:"Evil Daimyo", wear:"FT", price:15.76},
+  {weapon:"M4A1-S", skin:"Flashback", wear:"WW", price:15.76},
+  {weapon:"USP-S", skin:"Cyrex", wear:"FT", price:15.96},
+  {weapon:"M4A1-S", skin:"Flashback", wear:"FT", price:16.52},
+  {weapon:"M4A1-S", skin:"Briefing", wear:"FT", price:19},
+  {weapon:"Zeus x27", skin:"Olympus", wear:"WW", price:20.68},
+  {weapon:"M4A4", skin:"Griffin", wear:"FT", price:20.76},
+  {weapon:"USP-S", skin:"Cyrex", wear:"MW", price:21.32},
+  {weapon:"M4A1-S", skin:"Blood Tiger", wear:"MW", price:23.52},
+  {weapon:"CZ75-Auto", skin:"Hexane", wear:"FN", price:24.56},
+  {weapon:"Tec-9", skin:"Isaac", wear:"MW", price:24.72},
+  {weapon:"AK-47", skin:"Searing Rage", wear:"FT", price:27.59},
+  {weapon:"USP-S", skin:"Guardian", wear:"FN", price:33.84},
+  {weapon:"M4A1-S", skin:"Basilisk", wear:"FT", price:41.44},
+  {weapon:"USP-S", skin:"Jawbreaker", wear:"MW", price:44.18},
+  {weapon:"M4A1-S", skin:"Basilisk", wear:"MW", price:45.36},
+  {weapon:"P90", skin:"ScaraB Rush", wear:"WW", price:50.26},
+  {weapon:"M4A1-S", skin:"Nightmare", wear:"WW", price:50.64},
+  {weapon:"Desert Eagle", skin:"Crimson Web", wear:"FT", price:56.72},
+  {weapon:"Tec-9", skin:"Fuel Injector", wear:"BS", price:61.78},
+  {weapon:"Five-SeveN", skin:"Case Hardened", wear:"FT", price:66.84},
+  {weapon:"AK-47", skin:"Blue Laminate", wear:"FT", price:75.92},
+  {weapon:"MAC-10", skin:"Amber Fade", wear:"MW", price:76.32},
+  {weapon:"MAC-10", skin:"Toybox", wear:"FT", price:84.77},
+  {weapon:"AK-47", skin:"Point Disarray", wear:"FT", price:90.21},
+  {weapon:"FAMAS", skin:"Styx", wear:"FT", price:94.18},
+  {weapon:"USP-S", skin:"Overgrowth", wear:"FT", price:101.48},
+  {weapon:"Glock-18", skin:"Water Elemental", wear:"MW", price:114.41},
+  {weapon:"AK-47", skin:"Frontside Misty", wear:"WW", price:115.75},
+  {weapon:"AK-47", skin:"Orbit Mk01", wear:"FT", price:125.28},
+  {weapon:"Tec-9", skin:"Toxic", wear:"FT", price:126.84},
+  {weapon:"Desert Eagle", skin:"Midnight Storm", wear:"BS", price:128.05},
+  {weapon:"FAMAS", skin:"Styx", wear:"MW", price:148.8},
+  {weapon:"AWP", skin:"Pink DDPAT", wear:"FT", price:169.2},
+  {weapon:"MP9", skin:"Setting Sun", wear:"FT", price:177.08},
+  {weapon:"M4A4", skin:"Hellish", wear:"FT", price:182.66},
+  {weapon:"M4A1-S", skin:"Bright Water", wear:"FT", price:184.16},
+  {weapon:"Desert Eagle", skin:"Printstream", wear:"FT", price:221.2},
+  {weapon:"USP-S", skin:"Printstream", wear:"FT", price:223.63},
+  {weapon:"AWP", skin:"Wildfire", wear:"BS", price:264.03},
+  {weapon:"Desert Eagle", skin:"Printstream", wear:"MW", price:282.47},
+  {weapon:"AWP", skin:"Printstream", wear:"FT", price:290.48},
+  {weapon:"M4A1-S", skin:"Dark Water", wear:"FT", price:326.68},
+  {weapon:"FAMAS", skin:"Waters of Nephthys", wear:"FT", price:365.38},
+  {weapon:"USP-S", skin:"Printstream", wear:"MW", price:375.24},
+  {weapon:"Desert Eagle", skin:"Ocean Drive", wear:"WW", price:381.84},
+  {weapon:"Five-SeveN", skin:"Crimson Blossom", wear:"MW", price:433.52},
+  {weapon:"AWP", skin:"Printstream", wear:"MW", price:469.42},
+  {weapon:"Sawed-Off", skin:"The Kraken", wear:"MW", price:478.32},
+  {weapon:"P2000", skin:"Fire Elemental", wear:"FT", price:482.16},
+  {weapon:"MAC-10", skin:"Fade", wear:"FN", price:556.28},
+  {weapon:"USP-S", skin:"Kill Confirmed", wear:"MW", price:635.63},
+  {weapon:"M4A1-S", skin:"Master Piece", wear:"BS", price:731.22},
+  {weapon:"MAG-7", skin:"Counter Terrace", wear:"MW", price:811.72},
+  {weapon:"Hand Wraps", skin:"CAUTION!", wear:"FT", price:828.66},
+  {weapon:"Galil AR", skin:"Aqua Terrace", wear:"FT", price:842.52},
+  {weapon:"Gut Knife", skin:"Gamma Doppler Phase 1", wear:"FN", price:1035.33},
+  {weapon:"M4A1-S", skin:"Printstream", wear:"FT", price:1167.67},
+  {weapon:"Hand Wraps", skin:"Cobalt Skulls", wear:"WW", price:1204.41},
+  {weapon:"AWP", skin:"Printstream", wear:"FN", price:1534.91},
+  {weapon:"M4A1-S", skin:"Printstream", wear:"MW", price:1694.96},
+  {weapon:"SSG 08", skin:"Dragonfire", wear:"FN", price:1976.09},
+  {weapon:"AWP", skin:"Oni Taiji", wear:"MW", price:2193.58},
+  {weapon:"M4A1-S", skin:"Icarus Fell", wear:"FN", price:2524.28},
+  {weapon:"M4A4", skin:"Hellfire", wear:"FN", price:2608.39},
+  {weapon:"Skeleton Knife", skin:"Slaughter", wear:"FN", price:2721.39},
+  {weapon:"Desert Eagle", skin:"Sunset Storm 弐", wear:"FT", price:2778.76},
+  {weapon:"Desert Eagle", skin:"Blaze", wear:"FN", price:3813.77},
+  {weapon:"Karambit", skin:"Tiger Tooth", wear:"FN", price:5366.53},
+  {weapon:"Sport Gloves", skin:"Slingshot", wear:"MW", price:5734.74},
+  {weapon:"Glock-18", skin:"Fade", wear:"FN", price:8584.12},
+  {weapon:"Talon Knife", skin:"Doppler Ruby", wear:"FN", price:17062.91},
+  {weapon:"M4A4", skin:"Howl", wear:"FN", price:37641.28},
+];
+UPGRADE_TARGET_ITEMS.forEach((it, i) => it._key = it.weapon+"|"+it.skin+"|"+it.wear+"|"+i);
+
+const STORAGE_KEY = "cs2sim_state_v1";
+const DAILY_BONUS_KEY = "cs2sim_daily_bonus_at";
+const DAILY_BONUS_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+const START_BALANCE = 50.00;
+const HOUSE_EDGE = 0.08;   // 8% cięcie domu — im bliżej wartości, tym mniejsza szansa niż 100%
+const MIN_CHANCE = 2;
+const MAX_CHANCE = 95;
+const MAX_SELECTABLE_CHANCE = 92; // you can never lock in a bet worth more than 92% odds
+const SPIN_MS = 3600;
+
+function fmt(n){
+  return n.toLocaleString("pl-PL", {minimumFractionDigits:2, maximumFractionDigits:2}) + " zł";
+}
+function rarityColor(it){
+  const known = getSkinRarityColor(it.weapon, it.skin);
+  if(known) return known;
+  const price = it.price;
+  if(price < 2) return "var(--r-milspec)";
+  if(price < 4) return "var(--r-restricted)";
+  if(price < 10) return "var(--r-classified)";
+  if(price < 100) return "var(--r-covert)";
+  return "var(--r-gold)";
+}
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return {balance: START_BALANCE, inventory: [], invCounter: 0};
+    const parsed = JSON.parse(raw);
+    return {
+      balance: typeof parsed.balance === "number" ? parsed.balance : START_BALANCE,
+      inventory: Array.isArray(parsed.inventory) ? parsed.inventory : [],
+      invCounter: typeof parsed.invCounter === "number" ? parsed.invCounter : 0
+    };
+  }catch(e){
+    return {balance: START_BALANCE, inventory: [], invCounter: 0};
+  }
+}
+function saveState(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({balance, inventory, invCounter})); }catch(e){}
+}
+
+const s0 = loadState();
+let balance = s0.balance;
+let inventory = s0.inventory;
+let invCounter = s0.invCounter;
+
+const balanceEl = document.getElementById("balance");
+const logEl = document.getElementById("log");
+function log(msg){
+  const d = document.createElement("div");
+  d.textContent = msg;
+  logEl.prepend(d);
+  while(logEl.children.length > 40) logEl.removeChild(logEl.lastChild);
+}
+function renderBalance(){
+  balanceEl.textContent = fmt(balance);
+  balanceEl.classList.toggle("low", balance < 0);
+  saveState();
+}
+document.getElementById("topUpBtn").onclick = () => {
+  balance += 20;
+  renderBalance();
+  refreshFundsBounds();
+  log(`Doładowano konto: +${fmt(20)}`);
+};
+document.getElementById("resetBtn").onclick = () => {
+  if(spinning) return;
+  balance = START_BALANCE;
+  inventory = [];
+  invCounter = 0;
+  selectedInputIds.clear();
+  cashUsed = 0;
+  selectedTargetKey = null;
+  selectedChancePreset = null;
+  localStorage.removeItem(DAILY_BONUS_KEY);
+  renderBalance();
+  renderDailyBonusBtn();
+  renderInvGrid();
+  renderTargetGrid();
+  refreshFundsBounds();
+  updateAll();
+  logEl.innerHTML = "";
+  log("Zresetowano symulację.");
+};
+document.getElementById("inventoryBtn").onclick = () => { window.location.href = "equipment.html"; };
+
+/* ---- shared top-nav widgets: settings dropdown + daily bonus (24h cooldown) ---- */
+document.querySelectorAll("[data-soon]").forEach(el => {
+  el.addEventListener("click", () => log("Wkrótce dostępne!"));
+});
+const settingsBtn = document.getElementById("settingsBtn");
+const settingsMenu = document.getElementById("settingsMenu");
+settingsBtn.onclick = (e) => { e.stopPropagation(); settingsMenu.classList.toggle("open"); };
+document.addEventListener("click", () => settingsMenu.classList.remove("open"));
+function fmtCountdown(ms){
+  const total = Math.max(0, Math.ceil(ms / 1000));
+  const h = String(Math.floor(total / 3600)).padStart(2,"0");
+  const m = String(Math.floor((total % 3600) / 60)).padStart(2,"0");
+  const s = String(total % 60).padStart(2,"0");
+  return `${h}:${m}:${s}`;
+}
+function renderDailyBonusBtn(){
+  const btn = document.getElementById("dailyBonusBtn");
+  const left = DAILY_BONUS_COOLDOWN_MS - (Date.now() - Number(localStorage.getItem(DAILY_BONUS_KEY) || 0));
+  if(left > 0){ btn.disabled = true; btn.textContent = `🎁 ${fmtCountdown(left)}`; }
+  else { btn.disabled = false; btn.textContent = "🎁 Daily Bonus"; }
+}
+document.getElementById("dailyBonusBtn").onclick = () => {
+  const now = Date.now();
+  if(now - Number(localStorage.getItem(DAILY_BONUS_KEY) || 0) < DAILY_BONUS_COOLDOWN_MS) return;
+  balance += 5;
+  localStorage.setItem(DAILY_BONUS_KEY, String(now));
+  renderBalance();
+  renderDailyBonusBtn();
+  log("Daily Bonus: +5,00 zł!");
+};
+setInterval(renderDailyBonusBtn, 1000);
+renderDailyBonusBtn();
+
+/* ---------------- state ---------------- */
+let selectedInputIds = new Set();   // _ids of chosen inventory items (multi-select)
+let cashUsed = 0;              // extra balance thrown in
+let selectedTargetKey = null;  // _key of chosen target item
+let selectedChancePreset = null;
+let spinning = false;
+
+let invSort = "desc";     // Mój ekwipunek sort
+let targetSort = "asc";   // Przedmioty do otrzymania sort
+let invSearch = "";
+let targetSearch = "";
+let targetMaxPrice = null;
+
+function getInputItems(){
+  return inventory.filter(i => selectedInputIds.has(i._id));
+}
+function getTargetItem(){
+  return UPGRADE_TARGET_ITEMS.find(i => i._key === selectedTargetKey) || null;
+}
+function inputTotal(){
+  const itemsTotal = getInputItems().reduce((sum, it) => sum + it.price, 0);
+  return itemsTotal + cashUsed;
+}
+function computeChance(inputVal, targetVal){
+  if(targetVal <= 0) return 0;
+  const raw = (inputVal / targetVal) * (1 - HOUSE_EDGE) * 100;
+  // only cap the top end (MAX_CHANCE) — a long-shot upgrade must show its real,
+  // tiny probability instead of being floored up to MIN_CHANCE (that constant
+  // is only a lower bound for the quick chance-preset buttons, not for the
+  // actual odds of an arbitrary input/target pair).
+  return Math.min(MAX_CHANCE, raw);
+}
+/* price such that computeChance(inputVal, price) ≈ desiredChance */
+function priceForChance(inputVal, desiredChance){
+  const c = Math.max(MIN_CHANCE, Math.min(MAX_CHANCE, desiredChance)) / 100;
+  return (inputVal * (1 - HOUSE_EDGE)) / c;
+}
+/* the cheapest target price still allowed for a given input value —
+   anything below this would break the 92% cap */
+function minAllowedPrice(inputVal){
+  return priceForChance(inputVal, MAX_SELECTABLE_CHANCE);
+}
+/* the most input value (items + cash) allowed for a given target price
+   without breaking the 92% cap */
+function maxAllowedInput(targetVal){
+  return (MAX_SELECTABLE_CHANCE/100) * targetVal / (1 - HOUSE_EDGE);
+}
+function nearestTargetToPrice(price){
+  let best = null, bestDiff = Infinity;
+  UPGRADE_TARGET_ITEMS.forEach(it => {
+    const diff = Math.abs(it.price - price);
+    if(diff < bestDiff){ bestDiff = diff; best = it; }
+  });
+  return best;
+}
+/* same as nearestTargetToPrice, but never lands on an item whose chance
+   (given the current input total) would exceed the 92% cap */
+function nearestAllowedTarget(inputVal, desiredPrice){
+  const minPrice = minAllowedPrice(inputVal);
+  const candidates = UPGRADE_TARGET_ITEMS.filter(it => it.price >= minPrice - 1e-9);
+  const pool = candidates.length ? candidates : UPGRADE_TARGET_ITEMS;
+  let best = null, bestDiff = Infinity;
+  pool.forEach(it => {
+    const diff = Math.abs(it.price - desiredPrice);
+    if(diff < bestDiff){ bestDiff = diff; best = it; }
+  });
+  return best;
+}
+
+/* ---------------- rendering: slots & wheel ---------------- */
+const inputSlotEl = document.getElementById("inputSlot");
+const targetSlotEl = document.getElementById("targetSlot");
+const fundsSlider = document.getElementById("fundsSlider");
+const fundsUsedLabel = document.getElementById("fundsUsedLabel");
+const fundsMaxLabel = document.getElementById("fundsMaxLabel");
+const inputTotalLabel = document.getElementById("inputTotalLabel");
+const inputCountLabel = document.getElementById("inputCountLabel");
+const targetTotalLabel = document.getElementById("targetTotalLabel");
+const targetCountLabel = document.getElementById("targetCountLabel");
+const chanceValueEl = document.getElementById("chanceValue");
+const wheelDialEl = document.getElementById("wheelDial");
+const wheelColorsEl = document.getElementById("wheelColors");
+const wheelNeedleEl = document.getElementById("wheelNeedle");
+const valLeftShow = document.getElementById("valLeftShow");
+const valRightShow = document.getElementById("valRightShow");
+const chanceSlider = document.getElementById("chanceSlider");
+const upgradeBtn = document.getElementById("upgradeBtn");
+const outcomeBanner = document.getElementById("outcomeBanner");
+
+function slotChipHTML(it){
+  const img = getSkinImage(it);
+  return `<div class="slot-chip" style="--rarity:${rarityColor(it)}">
+    ${img ? `<img src="${img}" alt="${it.weapon}" onerror="this.parentElement.innerHTML='<div class=&quot;fb&quot;>${it.weapon}</div>'">` : `<div class="fb">${it.weapon}</div>`}
+  </div>`;
+}
+function cashChipHTML(amount){
+  return `<div class="slot-chip" style="--rarity:var(--good)">
+    <div class="fb" style="font-size:11px;color:var(--good);">💰<br>${fmt(amount)}</div>
+  </div>`;
+}
+function inputSlotHTML(items, cash){
+  const chips = items.map(slotChipHTML);
+  if(cash > 0) chips.push(cashChipHTML(cash));
+  if(!chips.length) return `<div class="empty-hint">Wybierz przedmioty<br>lub użyj gotówki poniżej</div>`;
+  return chips.join("");
+}
+
+function refreshFundsBounds(){
+  const tgIt = getTargetItem();
+  const itemsTotal = getInputItems().reduce((sum, it) => sum + it.price, 0);
+  let maxFunds = balance;
+  if(tgIt){
+    const capRoom = Math.max(0, maxAllowedInput(tgIt.price) - itemsTotal);
+    maxFunds = Math.min(balance, capRoom);
+  }
+  fundsSlider.max = maxFunds.toFixed(2);
+  if(cashUsed > maxFunds) cashUsed = maxFunds;
+  fundsSlider.value = cashUsed;
+  fundsMaxLabel.textContent = fmt(maxFunds);
+  fundsUsedLabel.textContent = cashUsed.toLocaleString("pl-PL", {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+function updateAll(){
+  const inItems = getInputItems();
+  const tgIt = getTargetItem();
+
+  inputSlotEl.innerHTML = inputSlotHTML(inItems, cashUsed);
+  targetSlotEl.innerHTML = tgIt ? slotChipHTML(tgIt) : `<div class="empty-hint">Wybierz przedmiot<br>z listy poniżej</div>`;
+
+  const inTotal = inputTotal();
+  inputTotalLabel.textContent = fmt(inTotal);
+  inputCountLabel.textContent = inItems.length;
+
+  targetTotalLabel.textContent = fmt(tgIt ? tgIt.price : 0);
+  targetCountLabel.textContent = tgIt ? 1 : 0;
+
+  valLeftShow.textContent = fmt(inTotal);
+  valRightShow.textContent = fmt(tgIt ? tgIt.price : 0);
+
+  const chance = tgIt ? computeChance(inTotal, tgIt.price) : 0;
+  const overCap = chance > MAX_SELECTABLE_CHANCE;
+  const notAnUpgrade = !!tgIt && tgIt.price <= inTotal;
+  chanceValueEl.textContent = tgIt ? `${chance.toFixed(2)}%` : "0%";
+  wheelDialEl.style.setProperty("--win-deg", (chance/100*360).toFixed(2)+"deg");
+  chanceValueEl.style.color = (overCap || notAnUpgrade) ? "var(--bad)" : (chance >= 50 ? "var(--good)" : (chance >= 20 ? "var(--hazard)" : "var(--bad)"));
+
+  upgradeBtn.disabled = spinning || !tgIt || inTotal <= 0 || tgIt.price <= 0 || overCap || notAnUpgrade;
+
+  document.querySelectorAll(".chance-btn").forEach(b => {
+    b.classList.toggle("selected", selectedChancePreset === Number(b.dataset.chance));
+  });
+}
+
+/* ---------------- funds slider ---------------- */
+fundsSlider.oninput = () => {
+  cashUsed = Math.max(0, Math.min(Number(fundsSlider.max), Number(fundsSlider.value)));
+  fundsUsedLabel.textContent = cashUsed.toLocaleString("pl-PL", {minimumFractionDigits:2, maximumFractionDigits:2});
+  renderInvGrid();
+  renderTargetGrid();
+  updateAll();
+};
+document.getElementById("fundsMaxBtn").onclick = () => {
+  cashUsed = Number(fundsSlider.max);
+  refreshFundsBounds();
+  renderInvGrid();
+  renderTargetGrid();
+  updateAll();
+};
+
+/* ---------------- quick multiplier / chance presets ---------------- */
+document.querySelectorAll(".preset-btn").forEach(btn => {
+  btn.onclick = () => {
+    if(spinning) return;
+    const inTotal = inputTotal();
+    if(inTotal <= 0) return;
+    const mult = Number(btn.dataset.mult);
+    const desired = inTotal * mult;
+    const nearest = nearestAllowedTarget(inTotal, desired);
+    selectedTargetKey = nearest._key;
+    selectedChancePreset = null;
+    refreshFundsBounds();
+    renderTargetGrid();
+    updateAll();
+  };
+});
+document.querySelectorAll(".chance-btn").forEach(btn => {
+  btn.onclick = () => {
+    if(spinning) return;
+    const inTotal = inputTotal();
+    if(inTotal <= 0) return;
+    const desiredChance = Math.min(Number(btn.dataset.chance), MAX_SELECTABLE_CHANCE);
+    const desiredPrice = priceForChance(inTotal, desiredChance);
+    const nearest = nearestAllowedTarget(inTotal, desiredPrice);
+    selectedTargetKey = nearest._key;
+    selectedChancePreset = Number(btn.dataset.chance);
+    refreshFundsBounds();
+    renderTargetGrid();
+    updateAll();
+  };
+});
+/* Pure cosmetic control: spins the green/red ring to any position on the
+   wheel (e.g. 180° puts the red zone on the opposite side). It does NOT
+   touch the actual win chance, the selected target, or pick any skin —
+   only where the colors sit. The spin math below reads this same offset
+   so the needle always lands honestly inside the correct color. */
+let wheelRotate = 0;
+function applyWheelRotate(){
+  wheelColorsEl.style.setProperty("--wheel-rotate", wheelRotate + "deg");
+}
+chanceSlider.oninput = () => {
+  wheelRotate = Number(chanceSlider.value);
+  applyWheelRotate();
+};
+document.getElementById("randomizeBtn").onclick = () => {
+  if(spinning) return;
+  const inTotal = inputTotal();
+  if(inTotal <= 0) return;
+  const mult = 1.15 + Math.random()*9;
+  const nearest = nearestAllowedTarget(inTotal, inTotal*mult);
+  selectedTargetKey = nearest._key;
+  selectedChancePreset = null;
+  refreshFundsBounds();
+  renderTargetGrid();
+  updateAll();
+};
+
+/* ---------------- inventory grid (input picker) ---------------- */
+const invGridEl = document.getElementById("invGrid");
+const invSelectedLabel = document.getElementById("invSelectedLabel");
+function toggleInputItem(it){
+  if(spinning) return;
+  if(selectedInputIds.has(it._id)){
+    selectedInputIds.delete(it._id);
+  } else {
+    const tgIt = getTargetItem();
+    if(tgIt){
+      const wouldBeTotal = inputTotal() + it.price;
+      if(computeChance(wouldBeTotal, tgIt.price) > MAX_SELECTABLE_CHANCE){
+        log(`Nie można dodać: ${it.weapon} | ${it.skin} — szansa przekroczyłaby ${MAX_SELECTABLE_CHANCE}%.`);
+        return;
+      }
+    }
+    selectedInputIds.add(it._id);
+  }
+  refreshFundsBounds();
+  renderInvGrid();
+  renderTargetGrid();
+  updateAll();
+}
+function renderInvGrid(){
+  let items = inventory.slice();
+  if(invSearch){
+    const q = invSearch.toLowerCase();
+    items = items.filter(it => (it.weapon+" "+it.skin).toLowerCase().includes(q));
+  }
+  items.sort((a,b) => invSort === "asc" ? a.price-b.price : b.price-a.price);
+
+  const tgIt = getTargetItem();
+  const curTotal = inputTotal();
+
+  invGridEl.innerHTML = "";
+  if(items.length === 0){
+    invGridEl.innerHTML = `<div class="empty-note">Brak przedmiotów w ekwipunku. Otwórz skrzynkę, żeby coś zdobyć.</div>`;
+  } else {
+    items.forEach(it => {
+      const isSelected = selectedInputIds.has(it._id);
+      const wouldExceed = !isSelected && tgIt && computeChance(curTotal + it.price, tgIt.price) > MAX_SELECTABLE_CHANCE;
+      invGridEl.appendChild(browseItemNode(it, isSelected, () => toggleInputItem(it), wouldExceed, wouldExceed ? `Szansa przekroczyłaby ${MAX_SELECTABLE_CHANCE}%` : ""));
+    });
+  }
+  invSelectedLabel.textContent = `${selectedInputIds.size} wybrano`;
+}
+document.getElementById("invSearch").oninput = (e) => { invSearch = e.target.value; renderInvGrid(); };
+document.getElementById("invSortBtn").onclick = (e) => {
+  invSort = invSort === "asc" ? "desc" : "asc";
+  e.target.textContent = invSort === "asc" ? "Cena ↑" : "Cena ↓";
+  renderInvGrid();
+};
+
+/* ---------------- target grid (target picker) ---------------- */
+const targetGridEl = document.getElementById("targetGrid");
+const targetSelectedLabel = document.getElementById("targetSelectedLabel");
+document.getElementById("targetCountAll").textContent = `(${UPGRADE_TARGET_ITEMS.length})`;
+function renderTargetGrid(){
+  let items = UPGRADE_TARGET_ITEMS.slice();
+  if(targetSearch){
+    const q = targetSearch.toLowerCase();
+    items = items.filter(it => (it.weapon+" "+it.skin).toLowerCase().includes(q));
+  }
+  if(targetMaxPrice != null && !isNaN(targetMaxPrice)){
+    items = items.filter(it => it.price <= targetMaxPrice);
+  }
+  items.sort((a,b) => targetSort === "asc" ? a.price-b.price : b.price-a.price);
+
+  const curTotal = inputTotal();
+
+  targetGridEl.innerHTML = "";
+  if(items.length === 0){
+    targetGridEl.innerHTML = `<div class="empty-note">Brak przedmiotów pasujących do filtrów.</div>`;
+  } else {
+    items.forEach(it => {
+      const isSelected = it._key === selectedTargetKey;
+      const notAnUpgrade = !isSelected && curTotal > 0 && it.price <= curTotal;
+      const wouldExceed = !isSelected && !notAnUpgrade && curTotal > 0 && computeChance(curTotal, it.price) > MAX_SELECTABLE_CHANCE;
+      const disabled = notAnUpgrade || wouldExceed;
+      const disabledReason = notAnUpgrade
+        ? "Cel musi być droższy niż to, co wstawiasz"
+        : (wouldExceed ? `Szansa przekroczyłaby ${MAX_SELECTABLE_CHANCE}%` : "");
+      targetGridEl.appendChild(browseItemNode(it, isSelected, () => {
+        if(spinning) return;
+        selectedTargetKey = (selectedTargetKey === it._key) ? null : it._key;
+        selectedChancePreset = null;
+        refreshFundsBounds();
+        renderTargetGrid();
+        updateAll();
+      }, disabled, disabledReason));
+    });
+  }
+  targetSelectedLabel.textContent = selectedTargetKey != null ? "1 wybrano" : "0 wybrano";
+}
+document.getElementById("targetSearch").oninput = (e) => { targetSearch = e.target.value; renderTargetGrid(); };
+document.getElementById("targetMaxPrice").oninput = (e) => {
+  targetMaxPrice = e.target.value === "" ? null : Number(e.target.value);
+  renderTargetGrid();
+};
+document.getElementById("targetSortBtn").onclick = (e) => {
+  targetSort = targetSort === "asc" ? "desc" : "asc";
+  e.target.textContent = targetSort === "asc" ? "Cena ↑" : "Cena ↓";
+  renderTargetGrid();
+};
+
+function browseItemNode(it, isSelected, onClick, disabled, disabledReason){
+  const div = document.createElement("div");
+  div.className = "browse-item" + (isSelected ? " selected" : "") + (disabled ? " disabled" : "");
+  div.style.setProperty("--rarity", rarityColor(it));
+  if(disabled && disabledReason) div.title = disabledReason;
+  const slot = document.createElement("div");
+  slot.className = "img-slot";
+  const img = getSkinImage(it);
+  if(img){
+    const imgEl = document.createElement("img");
+    imgEl.src = img;
+    imgEl.alt = it.weapon+" "+it.skin;
+    imgEl.onerror = () => { slot.innerHTML = `<div class="fallback">${it.weapon}</div>`; };
+    slot.appendChild(imgEl);
+  } else {
+    slot.innerHTML = `<div class="fallback">${it.weapon}</div>`;
+  }
+  div.appendChild(slot);
+  const wp = document.createElement("div"); wp.className = "wp"; wp.textContent = it.weapon; div.appendChild(wp);
+  const nm = document.createElement("div"); nm.className = "nm"; nm.textContent = `${it.skin} (${it.wear})`; div.appendChild(nm);
+  const pr = document.createElement("div"); pr.className = "pr"; pr.textContent = fmt(it.price); div.appendChild(pr);
+  div.onclick = disabled ? null : onClick;
+  return div;
+}
+
+/* ---------------- sound effects (synthesized, no external files) ---------------- */
+let soundOn = true;
+let audioCtx = null;
+let spinSoundStop = null;
+function getAudioCtx(){
+  if(!audioCtx){
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if(Ctx) audioCtx = new Ctx();
+  }
+  if(audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+  return audioCtx;
+}
+function playTone(freq, startTime, duration, {type="sine", gain=0.18, glideTo=null} = {}){
+  const ctx = getAudioCtx();
+  if(!ctx) return;
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, startTime);
+  if(glideTo != null) osc.frequency.exponentialRampToValueAtTime(Math.max(1,glideTo), startTime + duration);
+  g.gain.setValueAtTime(0, startTime);
+  g.gain.linearRampToValueAtTime(gain, startTime + 0.015);
+  g.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+  osc.connect(g).connect(ctx.destination);
+  osc.start(startTime);
+  osc.stop(startTime + duration + 0.02);
+}
+/* Ticking wheel sound: clicks that start fast and slow down over the spin
+   duration, like a roulette ball settling — stops when the wheel stops. */
+function playSpinSound(totalMs){
+  if(!soundOn) return;
+  const ctx = getAudioCtx();
+  if(!ctx) return;
+  let cancelled = false;
+  const start = ctx.currentTime + 0.02;
+  const totalSec = totalMs / 1000;
+  let t = 0, i = 0;
+  function scheduleTick(){
+    if(cancelled || t >= totalSec) return;
+    // ease-out spacing between ticks: fast at first, slower near the end
+    const progress = t / totalSec;
+    const interval = 0.045 + 0.16 * (progress*progress);
+    playTone(520, start + t, 0.045, {type:"square", gain:0.05});
+    t += interval;
+    i++;
+    setTimeout(scheduleTick, interval*1000);
+  }
+  scheduleTick();
+  spinSoundStop = () => { cancelled = true; };
+}
+function stopSpinSound(){
+  if(spinSoundStop){ spinSoundStop(); spinSoundStop = null; }
+}
+function playWinSound(){
+  if(!soundOn) return;
+  const ctx = getAudioCtx();
+  if(!ctx) return;
+  const start = ctx.currentTime + 0.02;
+  // cheerful ascending arpeggio
+  [523.25, 659.25, 783.99, 1046.5].forEach((f, idx) => {
+    playTone(f, start + idx*0.09, 0.28, {type:"triangle", gain:0.22});
+  });
+}
+function playLoseSound(){
+  if(!soundOn) return;
+  const ctx = getAudioCtx();
+  if(!ctx) return;
+  const start = ctx.currentTime + 0.02;
+  // descending buzzy tone
+  playTone(220, start, 0.5, {type:"sawtooth", gain:0.16, glideTo:80});
+}
+const muteBtn = document.getElementById("muteBtn");
+muteBtn.onclick = () => {
+  soundOn = !soundOn;
+  muteBtn.textContent = soundOn ? "🔊 Dźwięk" : "🔇 Wyciszono";
+  muteBtn.classList.toggle("active", !soundOn);
+  if(soundOn) getAudioCtx();
+};
+
+/* ---------------- spin the wheel ---------------- */
+function resetNeedleInstant(){
+  wheelNeedleEl.style.transition = "none";
+  wheelNeedleEl.style.transform = "translate(-50%,-100%) rotate(0deg)";
+  void wheelNeedleEl.offsetHeight; // force reflow
+}
+
+upgradeBtn.onclick = () => {
+  const inItems = getInputItems();
+  const tgIt = getTargetItem();
+  if(spinning || !tgIt) return;
+  const inTotal = inputTotal();
+  if(inTotal <= 0 || tgIt.price <= 0) return;
+
+  if(tgIt.price <= inTotal) return; // safety net: target must be worth more than what you're putting in
+  const chance = computeChance(inTotal, tgIt.price);
+  if(chance > MAX_SELECTABLE_CHANCE) return; // safety net, shouldn't happen via normal UI flow
+  const winDeg = chance/100*360;
+
+  spinning = true;
+  updateAll();
+  outcomeBanner.classList.remove("show", "win", "lose");
+  outcomeBanner.textContent = "";
+
+  const itemsLabel = inItems.map(it => `${it.weapon} | ${it.skin} (${it.wear})`).join(", ");
+
+  // spend: remove all input items from inventory + deduct cash used
+  const idsToRemove = new Set(inItems.map(it => it._id));
+  inventory = inventory.filter(i => !idsToRemove.has(i._id));
+  balance -= cashUsed;
+  renderBalance();
+
+  const won = Math.random()*100 < chance;
+
+  playSpinSound(SPIN_MS);
+
+  resetNeedleInstant();
+  requestAnimationFrame(() => {
+    const fullTurns = 6;
+    let landing;
+    if(won){
+      landing = winDeg * (0.06 + Math.random()*0.88);
+    } else {
+      landing = winDeg + (360-winDeg) * (0.06 + Math.random()*0.88);
+    }
+    // offset by the wheel's current rotation so the needle lands inside
+    // the correct color no matter where the red/green ring has been spun to
+    const total = fullTurns*360 + landing + wheelRotate;
+    wheelNeedleEl.style.transition = `transform ${SPIN_MS}ms cubic-bezier(.11,.7,.13,1)`;
+    wheelNeedleEl.style.transform = `translate(-50%,-100%) rotate(${total}deg)`;
+  });
+
+  setTimeout(() => {
+    spinning = false;
+    stopSpinSound();
+    if(won){
+      invCounter++;
+      inventory.push({ weapon:tgIt.weapon, skin:tgIt.skin, wear:tgIt.wear, price:tgIt.price, img:getSkinImage(tgIt), _id: invCounter });
+      outcomeBanner.classList.add("show", "win");
+      outcomeBanner.textContent = `Wygrana! Otrzymujesz ${tgIt.weapon} | ${tgIt.skin} (${tgIt.wear}) za ${fmt(tgIt.price)}`;
+      log(`Ulepszenie: sukces (${chance.toFixed(2)}%) → ${tgIt.weapon} | ${tgIt.skin} (${tgIt.wear})`);
+      playWinSound();
+    } else {
+      const lostParts = [];
+      if(itemsLabel) lostParts.push(itemsLabel);
+      if(cashUsed > 0) lostParts.push(`${fmt(cashUsed)} gotówki`);
+      const lostText = lostParts.join(" i ") || "zakład";
+      outcomeBanner.classList.add("show", "lose");
+      outcomeBanner.textContent = `Przegrana. Stracono ${lostText}.`;
+      log(`Ulepszenie: porażka (${chance.toFixed(2)}%) — stracono ${lostText}.`);
+      playLoseSound();
+    }
+    selectedInputIds.clear();
+    cashUsed = 0;
+    selectedTargetKey = null;
+    selectedChancePreset = null;
+    renderBalance();
+    refreshFundsBounds();
+    renderInvGrid();
+    renderTargetGrid();
+    updateAll();
+  }, SPIN_MS + 150);
+};
+
+/* ---------------- init ---------------- */
+applyWheelRotate();
+renderBalance();
+refreshFundsBounds();
+renderInvGrid();
+renderTargetGrid();
+updateAll();
+log("Panel ulepszeń gotowy. Wybierz przedmiot i cel.");
+</script>
+</body>
+</html>

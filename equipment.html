@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SKRZYNKA // Ekwipunek</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0d12;
+    --panel:#141821;
+    --panel-2:#1b202b;
+    --line:#262c3a;
+    --text:#e9ecf3;
+    --muted:#7d879b;
+    --hazard:#ff9500;
+    --hazard-dim:#3a2712;
+    --good:#3ddc84;
+    --bad:#ff5a5a;
+    --r-milspec:#4b69ff;
+    --r-restricted:#8847ff;
+    --r-classified:#d32ce6;
+    --r-covert:#eb4b4b;
+    --r-gold:#ffd700;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 500px at 50% -10%, #1a2030 0%, transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+  }
+  .page-body{padding:24px 16px 60px;}
+  .hazard-bar{
+    height:8px;
+    background:repeating-linear-gradient(135deg,var(--hazard) 0 14px,#111 14px 28px);
+    opacity:.9;
+  }
+  .wrap{max-width:1100px;margin:0 auto;}
+
+  /* ---------------- top navigation (shared across pages) ---------------- */
+  .topnav{
+    display:flex; align-items:center; gap:14px;
+    padding:14px 20px; border-bottom:1px solid var(--line);
+    background:rgba(11,13,18,.8); backdrop-filter:blur(10px);
+    position:sticky; top:0; z-index:50; flex-wrap:wrap;
+  }
+  .brand{
+    display:flex; align-items:center; gap:8px; white-space:nowrap;
+    font-family:'Oswald',sans-serif; font-weight:700; letter-spacing:1px; text-transform:uppercase; font-size:18px;
+  }
+  .brand-icon{
+    width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center;
+    background:var(--hazard-dim); border:1px solid var(--hazard); font-size:16px;
+  }
+  .brand .accent{color:var(--hazard);}
+  .brand-socials{display:flex; gap:8px; color:var(--muted); font-size:15px;}
+  .brand-socials span{cursor:pointer;}
+  .brand-socials span:hover{color:var(--text);}
+  .nav-links{
+    display:flex; align-items:center; gap:14px; flex:1; flex-wrap:wrap;
+  }
+  .nav-link{
+    text-decoration:none; color:var(--muted); font-size:13.5px; font-weight:500;
+    text-transform:uppercase; letter-spacing:.5px; font-family:'Oswald',sans-serif;
+    padding-bottom:16px; margin-bottom:-15px; border-bottom:2px solid transparent;
+    display:flex; align-items:center; gap:6px; white-space:nowrap; cursor:pointer;
+    background:none; border-top:none; border-left:none; border-right:none;
+  }
+  .nav-link:hover{color:var(--text);}
+  .nav-link.active{color:var(--hazard); border-bottom-color:var(--hazard);}
+  .beta-tag{
+    font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700;
+    background:rgba(136,71,255,.14); color:var(--r-restricted);
+    padding:2px 5px; border-radius:4px; letter-spacing:.5px;
+  }
+  .nav-right{display:flex; align-items:center; gap:8px;}
+  .daily-btn{
+    background:var(--panel-2); border:1px solid var(--hazard-dim); color:var(--text);
+    padding:8px 11px; border-radius:9px; cursor:pointer; font-size:12.5px; font-weight:600;
+    display:flex; align-items:center; gap:6px; white-space:nowrap; font-family:'Inter',sans-serif;
+  }
+  .daily-btn:hover{border-color:var(--hazard); color:var(--hazard);}
+  .daily-btn:disabled{opacity:.5; cursor:not-allowed;}
+  .wallet-chip{
+    display:flex; align-items:center; gap:6px;
+    background:var(--panel-2); border:1px solid var(--line);
+    padding:6px 6px 6px 12px; border-radius:9px;
+  }
+  .wallet-chip .wc-amount{font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--good); font-size:14.5px; white-space:nowrap;}
+  .wallet-chip .wc-add{
+    width:26px; height:26px; border-radius:7px; border:none; cursor:pointer;
+    background:var(--hazard); color:#181000; font-weight:800; font-size:15px; line-height:1;
+  }
+  .icon-btn{
+    width:34px; height:34px; border-radius:9px; background:var(--panel-2); border:1px solid var(--line);
+    color:var(--muted); cursor:pointer; font-size:16px; position:relative;
+  }
+  .icon-btn:hover{color:var(--hazard); border-color:var(--hazard);}
+  .settings-wrap{position:relative;}
+  .settings-menu{
+    display:none; position:absolute; top:calc(100% + 8px); right:0; z-index:60;
+    background:var(--panel); border:1px solid var(--line); border-radius:10px; overflow:hidden;
+    min-width:180px; box-shadow:0 12px 30px -10px rgba(0,0,0,.6);
+  }
+  .settings-menu.open{display:block;}
+  .settings-menu button{
+    display:block; width:100%; text-align:left; background:none; border:none; color:var(--text);
+    padding:10px 14px; font-size:13px; cursor:pointer; font-family:'Inter',sans-serif;
+  }
+  .settings-menu button:hover{background:var(--panel-2); color:var(--hazard);}
+  .avatar-wrap{position:relative; display:flex;}
+  .avatar{
+    width:34px; height:34px; border-radius:50%; background:var(--panel-2); border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center; font-size:17px;
+  }
+  .lvl-badge{
+    position:absolute; bottom:-4px; right:-4px; background:var(--r-gold); color:#3a2a00;
+    font-size:9px; font-weight:800; padding:1px 5px; border-radius:8px; border:2px solid var(--bg);
+    font-family:'JetBrains Mono',monospace;
+  }
+  .page-title{margin-bottom:26px;}
+  header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    flex-wrap:wrap;
+    gap:16px;
+    margin-bottom:22px;
+  }
+  h1{font-family:'Oswald',sans-serif;font-weight:700;letter-spacing:2px;text-transform:uppercase;font-size:clamp(28px,4vw,42px);margin:0;line-height:1;}
+  h1 span{color:var(--hazard);}
+  .sub{color:var(--muted);font-size:13px;letter-spacing:.5px;margin-top:6px;}
+  .wallet{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 18px;text-align:right;min-width:220px;}
+  .wallet .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;}
+  .wallet .amount{font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;color:var(--good);}
+  .wallet .amount.low{color:var(--bad);}
+  .wallet-actions{display:flex;gap:8px;margin-top:8px;}
+  .mini-btn{flex:1;background:var(--panel-2);border:1px solid var(--line);color:var(--text);font-size:11px;padding:6px 8px;border-radius:6px;cursor:pointer;font-family:'Inter',sans-serif;}
+  .mini-btn:hover{border-color:var(--hazard);color:var(--hazard);}
+  .section-title{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:1.5px;font-size:16px;margin:26px 0 10px;display:flex;justify-content:space-between;align-items:center;}
+  .section-title button{background:var(--panel-2);border:1px solid var(--line);color:var(--muted);font-size:11px;padding:6px 10px;border-radius:6px;cursor:pointer;letter-spacing:.5px;font-family:'Inter',sans-serif;text-transform:none;}
+  .section-title button:hover{color:var(--hazard);border-color:var(--hazard);}
+  .inventory{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;}
+  .empty-note{color:var(--muted);font-size:13px;padding:14px;border:1px dashed var(--line);border-radius:10px;text-align:center;}
+  .inv-item{background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--rarity, var(--r-milspec));border-radius:8px;padding:8px;display:flex;flex-direction:column;align-items:center;}
+  .inv-item .img-slot{height:60px;width:100%;display:flex;align-items:center;justify-content:center;margin-bottom:4px;}
+  .inv-item img{max-height:56px;max-width:90%;object-fit:contain;}
+  .inv-item .fallback{font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace;text-align:center;}
+  .inv-item .wp{font-size:11px;font-weight:600;text-align:center;}
+  .inv-item .nm{font-size:9px;color:var(--muted);text-align:center;margin-bottom:6px;}
+  .inv-item .sell-btn{width:100%;font-size:11px;padding:5px;border-radius:5px;background:var(--panel-2);border:1px solid var(--line);color:var(--good);cursor:pointer;font-family:'JetBrains Mono',monospace;}
+  .inv-item .sell-btn:hover{border-color:var(--good);}
+  .log{margin-top:24px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);max-height:120px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;padding:10px 14px;background:var(--panel);}
+  .log div{padding:2px 0;border-bottom:1px solid var(--line);}
+  .log div:last-child{border-bottom:none;}
+  .back-link{color:var(--muted);font-size:12px;text-decoration:none;letter-spacing:.5px;}
+  .back-link:hover{color:var(--hazard);}
+  footer{text-align:center;color:var(--muted);font-size:11px;margin-top:30px;letter-spacing:.5px;}
+</style>
+</head>
+<body>
+
+<div class="hazard-bar"></div>
+
+<nav class="topnav">
+  <div class="brand"><span class="brand-icon">📦</span>Skrzynka <span class="accent">// Symulator</span></div>
+  <div class="brand-socials">
+    <span title="Discord">◎</span><span title="Instagram">📷</span><span title="TikTok">🎵</span>
+  </div>
+  <div class="nav-links">
+    <a class="nav-link" href="index.html">Skrzynki</a>
+    <a class="nav-link" href="darmowe.html">Darmowe</a>
+    <a class="nav-link" href="battle.html">Case Battle</a>
+    <a class="nav-link" href="upgrade.html">Upgrader</a>
+    <button class="nav-link" data-soon>Zadania</button>
+    <a class="nav-link active" href="equipment.html">Ekwipunek</a>
+  </div>
+  <div class="nav-right">
+    <button class="daily-btn" id="dailyBonusBtn">🎁 Daily Bonus</button>
+    <div class="wallet-chip">
+      <span class="wc-amount" id="balance">50,00 zł</span>
+      <button class="wc-add" id="topUpBtn" title="Doładuj +20,00 zł">+</button>
+    </div>
+    <div class="settings-wrap">
+      <button class="icon-btn" id="settingsBtn">⚙</button>
+      <div class="settings-menu" id="settingsMenu">
+        <button id="resetBtn">Zresetuj konto</button>
+        <button id="inventoryBtn">Ekwipunek</button>
+      </div>
+    </div>
+    <div class="avatar-wrap">
+      <div class="avatar">🙂</div>
+      <span class="lvl-badge">4</span>
+    </div>
+  </div>
+</nav>
+
+<div class="page-body">
+<div class="wrap">
+
+  <div class="page-title">
+    <h1>Ekwipunek <span>//</span> Symulator</h1>
+    <div class="sub">Przeglądaj sprzedaj i zarządzaj przedmiotami ze swojego ekwipunku.</div>
+  </div>
+
+  <div class="section-title">
+    Ekwipunek
+    <button id="sellAllBtn">Sprzedaj wszystko</button>
+  </div>
+  <div class="inventory" id="inventory">
+    <div class="empty-note" id="invEmpty">Brak przedmiotów. Otwórz skrzynkę, żeby coś zdobyć.</div>
+  </div>
+
+  <div class="log" id="log"></div>
+  <footer>Symulacja edukacyjna / rozrywkowa — fikcyjna waluta, brak realnych transakcji.</footer>
+</div>
+</div>
+
+<script src="rarity-data.js"></script>
+<script src="nav-i18n.js"></script>
+<script>
+const STORAGE_KEY = "cs2sim_state_v1";
+const DAILY_BONUS_KEY = "cs2sim_daily_bonus_at";
+const DAILY_BONUS_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+const START_BALANCE = 50.00;
+function fmt(n){
+  return n.toLocaleString("pl-PL", {minimumFractionDigits:2, maximumFractionDigits:2}) + " zł";
+}
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return {balance: START_BALANCE, inventory: [], invCounter: 0};
+    const parsed = JSON.parse(raw);
+    return {
+      balance: typeof parsed.balance === "number" ? parsed.balance : START_BALANCE,
+      inventory: Array.isArray(parsed.inventory) ? parsed.inventory : [],
+      invCounter: typeof parsed.invCounter === "number" ? parsed.invCounter : 0
+    };
+  }catch(e){
+    return {balance: START_BALANCE, inventory: [], invCounter: 0};
+  }
+}
+function saveState(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({balance, inventory, invCounter})); }catch(e){}
+}
+
+const initial = loadState();
+let balance = initial.balance;
+let inventory = initial.inventory;
+let invCounter = initial.invCounter;
+const balanceEl = document.getElementById("balance");
+const inventoryEl = document.getElementById("inventory");
+const invEmpty = document.getElementById("invEmpty");
+const logEl = document.getElementById("log");
+
+function renderBalance(){
+  balanceEl.textContent = fmt(balance);
+  balanceEl.classList.toggle("low", balance < 0);
+  saveState();
+}
+function itemNode(it, cls){
+  const div = document.createElement("div");
+  div.className = cls;
+  div.style.setProperty("--rarity", getRarityColor(it));
+  const slot = document.createElement("div");
+  slot.className = "img-slot";
+  if(it.img){
+    const img = document.createElement("img");
+    img.src = it.img;
+    img.alt = it.weapon + " " + it.skin;
+    img.onerror = () => { slot.innerHTML = `<div class="fallback">${it.weapon}</div>`; };
+    slot.appendChild(img);
+  } else {
+    slot.innerHTML = `<div class="fallback">${it.weapon}</div>`;
+  }
+  div.appendChild(slot);
+  const wp = document.createElement("div"); wp.className = "wp"; wp.textContent = it.weapon; div.appendChild(wp);
+  const nm = document.createElement("div"); nm.className = "nm"; nm.textContent = `${it.skin} (${it.wear})`; div.appendChild(nm);
+  const btn = document.createElement("button"); btn.className = "sell-btn"; btn.textContent = `Sprzedaj ${fmt(it.price)}`;
+  btn.onclick = () => sellItem(it._id);
+  div.appendChild(btn);
+  return div;
+}
+function getRarityColor(it){
+  const known = getSkinRarityColor(it.weapon, it.skin);
+  if(known) return known;
+  const price = it.price;
+  if(price < 2) return "var(--r-milspec)";
+  if(price < 4) return "var(--r-restricted)";
+  if(price < 10) return "var(--r-classified)";
+  if(price < 100) return "var(--r-covert)";
+  return "var(--r-gold)";
+}
+function log(msg){
+  const d = document.createElement("div");
+  d.textContent = msg;
+  logEl.prepend(d);
+  while(logEl.children.length > 40) logEl.removeChild(logEl.lastChild);
+}
+function renderInventory(){
+  inventoryEl.innerHTML = "";
+  if(inventory.length === 0){ inventoryEl.appendChild(invEmpty); return; }
+  inventory.slice().reverse().forEach(it => inventoryEl.appendChild(itemNode(it, "inv-item")));
+}
+function sellItem(id){
+  const idx = inventory.findIndex(i => i._id === id);
+  if(idx === -1) return;
+  const it = inventory[idx];
+  balance += it.price;
+  inventory.splice(idx, 1);
+  renderBalance();
+  renderInventory();
+  log(`Sprzedano: ${it.weapon} | ${it.skin} (${it.wear}) za ${fmt(it.price)}`);
+}
+
+function init(){
+  document.getElementById("sellAllBtn").onclick = () => {
+    if(inventory.length === 0) return;
+    const total = inventory.reduce((s,i) => s + i.price, 0);
+    balance += total;
+    inventory = [];
+    renderBalance();
+    renderInventory();
+    log(`Sprzedano wszystko za ${fmt(total)}`);
+  };
+  document.getElementById("topUpBtn").onclick = () => {
+    balance += 20;
+    renderBalance();
+    log(`Doładowano konto: +${fmt(20)}`);
+  };
+  document.getElementById("resetBtn").onclick = () => {
+    balance = START_BALANCE;
+    inventory = [];
+    invCounter = 0;
+    localStorage.removeItem(DAILY_BONUS_KEY);
+    renderBalance();
+    renderInventory();
+    renderDailyBonusBtn();
+    logEl.innerHTML = "";
+    log("Zresetowano symulację.");
+  };
+  document.getElementById("inventoryBtn").onclick = () => { window.location.href = "equipment.html"; };
+  renderBalance();
+  renderInventory();
+  log("Przegląd ekwipunku gotowy.");
+}
+init();
+
+/* ---- shared top-nav widgets: settings dropdown + daily bonus (24h cooldown) ---- */
+document.querySelectorAll("[data-soon]").forEach(el => {
+  el.addEventListener("click", () => log("Wkrótce dostępne!"));
+});
+const settingsBtn = document.getElementById("settingsBtn");
+const settingsMenu = document.getElementById("settingsMenu");
+settingsBtn.onclick = (e) => { e.stopPropagation(); settingsMenu.classList.toggle("open"); };
+document.addEventListener("click", () => settingsMenu.classList.remove("open"));
+function fmtCountdown(ms){
+  const total = Math.max(0, Math.ceil(ms / 1000));
+  const h = String(Math.floor(total / 3600)).padStart(2,"0");
+  const m = String(Math.floor((total % 3600) / 60)).padStart(2,"0");
+  const s = String(total % 60).padStart(2,"0");
+  return `${h}:${m}:${s}`;
+}
+function renderDailyBonusBtn(){
+  const btn = document.getElementById("dailyBonusBtn");
+  const left = DAILY_BONUS_COOLDOWN_MS - (Date.now() - Number(localStorage.getItem(DAILY_BONUS_KEY) || 0));
+  if(left > 0){ btn.disabled = true; btn.textContent = `🎁 ${fmtCountdown(left)}`; }
+  else { btn.disabled = false; btn.textContent = "🎁 Daily Bonus"; }
+}
+document.getElementById("dailyBonusBtn").onclick = () => {
+  const now = Date.now();
+  if(now - Number(localStorage.getItem(DAILY_BONUS_KEY) || 0) < DAILY_BONUS_COOLDOWN_MS) return;
+  balance += 5;
+  localStorage.setItem(DAILY_BONUS_KEY, String(now));
+  renderBalance();
+  renderDailyBonusBtn();
+  log("Daily Bonus: +5,00 zł!");
+};
+setInterval(renderDailyBonusBtn, 1000);
+renderDailyBonusBtn();
+</script>
+</body>
+</html>

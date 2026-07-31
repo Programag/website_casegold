@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SKRZYNKA // Darmowe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0d12;
+    --panel:#141821;
+    --panel-2:#1b202b;
+    --line:#262c3a;
+    --text:#e9ecf3;
+    --muted:#7d879b;
+    --hazard:#ff9500;
+    --hazard-dim:#3a2712;
+    --good:#3ddc84;
+    --bad:#ff5a5a;
+    --r-milspec:#4b69ff;
+    --r-restricted:#8847ff;
+    --r-classified:#d32ce6;
+    --r-covert:#eb4b4b;
+    --r-gold:#ffd700;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 500px at 50% -10%, #1a2030 0%, transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+  }
+  .page-body{padding:24px 16px 60px;}
+
+  .hazard-bar{
+    height:8px;
+    background:repeating-linear-gradient(135deg,var(--hazard) 0 14px,#111 14px 28px);
+    opacity:.9;
+  }
+
+  .wrap{max-width:1100px;margin:0 auto;}
+
+  /* ---------------- top navigation (shared across pages) ---------------- */
+  .topnav{
+    display:flex; align-items:center; gap:14px;
+    padding:14px 20px; border-bottom:1px solid var(--line);
+    background:rgba(11,13,18,.8); backdrop-filter:blur(10px);
+    position:sticky; top:0; z-index:50; flex-wrap:wrap;
+  }
+  .brand{
+    display:flex; align-items:center; gap:8px; white-space:nowrap;
+    font-family:'Oswald',sans-serif; font-weight:700; letter-spacing:1px; text-transform:uppercase; font-size:18px;
+  }
+  .brand-icon{
+    width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center;
+    background:var(--hazard-dim); border:1px solid var(--hazard); font-size:16px;
+  }
+  .brand .accent{color:var(--hazard);}
+  .brand-socials{display:flex; gap:8px; color:var(--muted); font-size:15px;}
+  .brand-socials span{cursor:pointer;}
+  .brand-socials span:hover{color:var(--text);}
+  .nav-links{
+    display:flex; align-items:center; gap:14px; flex:1; flex-wrap:wrap;
+  }
+  .nav-link{
+    text-decoration:none; color:var(--muted); font-size:13.5px; font-weight:500;
+    text-transform:uppercase; letter-spacing:.5px; font-family:'Oswald',sans-serif;
+    padding-bottom:16px; margin-bottom:-15px; border-bottom:2px solid transparent;
+    display:flex; align-items:center; gap:6px; white-space:nowrap; cursor:pointer;
+    background:none; border-top:none; border-left:none; border-right:none;
+  }
+  .nav-link:hover{color:var(--text);}
+  .nav-link.active{color:var(--hazard); border-bottom-color:var(--hazard);}
+  .beta-tag{
+    font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700;
+    background:rgba(136,71,255,.14); color:var(--r-restricted);
+    padding:2px 5px; border-radius:4px; letter-spacing:.5px;
+  }
+  .nav-right{display:flex; align-items:center; gap:8px;}
+  .daily-btn{
+    background:var(--panel-2); border:1px solid var(--hazard-dim); color:var(--text);
+    padding:8px 11px; border-radius:9px; cursor:pointer; font-size:12.5px; font-weight:600;
+    display:flex; align-items:center; gap:6px; white-space:nowrap; font-family:'Inter',sans-serif;
+  }
+  .daily-btn:hover{border-color:var(--hazard); color:var(--hazard);}
+  .daily-btn:disabled{opacity:.5; cursor:not-allowed;}
+  .wallet-chip{
+    display:flex; align-items:center; gap:6px;
+    background:var(--panel-2); border:1px solid var(--line);
+    padding:6px 6px 6px 12px; border-radius:9px;
+  }
+  .wallet-chip .wc-amount{font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--good); font-size:14.5px; white-space:nowrap;}
+  .wallet-chip .wc-add{
+    width:26px; height:26px; border-radius:7px; border:none; cursor:pointer;
+    background:var(--hazard); color:#181000; font-weight:800; font-size:15px; line-height:1;
+  }
+  .icon-btn{
+    width:34px; height:34px; border-radius:9px; background:var(--panel-2); border:1px solid var(--line);
+    color:var(--muted); cursor:pointer; font-size:16px; position:relative;
+  }
+  .icon-btn:hover{color:var(--hazard); border-color:var(--hazard);}
+  .settings-wrap{position:relative;}
+  .settings-menu{
+    display:none; position:absolute; top:calc(100% + 8px); right:0; z-index:60;
+    background:var(--panel); border:1px solid var(--line); border-radius:10px; overflow:hidden;
+    min-width:180px; box-shadow:0 12px 30px -10px rgba(0,0,0,.6);
+  }
+  .settings-menu.open{display:block;}
+  .settings-menu button{
+    display:block; width:100%; text-align:left; background:none; border:none; color:var(--text);
+    padding:10px 14px; font-size:13px; cursor:pointer; font-family:'Inter',sans-serif;
+  }
+  .settings-menu button:hover{background:var(--panel-2); color:var(--hazard);}
+  .avatar-wrap{position:relative; display:flex;}
+  .avatar{
+    width:34px; height:34px; border-radius:50%; background:var(--panel-2); border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center; font-size:17px;
+  }
+  .lvl-badge{
+    position:absolute; bottom:-4px; right:-4px; background:var(--r-gold); color:#3a2a00;
+    font-size:9px; font-weight:800; padding:1px 5px; border-radius:8px; border:2px solid var(--bg);
+    font-family:'JetBrains Mono',monospace;
+  }
+
+  /* ---------------- page content ---------------- */
+  .back-link{
+    display:inline-flex; align-items:center; gap:4px; color:var(--muted); font-size:13px;
+    text-decoration:none; margin:22px 0 18px;
+  }
+  .back-link:hover{color:var(--hazard);}
+
+  .open-header{text-align:center; margin-bottom:6px;}
+  .open-header h1{
+    display:inline-flex; align-items:center; gap:10px;
+    font-family:'Oswald',sans-serif; font-weight:700; text-transform:uppercase; letter-spacing:1px;
+    font-size:clamp(24px,4vw,32px); margin:0;
+  }
+  .open-header .oh-tag{
+    font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700;
+    padding:4px 10px; border-radius:20px; background:var(--case-accent, var(--hazard)); color:#181000;
+    text-transform:none; letter-spacing:.5px;
+  }
+  .open-countdown{
+    text-align:center; color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:14px;
+    margin-bottom:22px; display:flex; align-items:center; justify-content:center; gap:6px;
+  }
+  .open-countdown.ready{color:var(--good);}
+
+  /* ---- reel (reused case-simulator pattern) ---- */
+  .reel-outer{
+    position:relative; height:150px;
+    background:var(--panel-2); border:1px solid var(--case-accent, var(--line)); border-radius:10px;
+    overflow:hidden; margin-bottom:20px;
+  }
+  .reel-outer::before, .reel-outer::after{
+    content:""; position:absolute; top:0; bottom:0; width:70px; z-index:3; pointer-events:none;
+  }
+  .reel-outer::before{left:0; background:linear-gradient(90deg, var(--panel-2) 10%, transparent);}
+  .reel-outer::after{right:0; background:linear-gradient(270deg, var(--panel-2) 10%, transparent);}
+  .pointer{
+    position:absolute; left:50%; top:0; bottom:0; width:2px; background:var(--hazard);
+    transform:translateX(-50%); z-index:4; box-shadow:0 0 12px var(--hazard);
+  }
+  .pointer::before, .pointer::after{
+    content:""; position:absolute; left:50%; transform:translateX(-50%);
+    border-left:7px solid transparent; border-right:7px solid transparent;
+  }
+  .pointer::before{top:0; border-top:9px solid var(--hazard);}
+  .pointer::after{bottom:0; border-bottom:9px solid var(--hazard);}
+  .reel-track{position:absolute; top:0; bottom:0; left:0; display:flex; align-items:center; will-change:transform;}
+  .reel-item{
+    width:120px; height:120px; margin:0 6px; flex:0 0 auto; border-radius:8px; position:relative;
+    background:var(--panel); border:1px solid var(--line); border-top:3px solid var(--rarity, var(--r-milspec));
+    display:flex; flex-direction:column; align-items:center; justify-content:flex-end; padding:6px 6px 8px; overflow:hidden;
+  }
+  .reel-item .img-slot{flex:1; width:100%; display:flex; align-items:center; justify-content:center; margin-bottom:4px;}
+  .reel-item img{max-width:92%; max-height:70px; object-fit:contain;}
+  .reel-item .fallback{font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--muted); text-align:center; padding:0 4px;}
+  .reel-item .nm{font-size:9.5px; color:var(--muted); text-align:center; line-height:1.2; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .reel-item .wp{font-size:10.5px; font-weight:600; text-align:center; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+
+  .open-actions{display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:34px;}
+  .open-btn{
+    font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:1.5px; font-weight:600; font-size:15px;
+    background:var(--hazard); color:#181000; border:none; padding:15px 34px; border-radius:8px; cursor:pointer;
+    box-shadow:0 4px 0 #b56b00; transition:transform .1s ease, box-shadow .1s ease; min-width:220px;
+  }
+  .open-btn:hover:not(:disabled){transform:translateY(-1px);}
+  .open-btn:active:not(:disabled){transform:translateY(3px); box-shadow:0 1px 0 #b56b00;}
+  .open-btn:disabled{background:var(--panel-2); color:var(--muted); cursor:not-allowed; box-shadow:none;}
+  .toggle-btn{
+    width:48px; height:48px; border-radius:8px; background:var(--panel-2); border:1px solid var(--line);
+    color:var(--muted); cursor:pointer; font-size:17px;
+  }
+  .toggle-btn:hover{border-color:var(--hazard); color:var(--hazard);}
+  .toggle-btn.active{border-color:var(--hazard); color:var(--hazard); background:var(--hazard-dim);}
+
+  .contents-title{
+    font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:1.5px; font-size:16px; font-weight:600;
+    text-align:center; margin-bottom:18px;
+  }
+  .contents-grid{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(150px,1fr)); gap:14px; margin-bottom:10px;
+  }
+  .content-card{
+    position:relative; background:var(--panel); border:1px solid var(--line); border-top:3px solid var(--rarity, var(--r-milspec));
+    border-radius:10px; padding:12px 10px; text-align:center;
+  }
+  .content-card .cc-wear{
+    position:absolute; top:8px; left:8px; font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700;
+    color:var(--muted); background:rgba(0,0,0,.4); padding:2px 5px; border-radius:4px;
+  }
+  .content-card .cc-chance{
+    position:absolute; top:8px; right:8px; font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700;
+    color:var(--text); background:rgba(0,0,0,.4); padding:2px 5px; border-radius:4px;
+  }
+  .content-card .cc-img{height:76px; display:flex; align-items:center; justify-content:center; margin-bottom:8px;}
+  .content-card .cc-img img{max-width:88%; max-height:100%; object-fit:contain;}
+  .content-card .cc-img .fallback{font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--muted);}
+  .content-card .cc-wp{font-weight:600; font-size:12.5px;}
+  .content-card .cc-nm{color:var(--muted); font-size:10.5px; margin-top:1px;}
+  .content-card .cc-pr{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:12.5px; color:var(--hazard); margin-top:6px;}
+
+  footer{
+    text-align:center; color:var(--muted); font-size:11px; margin-top:34px;
+    letter-spacing:.5px;
+  }
+
+  .toast{
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--panel); border:1px solid var(--line); color:var(--text);
+    padding:12px 20px; border-radius:10px; font-size:13.5px; z-index:100;
+    opacity:0; pointer-events:none; transition:opacity .2s ease, transform .2s ease;
+    box-shadow:0 12px 30px -10px rgba(0,0,0,.6);
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<div class="hazard-bar"></div>
+
+<nav class="topnav">
+  <div class="brand"><span class="brand-icon">📦</span>Skrzynka <span class="accent">// Symulator</span></div>
+  <div class="brand-socials">
+    <span title="Discord">◎</span><span title="Instagram">📷</span><span title="TikTok">🎵</span>
+  </div>
+  <div class="nav-links">
+    <a class="nav-link" href="index.html">Skrzynki</a>
+    <a class="nav-link active" href="darmowe.html">Darmowe</a>
+    <a class="nav-link" href="battle.html">Case Battle</a>
+    <a class="nav-link" href="upgrade.html">Upgrader</a>
+    <button class="nav-link" data-soon>Zadania</button>
+    <a class="nav-link" href="equipment.html">Ekwipunek</a>
+  </div>
+  <div class="nav-right">
+    <button class="daily-btn" id="dailyBonusBtn">🎁 Daily Bonus</button>
+    <div class="wallet-chip">
+      <span class="wc-amount" id="balance">50,00 zł</span>
+      <button class="wc-add" id="topUpBtn" title="Doładuj +20,00 zł">+</button>
+    </div>
+    <div class="settings-wrap">
+      <button class="icon-btn" id="settingsBtn">⚙</button>
+      <div class="settings-menu" id="settingsMenu">
+        <button id="resetBtn">Zresetuj konto</button>
+        <button id="inventoryBtn">Ekwipunek</button>
+      </div>
+    </div>
+    <div class="avatar-wrap">
+      <div class="avatar">🙂</div>
+      <span class="lvl-badge">4</span>
+    </div>
+  </div>
+</nav>
+
+<div class="page-body">
+<div class="wrap">
+
+  <a class="back-link" href="darmowe.html">‹ Powrót do skrzynek</a>
+
+  <div class="open-header">
+    <h1><span id="caseIcon">🎁</span> <span id="caseName">Free Case</span> <span class="oh-tag" id="caseTag">DARMOWA</span></h1>
+  </div>
+  <div class="open-countdown" id="caseCountdown">🕐 --:--:--</div>
+
+  <div class="reel-outer" id="reelOuter">
+    <div class="pointer"></div>
+    <div class="reel-track" id="reelTrack"></div>
+  </div>
+
+  <div class="open-actions">
+    <button class="open-btn" id="openBtn">Otwórz skrzynkę</button>
+    <button class="toggle-btn" id="fastBtn" title="Szybkie otwieranie">⚡</button>
+    <button class="toggle-btn active" id="muteBtn" title="Dźwięk">🔊</button>
+  </div>
+
+  <div class="contents-title">Zawartość skrzynki</div>
+  <div class="contents-grid" id="contentsGrid"></div>
+
+  <footer>Symulacja edukacyjna / rozrywkowa — fikcyjna waluta, brak realnych transakcji.</footer>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="skin-images.js"></script>
+<script src="sound.js"></script>
+<script src="rarity-data.js"></script>
+<script src="nav-i18n.js"></script>
+<script>
+const PLAYER_LEVEL = 45;
+
+const STORAGE_KEY = "cs2sim_state_v1";
+const DAILY_BONUS_KEY = "cs2sim_daily_bonus_at";
+const DAILY_BONUS_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+const START_BALANCE = 50.00;
+
+function fmt(n){
+  return n.toLocaleString("pl-PL", {minimumFractionDigits:2, maximumFractionDigits:2}) + " zł";
+}
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return {balance: START_BALANCE, inventory: [], invCounter: 0};
+    const parsed = JSON.parse(raw);
+    return {
+      balance: typeof parsed.balance === "number" ? parsed.balance : START_BALANCE,
+      inventory: Array.isArray(parsed.inventory) ? parsed.inventory : [],
+      invCounter: typeof parsed.invCounter === "number" ? parsed.invCounter : 0
+    };
+  }catch(e){
+    return {balance: START_BALANCE, inventory: [], invCounter: 0};
+  }
+}
+function saveState(state){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
+}
+let state = loadState();
+function renderBalance(){
+  document.getElementById("balance").textContent = fmt(state.balance);
+}
+function showToast(msg){
+  const toast = document.getElementById("toast");
+  toast.textContent = msg;
+  toast.classList.add("show");
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => toast.classList.remove("show"), 2200);
+}
+
+/* ---- nav / settings wiring shared with the rest of the site ---- */
+document.querySelectorAll("[data-soon]").forEach(el => {
+  el.addEventListener("click", () => showToast("Wkrótce dostępne!"));
+});
+const settingsBtn = document.getElementById("settingsBtn");
+const settingsMenu = document.getElementById("settingsMenu");
+settingsBtn.onclick = (e) => { e.stopPropagation(); settingsMenu.classList.toggle("open"); };
+document.addEventListener("click", () => settingsMenu.classList.remove("open"));
+document.getElementById("inventoryBtn").onclick = () => { window.location.href = "equipment.html"; };
+document.getElementById("topUpBtn").onclick = () => {
+  state.balance += 20;
+  renderBalance();
+  saveState(state);
+};
+document.getElementById("resetBtn").onclick = () => {
+  state = {balance: START_BALANCE, inventory: [], invCounter: 0};
+  renderBalance();
+  saveState(state);
+  localStorage.removeItem(DAILY_BONUS_KEY);
+  Object.values(CASE_DEFS).forEach(c => localStorage.removeItem(c.key));
+  renderDailyBonusBtn();
+  renderCountdown();
+  showToast("Konto zresetowane.");
+};
+
+function fmtCountdown(ms){
+  const total = Math.max(0, Math.ceil(ms / 1000));
+  const h = String(Math.floor(total / 3600)).padStart(2,"0");
+  const m = String(Math.floor((total % 3600) / 60)).padStart(2,"0");
+  const s = String(total % 60).padStart(2,"0");
+  return `${h}:${m}:${s}`;
+}
+function renderDailyBonusBtn(){
+  const btn = document.getElementById("dailyBonusBtn");
+  const left = DAILY_BONUS_COOLDOWN_MS - (Date.now() - Number(localStorage.getItem(DAILY_BONUS_KEY) || 0));
+  if(left > 0){ btn.disabled = true; btn.textContent = `🎁 ${fmtCountdown(left)}`; }
+  else { btn.disabled = false; btn.textContent = "🎁 Daily Bonus"; }
+}
+document.getElementById("dailyBonusBtn").onclick = () => {
+  const now = Date.now();
+  if(now - Number(localStorage.getItem(DAILY_BONUS_KEY) || 0) < DAILY_BONUS_COOLDOWN_MS) return;
+  state.balance += 5;
+  localStorage.setItem(DAILY_BONUS_KEY, String(now));
+  renderBalance();
+  saveState(state);
+  renderDailyBonusBtn();
+  showToast("Daily Bonus: +5,00 zł!");
+};
+setInterval(renderDailyBonusBtn, 1000);
+
+/* ---------------- distinct item pool per tier ----------------
+   Each free/level case has its own set of real items (pulled from the same
+   pools as the paid cases) so higher tiers unlock genuinely better skins —
+   not the same 10 templates with a price multiplier slapped on. */
+const TIER_ITEMS = {
+  free: [
+    {weapon:"MP5-SD", skin:"Co-Processor", wear:"MW", price:0.92, chance:30},
+    {weapon:"P90", skin:"Grim", wear:"FT", price:1.12, chance:22},
+    {weapon:"Glock-18", skin:"Off World", wear:"FT", price:1.24, chance:18},
+    {weapon:"USP-S", skin:"Check Engine", wear:"FT", price:1.32, chance:12},
+    {weapon:"FAMAS", skin:"Survivor Z", wear:"FT", price:1.56, chance:8},
+    {weapon:"P250", skin:"Valence", wear:"FT", price:1.68, chance:5},
+    {weapon:"SSG 08", skin:"Abyss", wear:"FT", price:1.72, chance:3},
+    {weapon:"Desert Eagle", skin:"Urban Rubble", wear:"FT", price:1.84, chance:1.5},
+    {weapon:"MP7", skin:"Akoben", wear:"FT", price:1.88, chance:0.4},
+    {weapon:"P2000", skin:"Oceanic", wear:"MW", price:1.92, chance:0.1}
+  ],
+  farm: [
+    {weapon:"PP-Bizon", skin:"Jungle Slipstream", wear:"FT", price:1.96, chance:30},
+    {weapon:"UMP-45", skin:"Arctic Wolf", wear:"FT", price:2.16, chance:22},
+    {weapon:"M249", skin:"System Lock", wear:"WW", price:2.20, chance:18},
+    {weapon:"MAG-7", skin:"SWAG-7", wear:"FT", price:2.32, chance:12},
+    {weapon:"Glock-18", skin:"Catacombs", wear:"FT", price:2.36, chance:8},
+    {weapon:"Glock-18", skin:"Warhawk", wear:"MW", price:2.72, chance:5},
+    {weapon:"Tec-9", skin:"Ice Cap", wear:"MW", price:2.84, chance:3},
+    {weapon:"Five-SeveN", skin:"Scumbria", wear:"BS", price:2.92, chance:1.5},
+    {weapon:"MP7", skin:"Cirrus", wear:"FT", price:3.20, chance:0.4},
+    {weapon:"AWP", skin:"Pit Viper", wear:"FT", price:3.92, chance:0.1}
+  ],
+  lvl10: [
+    {weapon:"Glock-18", skin:"Moonrise", wear:"FT", price:4.04, chance:30},
+    {weapon:"CZ75-Auto", skin:"Tacticat", wear:"FT", price:4.08, chance:22},
+    {weapon:"UMP-45", skin:"Exposure", wear:"FT", price:4.08, chance:18},
+    {weapon:"Glock-18", skin:"Bunsen Burner", wear:"FT", price:4.32, chance:12},
+    {weapon:"Galil AR", skin:"Rocket Pop", wear:"FT", price:5.00, chance:8},
+    {weapon:"Glock-18", skin:"Weasel", wear:"FT", price:5.28, chance:5},
+    {weapon:"CZ75-Auto", skin:"Pole Position", wear:"FT", price:5.40, chance:3},
+    {weapon:"Negev", skin:"Loudmouth", wear:"FT", price:5.83, chance:1.5},
+    {weapon:"SSG 08", skin:"Ghost Crusader", wear:"FT", price:6.04, chance:0.4},
+    {weapon:"Negev", skin:"Power Loader", wear:"WW", price:6.08, chance:0.1}
+  ],
+  lvl20: [
+    {weapon:"AWP", skin:"Pit Viper", wear:"MW", price:6.52, chance:30},
+    {weapon:"Glock-18", skin:"Moonrise", wear:"MW", price:7.00, chance:22},
+    {weapon:"SSG 08", skin:"Slashed", wear:"WW", price:7.36, chance:18},
+    {weapon:"P90", skin:"Elite Build", wear:"FT", price:7.76, chance:12},
+    {weapon:"P90", skin:"Chopper", wear:"MW", price:8.04, chance:8},
+    {weapon:"P250", skin:"Wingshot", wear:"FT", price:8.12, chance:5},
+    {weapon:"AK-47", skin:"Elite Build", wear:"FT", price:8.48, chance:3},
+    {weapon:"P250", skin:"Supernova", wear:"FT", price:9.64, chance:1.5},
+    {weapon:"AWP", skin:"Worm God", wear:"FT", price:10.20, chance:0.4},
+    {weapon:"Galil AR", skin:"Sandstorm", wear:"FT", price:10.24, chance:0.1}
+  ],
+  lvl30: [
+    {weapon:"AWP", skin:"Phobos", wear:"FT", price:10.44, chance:30},
+    {weapon:"AWP", skin:"Worm God", wear:"MW", price:12.00, chance:22},
+    {weapon:"Galil AR", skin:"Stone Cold", wear:"FT", price:12.08, chance:18},
+    {weapon:"CZ75-Auto", skin:"Tigris", wear:"MW", price:13.60, chance:12},
+    {weapon:"AK-47", skin:"Emerald Pinstripe", wear:"FT", price:14.24, chance:8},
+    {weapon:"USP-S", skin:"Guardian", wear:"MW", price:14.40, chance:5},
+    {weapon:"M4A1-S", skin:"Flashback", wear:"WW", price:15.76, chance:3},
+    {weapon:"M4A4", skin:"Evil Daimyo", wear:"FT", price:15.76, chance:1.5},
+    {weapon:"USP-S", skin:"Cyrex", wear:"FT", price:15.96, chance:0.4},
+    {weapon:"M4A4", skin:"Griffin", wear:"FT", price:20.76, chance:0.1}
+  ],
+  lvl40: [
+    {weapon:"USP-S", skin:"Cyrex", wear:"MW", price:21.32, chance:30},
+    {weapon:"M4A1-S", skin:"Blood Tiger", wear:"MW", price:23.52, chance:22},
+    {weapon:"Tec-9", skin:"Isaac", wear:"MW", price:24.72, chance:18},
+    {weapon:"USP-S", skin:"Guardian", wear:"FN", price:33.84, chance:12},
+    {weapon:"M4A1-S", skin:"Basilisk", wear:"FT", price:41.44, chance:8},
+    {weapon:"M4A1-S", skin:"Basilisk", wear:"MW", price:45.36, chance:5},
+    {weapon:"Desert Eagle", skin:"Crimson Web", wear:"FT", price:56.72, chance:3},
+    {weapon:"Five-SeveN", skin:"Case Hardened", wear:"FT", price:66.84, chance:1.5},
+    {weapon:"AK-47", skin:"Blue Laminate", wear:"FT", price:75.92, chance:0.4},
+    {weapon:"MAC-10", skin:"Amber Fade", wear:"MW", price:76.32, chance:0.1}
+  ],
+  lvl50: [
+    {weapon:"AK-47", skin:"Point Disarray", wear:"FT", price:90.21, chance:30},
+    {weapon:"USP-S", skin:"Overgrowth", wear:"FT", price:101.48, chance:22},
+    {weapon:"AK-47", skin:"Orbit Mk01", wear:"FT", price:125.28, chance:18},
+    {weapon:"Desert Eagle", skin:"Midnight Storm", wear:"BS", price:128.05, chance:12},
+    {weapon:"AWP", skin:"Pink DDPAT", wear:"FT", price:169.20, chance:8},
+    {weapon:"M4A1-S", skin:"Bright Water", wear:"FT", price:184.16, chance:5},
+    {weapon:"Desert Eagle", skin:"Ocean Drive", wear:"WW", price:381.84, chance:3},
+    {weapon:"Sawed-Off", skin:"The Kraken", wear:"MW", price:478.32, chance:1.5},
+    {weapon:"MAC-10", skin:"Fade", wear:"FN", price:556.28, chance:0.4},
+    {weapon:"M4A1-S", skin:"Master Piece", wear:"BS", price:731.22, chance:0.1}
+  ]
+};
+function rarityColor(it){
+  const known = getSkinRarityColor(it.weapon, it.skin);
+  if(known) return known;
+  const price = it.price;
+  if(price < 2) return "var(--r-milspec)";
+  if(price < 4) return "var(--r-restricted)";
+  if(price < 10) return "var(--r-classified)";
+  if(price < 100) return "var(--r-covert)";
+  return "var(--r-gold)";
+}
+
+const CASE_DEFS = {
+  free:  {name:"Free Case",          tag:"DARMOWA", icon:"🎁", accent:"var(--good)",         key:"cs2sim_darmowe_free_at",  cooldownMs:3*60*60*1000},
+  farm:  {name:"Farm case",          tag:"DARMOWA", icon:"🎁", accent:"var(--r-gold)",       key:"cs2sim_darmowe_farm_at",  cooldownMs:3*60*60*1000},
+  lvl10: {name:"Skrzynka Nowicjusza",tag:"LVL 10",  icon:"🏆", accent:"var(--r-gold)",       key:"cs2sim_darmowe_lvl10_at", cooldownMs:3*60*60*1000,    level:10},
+  lvl20: {name:"Skrzynka Odkrywcy",  tag:"LVL 20",  icon:"🏆", accent:"var(--good)",         key:"cs2sim_darmowe_lvl20_at", cooldownMs:3*60*60*1000,    level:20},
+  lvl30: {name:"Skrzynka Weterana",  tag:"LVL 30",  icon:"🏆", accent:"var(--r-covert)",     key:"cs2sim_darmowe_lvl30_at", cooldownMs:3*60*60*1000,    level:30},
+  lvl40: {name:"Skrzynka Mistrza",   tag:"LVL 40",  icon:"🏆", accent:"var(--r-restricted)", key:"cs2sim_darmowe_lvl40_at", cooldownMs:3*60*60*1000,    level:40},
+  lvl50: {name:"Skrzynka Legendy",   tag:"LVL 50",  icon:"🏆", accent:"var(--r-gold)",       key:"cs2sim_darmowe_lvl50_at", cooldownMs:3*60*60*1000,    level:50}
+};
+
+const caseId = location.hash.slice(1);
+const CASE = CASE_DEFS[caseId] || CASE_DEFS.free;
+CASE.items = TIER_ITEMS[caseId] || TIER_ITEMS.free;
+
+if(CASE.level && PLAYER_LEVEL < CASE.level){
+  // locked case reached directly by URL — bounce back to the list
+  location.href = "darmowe.html";
+}
+
+document.documentElement.style.setProperty("--case-accent", CASE.accent);
+document.getElementById("caseIcon").textContent = CASE.icon;
+document.getElementById("caseName").textContent = CASE.name;
+document.getElementById("caseTag").textContent = CASE.tag;
+document.getElementById("caseTag").style.background = CASE.accent;
+document.title = `SKRZYNKA // ${CASE.name}`;
+
+function weightedRoll(items){
+  const total = items.reduce((s,i) => s + i.chance, 0);
+  let r = Math.random() * total;
+  for(const it of items){
+    r -= it.chance;
+    if(r <= 0) return it;
+  }
+  return items[items.length - 1];
+}
+
+/* ---------------- reel build & spin (same mechanic as the paid case pages) ---------------- */
+const ITEM_W = 132;
+function itemNode(it){
+  const div = document.createElement("div");
+  div.className = "reel-item";
+  div.style.setProperty("--rarity", rarityColor(it));
+  const slot = document.createElement("div");
+  slot.className = "img-slot";
+  const img = getSkinImage(it);
+  if(img){
+    const el = document.createElement("img");
+    el.src = img; el.alt = it.weapon;
+    el.onerror = () => { slot.innerHTML = `<div class="fallback">${it.weapon}</div>`; };
+    slot.appendChild(el);
+  } else {
+    slot.innerHTML = `<div class="fallback">${it.weapon}</div>`;
+  }
+  div.appendChild(slot);
+  const wp = document.createElement("div"); wp.className = "wp"; wp.textContent = it.weapon; div.appendChild(wp);
+  const nm = document.createElement("div"); nm.className = "nm"; nm.textContent = `${it.skin} (${it.wear})`; div.appendChild(nm);
+  return div;
+}
+const reelTrack = document.getElementById("reelTrack");
+function buildReel(winner){
+  reelTrack.innerHTML = "";
+  reelTrack.style.transition = "none";
+  reelTrack.style.transform = "translateX(0px)";
+  const REEL_LENGTH = 40;
+  const winnerIndex = REEL_LENGTH;
+  for(let i=0;i<REEL_LENGTH;i++) reelTrack.appendChild(itemNode(CASE.items[Math.floor(Math.random()*CASE.items.length)]));
+  reelTrack.appendChild(itemNode(winner));
+  for(let i=0;i<6;i++) reelTrack.appendChild(itemNode(CASE.items[Math.floor(Math.random()*CASE.items.length)]));
+  return winnerIndex;
+}
+function spinTo(winnerIndex, fast){
+  const outerWidth = document.getElementById("reelOuter").clientWidth;
+  const jitter = (Math.random() - 0.5) * (ITEM_W * 0.25);
+  const targetX = -(winnerIndex * ITEM_W + ITEM_W/2 - outerWidth/2) + jitter;
+  requestAnimationFrame(() => {
+    reelTrack.style.transition = fast ? "transform 0.6s cubic-bezier(.12,.85,.15,1)" : "transform 5.2s cubic-bezier(.08,.82,.1,1)";
+    reelTrack.style.transform = `translateX(${targetX}px)`;
+  });
+}
+// idle preview so the reel isn't empty before the first spin (static, no animation)
+const idleWinnerIndex = buildReel(CASE.items[0]);
+(function placeIdleStatic(){
+  const outerWidth = document.getElementById("reelOuter").clientWidth;
+  const targetX = -(idleWinnerIndex * ITEM_W + ITEM_W/2 - outerWidth/2);
+  reelTrack.style.transition = "none";
+  reelTrack.style.transform = `translateX(${targetX}px)`;
+})();
+
+/* ---------------- sound (shared implementation, same as paid cases — sound.js) ---------------- */
+const muteBtn = document.getElementById("muteBtn");
+muteBtn.onclick = () => {
+  soundOn = !soundOn;
+  muteBtn.textContent = soundOn ? "🔊" : "🔇";
+  muteBtn.classList.toggle("active", soundOn);
+};
+const fastBtn = document.getElementById("fastBtn");
+let fastMode = false;
+fastBtn.onclick = () => { fastMode = !fastMode; fastBtn.classList.toggle("active", fastMode); };
+
+/* ---------------- open / claim ---------------- */
+const openBtn = document.getElementById("openBtn");
+const countdownEl = document.getElementById("caseCountdown");
+let spinning = false;
+
+function renderCountdown(){
+  const left = CASE.cooldownMs - (Date.now() - Number(localStorage.getItem(CASE.key) || 0));
+  if(spinning) return;
+  if(left > 0){
+    openBtn.disabled = true;
+    openBtn.textContent = `Dostępna za ${fmtCountdown(left)}`;
+    countdownEl.classList.remove("ready");
+    countdownEl.textContent = `🕐 Dostępna za ${fmtCountdown(left)}`;
+  } else {
+    openBtn.disabled = false;
+    openBtn.textContent = "Otwórz skrzynkę";
+    countdownEl.classList.add("ready");
+    countdownEl.textContent = "🕐 Dostępna teraz!";
+  }
+}
+setInterval(renderCountdown, 1000);
+renderCountdown();
+
+openBtn.onclick = () => {
+  const now = Date.now();
+  if(spinning || now - Number(localStorage.getItem(CASE.key) || 0) < CASE.cooldownMs) return;
+  spinning = true;
+  openBtn.disabled = true;
+  openBtn.textContent = "Otwieranie…";
+
+  const winner = weightedRoll(CASE.items);
+  const winnerIndex = buildReel(winner);
+  const duration = fastMode ? 650 : 5300;
+  playSpinSound(duration);
+  spinTo(winnerIndex, fastMode);
+
+  setTimeout(() => {
+    spinning = false;
+    state.balance += winner.price;
+    localStorage.setItem(CASE.key, String(now));
+    renderBalance();
+    saveState(state);
+    playWinSound();
+    showToast(`Wypadło: ${winner.weapon} | ${winner.skin} (${winner.wear}) — +${fmt(winner.price)}!`);
+    renderCountdown();
+  }, duration + 150);
+};
+
+/* ---------------- "Zawartość skrzynki" grid ---------------- */
+const contentsGrid = document.getElementById("contentsGrid");
+CASE.items.slice().sort((a,b) => b.price - a.price).forEach(it => {
+  const card = document.createElement("div");
+  card.className = "content-card";
+  card.style.setProperty("--rarity", rarityColor(it));
+  const img = getSkinImage(it);
+  card.innerHTML = `
+    <span class="cc-wear">${it.wear}</span>
+    <span class="cc-chance">${it.chance}%</span>
+    <div class="cc-img">${img ? `<img src="${img}" alt="${it.weapon}" onerror="this.parentElement.innerHTML='<div class=&quot;fallback&quot;>${it.weapon}</div>'">` : `<div class="fallback">${it.weapon}</div>`}</div>
+    <div class="cc-wp">${it.weapon}</div>
+    <div class="cc-nm">${it.skin}</div>
+    <div class="cc-pr">${fmt(it.price)}</div>
+  `;
+  contentsGrid.appendChild(card);
+});
+
+renderBalance();
+renderDailyBonusBtn();
+</script>
+</body>
+</html>

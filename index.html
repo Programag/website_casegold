@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SKRZYNKA // Symulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0d12;
+    --panel:#141821;
+    --panel-2:#1b202b;
+    --line:#262c3a;
+    --text:#e9ecf3;
+    --muted:#7d879b;
+    --hazard:#ff9500;
+    --hazard-dim:#3a2712;
+    --good:#3ddc84;
+    --bad:#ff5a5a;
+    --r-milspec:#4b69ff;
+    --r-restricted:#8847ff;
+    --r-restricted-dim:rgba(136,71,255,.14);
+    --r-classified:#d32ce6;
+    --r-covert:#eb4b4b;
+    --r-gold:#ffd700;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 500px at 50% -10%, #1a2030 0%, transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+  }
+  a{color:inherit;}
+  button{font-family:'Inter',sans-serif;}
+
+  .hazard-bar{
+    height:8px;
+    background:repeating-linear-gradient(135deg,var(--hazard) 0 14px,#111 14px 28px);
+    opacity:.9;
+  }
+
+  /* ---------------- side floating widgets ---------------- */
+  .side-widgets{
+    position:fixed; left:16px; top:82px; z-index:40;
+    display:flex; flex-direction:column; gap:10px;
+  }
+  .side-pill{
+    background:var(--panel); border:1px solid var(--line); color:var(--text);
+    padding:9px 14px; border-radius:10px; cursor:pointer; font-size:13px; font-weight:500;
+    display:flex; align-items:center; gap:8px; box-shadow:0 6px 20px -8px rgba(0,0,0,.6);
+    font-family:'Inter',sans-serif;
+  }
+  .side-pill:hover{border-color:var(--hazard); color:var(--hazard);}
+  @media (max-width:900px){ .side-widgets{display:none;} }
+
+  /* ---------------- top navigation ---------------- */
+  .topnav{
+    display:flex; align-items:center; gap:14px;
+    padding:14px 20px; border-bottom:1px solid var(--line);
+    background:rgba(11,13,18,.8); backdrop-filter:blur(10px);
+    position:sticky; top:0; z-index:50; flex-wrap:wrap;
+  }
+  .brand{
+    display:flex; align-items:center; gap:8px; white-space:nowrap;
+    font-family:'Oswald',sans-serif; font-weight:700; letter-spacing:1px; text-transform:uppercase; font-size:18px;
+  }
+  .brand-icon{
+    width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center;
+    background:var(--hazard-dim); border:1px solid var(--hazard); font-size:16px;
+  }
+  .brand .accent{color:var(--hazard);}
+  .brand-socials{display:flex; gap:8px; color:var(--muted); font-size:15px;}
+  .brand-socials span{cursor:pointer;}
+  .brand-socials span:hover{color:var(--text);}
+  .nav-links{
+    display:flex; align-items:center; gap:14px; flex:1; flex-wrap:wrap;
+  }
+  .nav-link{
+    text-decoration:none; color:var(--muted); font-size:13.5px; font-weight:500;
+    text-transform:uppercase; letter-spacing:.5px; font-family:'Oswald',sans-serif;
+    padding-bottom:16px; margin-bottom:-15px; border-bottom:2px solid transparent;
+    display:flex; align-items:center; gap:6px; white-space:nowrap; cursor:pointer;
+    background:none; border-top:none; border-left:none; border-right:none;
+  }
+  .nav-link:hover{color:var(--text);}
+  .nav-link.active{color:var(--hazard); border-bottom-color:var(--hazard);}
+  .beta-tag{
+    font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700;
+    background:var(--r-restricted-dim); color:var(--r-restricted);
+    padding:2px 5px; border-radius:4px; letter-spacing:.5px;
+  }
+  .nav-right{display:flex; align-items:center; gap:8px;}
+  .daily-btn{
+    background:var(--panel-2); border:1px solid var(--hazard-dim); color:var(--text);
+    padding:8px 11px; border-radius:9px; cursor:pointer; font-size:12.5px; font-weight:600;
+    display:flex; align-items:center; gap:6px; white-space:nowrap;
+  }
+  .daily-btn:hover{border-color:var(--hazard); color:var(--hazard);}
+  .daily-btn:disabled{opacity:.5; cursor:not-allowed;}
+  .wallet-chip{
+    display:flex; align-items:center; gap:6px;
+    background:var(--panel-2); border:1px solid var(--line);
+    padding:6px 6px 6px 12px; border-radius:9px;
+  }
+  .wallet-chip .wc-amount{font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--good); font-size:14.5px; white-space:nowrap;}
+  .wallet-chip .wc-add{
+    width:26px; height:26px; border-radius:7px; border:none; cursor:pointer;
+    background:var(--hazard); color:#181000; font-weight:800; font-size:15px; line-height:1;
+  }
+  .icon-btn{
+    width:34px; height:34px; border-radius:9px; background:var(--panel-2); border:1px solid var(--line);
+    color:var(--muted); cursor:pointer; font-size:16px; position:relative;
+  }
+  .icon-btn:hover{color:var(--hazard); border-color:var(--hazard);}
+  .settings-wrap{position:relative;}
+  .settings-menu{
+    display:none; position:absolute; top:calc(100% + 8px); right:0; z-index:60;
+    background:var(--panel); border:1px solid var(--line); border-radius:10px; overflow:hidden;
+    min-width:180px; box-shadow:0 12px 30px -10px rgba(0,0,0,.6);
+  }
+  .settings-menu.open{display:block;}
+  .settings-menu button{
+    display:block; width:100%; text-align:left; background:none; border:none; color:var(--text);
+    padding:10px 14px; font-size:13px; cursor:pointer; font-family:'Inter',sans-serif;
+  }
+  .settings-menu button:hover{background:var(--panel-2); color:var(--hazard);}
+  .lang-row{display:flex; border-top:1px solid var(--line);}
+  .lang-row .lang-opt{flex:1; text-align:center; font-size:12px; padding:9px 6px;}
+  .lang-row .lang-opt.active{color:var(--hazard); background:var(--hazard-dim);}
+  .avatar-wrap{position:relative; display:flex;}
+  .avatar{
+    width:34px; height:34px; border-radius:50%; background:var(--panel-2); border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center; font-size:17px;
+  }
+  .lvl-badge{
+    position:absolute; bottom:-4px; right:-4px; background:var(--r-gold); color:#3a2a00;
+    font-size:9px; font-weight:800; padding:1px 5px; border-radius:8px; border:2px solid var(--bg);
+    font-family:'JetBrains Mono',monospace;
+  }
+
+  /* ---------------- page wrap ---------------- */
+  .wrap{max-width:1180px; margin:0 auto; padding:32px 20px 60px;}
+  .hero-title{text-align:center; margin-bottom:26px;}
+  .hero-title h1{
+    font-family:'Oswald',sans-serif; font-weight:700; text-transform:uppercase; letter-spacing:2px;
+    font-size:clamp(28px,4.5vw,42px); margin:0 0 8px; line-height:1;
+  }
+  .hero-title .sub{color:var(--muted); font-size:13.5px; letter-spacing:.3px;}
+
+  /* ---------------- free-case banner ---------------- */
+  .free-banner{
+    position:relative; overflow:hidden;
+    background:
+      radial-gradient(500px 200px at 15% 40%, var(--hazard-dim), transparent 70%),
+      var(--panel);
+    border:1px solid var(--line); border-top:3px solid var(--hazard); border-radius:14px;
+    padding:26px 30px; margin-bottom:22px;
+    display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap;
+  }
+  .free-banner .fb-txt{font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:.5px; font-size:clamp(19px,3vw,26px); font-weight:600;}
+  .free-banner .fb-txt .accent{color:var(--hazard);}
+  .fb-sub{color:var(--muted); font-size:12.5px; margin-top:6px; font-family:'JetBrains Mono',monospace;}
+  .fb-cases{display:flex; gap:14px; align-items:flex-end;}
+  .fb-case{
+    position:relative; width:72px; height:72px; border-radius:10px;
+    background:var(--panel-2); border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center; font-size:30px;
+  }
+  .fb-case:nth-child(2){transform:translateY(-10px);}
+  .fb-case .free-tag{
+    position:absolute; top:-9px; left:50%; transform:translateX(-50%);
+    background:var(--r-gold); color:#3a2a00; font-size:8.5px; font-weight:800;
+    padding:2px 6px; border-radius:6px; white-space:nowrap; font-family:'JetBrains Mono',monospace;
+  }
+  .fb-btn{
+    font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:1.5px;
+    font-weight:600; font-size:14.5px;
+    background:var(--hazard); color:#181000;
+    border:none; padding:15px 26px; border-radius:8px; cursor:pointer; white-space:nowrap;
+    box-shadow:0 4px 0 #b56b00;
+    transition:transform .1s ease, box-shadow .1s ease;
+  }
+  .fb-btn:hover:not(:disabled){transform:translateY(-1px);}
+  .fb-btn:active:not(:disabled){transform:translateY(3px); box-shadow:0 1px 0 #b56b00;}
+  .fb-btn:disabled{background:var(--panel-2); color:var(--muted); cursor:not-allowed; box-shadow:none;}
+
+  /* ---------------- search + budget ---------------- */
+  .search-row{display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap;}
+  .search-box{
+    flex:1; min-width:220px; display:flex; align-items:center; gap:10px;
+    background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:11px 16px;
+  }
+  .search-box input{
+    flex:1; background:none; border:none; outline:none; color:var(--text); font-size:14px; font-family:'Inter',sans-serif;
+  }
+  .search-box input::placeholder{color:var(--muted);}
+  .budget-btn{
+    background:var(--panel); border:1px solid var(--line); color:var(--text);
+    padding:11px 18px; border-radius:10px; cursor:pointer; font-size:13.5px; font-weight:600;
+    display:flex; align-items:center; gap:8px; white-space:nowrap; font-family:'Inter',sans-serif;
+  }
+  .budget-btn:hover{border-color:var(--hazard);}
+  .budget-btn.active{border-color:var(--hazard); color:var(--hazard); background:var(--hazard-dim);}
+
+  /* ---------------- category chips ---------------- */
+  .chip-row{display:flex; flex-wrap:wrap; gap:18px; row-gap:12px; margin-bottom:26px; padding-bottom:20px; border-bottom:1px solid var(--line);}
+  .chip{
+    background:none; border:none; color:var(--muted); font-size:13.5px; font-weight:500; cursor:pointer;
+    display:flex; align-items:center; gap:6px; padding:0; font-family:'Inter',sans-serif;
+  }
+  .chip:hover{color:var(--text);}
+  .chip.selected{color:var(--hazard);}
+
+  /* ---------------- promo banners ---------------- */
+  .promo-banners{display:grid; grid-template-columns:1fr; gap:20px; margin-bottom:34px;}
+  .promo-banner{
+    position:relative; overflow:hidden; text-align:left;
+    border-radius:14px; border:1px solid var(--line); padding:26px;
+    height:150px; display:flex; align-items:center; justify-content:space-between;
+    background:var(--panel-2);
+  }
+  .promo-banner.official{
+    background:linear-gradient(120deg, var(--hazard-dim), rgba(20,24,33,.4));
+  }
+  .promo-banner.selected.official{border-color:var(--hazard); box-shadow:0 0 0 1px var(--hazard);}
+  .pb-eyebrow{font-family:'Oswald',sans-serif; font-size:21px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; line-height:1.2;}
+  .promo-banner.official .pb-title{color:var(--hazard);}
+  .pb-title{font-family:'Oswald',sans-serif; font-size:25px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; line-height:1.2;}
+  .pb-art{font-size:44px; opacity:.85; flex:none; width:220px; height:220px; display:flex; align-items:center; justify-content:center;}
+  .pb-art img{
+    max-width:100%; max-height:100%; object-fit:contain;
+    filter:drop-shadow(0 0 18px var(--hazard)) drop-shadow(0 0 40px rgba(255,149,0,.55));
+    animation:pbArtGlow 2.6s ease-in-out infinite;
+  }
+  @keyframes pbArtGlow{
+    0%,100%{filter:drop-shadow(0 0 18px var(--hazard)) drop-shadow(0 0 40px rgba(255,149,0,.55));}
+    50%{filter:drop-shadow(0 0 28px var(--hazard)) drop-shadow(0 0 60px rgba(255,149,0,.8));}
+  }
+
+  /* ---------------- section title ---------------- */
+  .section-title{
+    font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:1.5px;
+    font-size:16px; font-weight:600; margin:0 0 16px;
+    display:flex; align-items:center; gap:8px;
+  }
+
+  /* ---------------- case cards ---------------- */
+  .cases-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
+    gap:16px;
+    margin-bottom:10px;
+  }
+  .case-card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-top:3px solid var(--case-accent, var(--hazard));
+    border-radius:12px;
+    padding:16px;
+    display:flex; flex-direction:column; gap:10px;
+    text-decoration:none; color:var(--text);
+    transition:transform .1s ease, border-color .15s ease;
+  }
+  .case-card:hover{transform:translateY(-3px);}
+  .case-img{
+    width:100%; height:110px; background:var(--panel-2); border:1px solid var(--line); border-radius:8px;
+    display:flex; align-items:center; justify-content:center; overflow:hidden;
+  }
+  .case-img img{max-width:78%; max-height:78%; object-fit:contain;}
+  .case-img .fallback{font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); text-align:center; padding:0 8px;}
+  .case-name{font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:.5px; font-weight:600; font-size:15px;}
+  .case-desc{color:var(--muted); font-size:11.5px; line-height:1.5; flex:1;}
+  .case-row{display:flex; align-items:center; justify-content:space-between; gap:8px;}
+  .case-price-tag{font-family:'JetBrains Mono',monospace; color:var(--hazard); font-size:14px; font-weight:700;}
+  .open-btn{
+    font-family:'Oswald',sans-serif;
+    font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.5px;
+    background:var(--hazard-dim); color:var(--hazard); border:1px solid var(--hazard);
+    padding:8px 12px; border-radius:6px; cursor:pointer;
+  }
+  .open-btn:hover{background:var(--hazard); color:#181000;}
+
+  .empty-msg{
+    color:var(--muted); font-size:13.5px; text-align:center; padding:40px 10px;
+    border:1px dashed var(--line); border-radius:12px; margin-bottom:10px;
+  }
+  .empty-msg.hidden{display:none;}
+
+  footer{
+    text-align:center; color:var(--muted); font-size:11px; margin-top:34px;
+    letter-spacing:.5px;
+  }
+
+  .toast{
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--panel); border:1px solid var(--line); color:var(--text);
+    padding:12px 20px; border-radius:10px; font-size:13.5px; z-index:100;
+    opacity:0; pointer-events:none; transition:opacity .2s ease, transform .2s ease;
+    box-shadow:0 12px 30px -10px rgba(0,0,0,.6);
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<div class="hazard-bar"></div>
+
+<div class="side-widgets">
+  <button class="side-pill" id="chatBtn">💬 Chat</button>
+  <button class="side-pill" id="friendsBtn">👥 Znajomi</button>
+</div>
+
+<nav class="topnav">
+  <div class="brand"><span class="brand-icon">📦</span>Skrzynka <span class="accent">// Symulator</span></div>
+  <div class="brand-socials">
+    <span title="Discord">◎</span><span title="Instagram">📷</span><span title="TikTok">🎵</span>
+  </div>
+  <div class="nav-links">
+    <a class="nav-link active" href="index.html" id="navCases">Skrzynki</a>
+    <a class="nav-link" href="darmowe.html" id="navFree">Darmowe</a>
+    <a class="nav-link" href="battle.html">Case Battle</a>
+    <a class="nav-link" href="upgrade.html">Upgrader</a>
+    <button class="nav-link" data-soon id="navTasks">Zadania</button>
+    <a class="nav-link" href="equipment.html" id="navInventory">Ekwipunek</a>
+  </div>
+  <div class="nav-right">
+    <button class="daily-btn" id="dailyBonusBtn">🎁 Daily Bonus</button>
+    <div class="wallet-chip">
+      <span class="wc-amount" id="balance">50,00 zł</span>
+      <button class="wc-add" id="topUpBtn" title="Doładuj +20,00 zł">+</button>
+    </div>
+    <div class="settings-wrap">
+      <button class="icon-btn" id="settingsBtn">⚙</button>
+      <div class="settings-menu" id="settingsMenu">
+        <button id="resetBtn">Zresetuj konto</button>
+        <button id="inventoryBtn">Ekwipunek</button>
+        <div class="lang-row" id="langRow">
+          <button class="lang-opt" id="langPl" data-lang="pl">🇵🇱 Polski</button>
+          <button class="lang-opt" id="langEn" data-lang="en">🇬🇧 English</button>
+        </div>
+      </div>
+    </div>
+    <div class="avatar-wrap">
+      <div class="avatar">🙂</div>
+      <span class="lvl-badge">4</span>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <div class="hero-title">
+    <h1 id="heroTitle">Skrzynki</h1>
+    <div class="sub" id="heroSub">Otwórz skrzynkę, zobacz co Ci wpadnie. Czysta symulacja — żadnych prawdziwych pieniędzy.</div>
+  </div>
+
+  <div class="free-banner">
+    <div>
+      <div class="fb-txt" id="fbTxt">Odbierz <span class="accent">darmową skrzynkę</span> co 3h!</div>
+      <div class="fb-sub" id="freeCaseStatus"></div>
+    </div>
+    <div class="fb-cases">
+      <div class="fb-case"><span class="free-tag">FREE</span>📦</div>
+      <div class="fb-case"><span class="free-tag">FREE LVL 10</span>📦</div>
+      <div class="fb-case"><span class="free-tag">FREE</span>📦</div>
+    </div>
+    <button class="fb-btn" id="freeCaseBtn">Otwórz skrzynki</button>
+  </div>
+
+  <div class="search-row">
+    <div class="search-box">
+      <span class="search-ic">🔍</span>
+      <input id="searchInput" placeholder="Wyszukaj skrzynkę po nazwie...">
+    </div>
+    <button class="budget-btn" id="budgetToggle">📁 W twoim budżecie</button>
+  </div>
+
+  <div class="chip-row" id="categoryChips"></div>
+
+  <div class="promo-banners">
+    <div class="promo-banner official selected">
+      <div class="pb-text"><div class="pb-eyebrow" id="pbEyebrow">Oficjalne</div><div class="pb-title" id="pbTitle">Skrzynki</div></div>
+      <div class="pb-art"><img src="agent.png" alt=""></div>
+    </div>
+  </div>
+
+  <div class="section-title" id="sectionLabel">✨ Skrzynki standardowe</div>
+  <div class="cases-grid" id="casesGrid"></div>
+  <div class="empty-msg hidden" id="emptyMsg">Brak skrzynek w tej kategorii — wkrótce dostępne.</div>
+
+  <footer id="footerTxt">Symulacja edukacyjna / rozrywkowa — fikcyjna waluta, brak realnych transakcji.</footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================================
+   EDYCJA OBRAZKÓW SKRZYNEK
+   -------------------------------------------------------------------------
+   Każda skrzynka w tablicy CASES ma pole `img: ""`. Wklej tam link do
+   obrazka skrzynki. Puste pole = zastępczy napis z nazwą skrzynki.
+   ========================================================================= */
+const CASES = [
+  {
+    name: "Dirt Case",
+    price: 1.60,
+    file: "case_simulator.html",
+    accent: "var(--r-milspec)",
+    desc: "56 możliwych przedmiotów, od podstawowej broni po rzadkie wykończenia.",
+    img: "dirt_case.png",
+    tag: "standardowe"
+  },
+  {
+    name: "Iron Case",
+    price: 9.60,
+    file: "case_restricted.html",
+    accent: "var(--r-restricted)",
+    desc: "48 przedmiotów wyższej klasy — wyższy koszt, wyższe stawki.",
+    img: "iron_case.png",
+    tag: "standardowe"
+  },
+  {
+    name: "Gold Case",
+    price: 20.30,
+    file: "case_gold.html",
+    accent: "var(--r-gold)",
+    desc: "24 przedmioty, w tym noże i rękawice — najwyższe stawki.",
+    img: "gold_case.png",
+    tag: "standardowe"
+  },
+  {
+    name: "Ultra Case",
+    price: 228.10,
+    file: "case_ultra.html",
+    accent: "var(--r-gold)",
+    desc: "15 przedmiotów, w tym noże, rękawice i Howl — absolutny szczyt stawek.",
+    img: "ultra_case.png",
+    tag: "standardowe"
+  },
+  {
+    name: "Snow Case",
+    price: 71.80,
+    file: "case_snow.html",
+    accent: "var(--r-covert)",
+    desc: "5 przedmiotów, w tym cztery Printstreamy — 91% szans na naklejkę, reszta to gigantyczny jackpot.",
+    img: "snow_case.png",
+    tag: "all-in"
+  }
+];
+
+const CATEGORIES = [
+  {key:"standardowe", label:"Standardowe", ic:"✨"},
+  {key:"wysokie-ryzyko", label:"Wysokie ryzyko", ic:"⭐"},
+  {key:"z-bronia", label:"Z bronią", ic:"🔫"},
+  {key:"all-in", label:"All In", ic:"🔥"},
+  {key:"naklejki", label:"Naklejki", ic:"🏷️"},
+  {key:"gem", label:"GEM CASES", ic:"💎"},
+  {key:"cs2", label:"CS2 Cases", ic:"🎯"},
+  {key:"collections", label:"CS2 Collections", ic:"📚"},
+  {key:"5050", label:"50/50", ic:"%"},
+  {key:"social", label:"Social", ic:"🔗"},
+  {key:"armory", label:"Armory", ic:"⭕"}
+];
+
+const STORAGE_KEY = "cs2sim_state_v1";
+/* Kept as standalone keys (not fields on the shared state object) because
+   every page saves its own subset of that object — a field stashed inside
+   it here would get wiped the moment another page calls its own saveState(). */
+const FREE_CASE_KEY = "cs2sim_free_case_at";
+const DAILY_BONUS_KEY = "cs2sim_daily_bonus_at";
+const START_BALANCE = 50.00;
+const FREE_CASE_COOLDOWN_MS = 3 * 60 * 60 * 1000;
+const DAILY_BONUS_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
+function fmt(n){
+  return n.toLocaleString("pl-PL", {minimumFractionDigits:2, maximumFractionDigits:2}) + " zł";
+}
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return {balance: START_BALANCE, inventory: [], invCounter: 0};
+    const parsed = JSON.parse(raw);
+    return {
+      balance: typeof parsed.balance === "number" ? parsed.balance : START_BALANCE,
+      inventory: Array.isArray(parsed.inventory) ? parsed.inventory : [],
+      invCounter: typeof parsed.invCounter === "number" ? parsed.invCounter : 0
+    };
+  }catch(e){
+    return {balance: START_BALANCE, inventory: [], invCounter: 0};
+  }
+}
+function saveState(state){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
+}
+
+let state = loadState();
+let filters = { search: "", budgetOnly: false, category: null };
+
+function renderBalance(){
+  document.getElementById("balance").textContent = fmt(state.balance);
+}
+
+function showToast(msg){
+  const toast = document.getElementById("toast");
+  toast.textContent = msg;
+  toast.classList.add("show");
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => toast.classList.remove("show"), 2200);
+}
+
+/* ---- nav items / widgets that don't have a real destination yet ---- */
+document.querySelectorAll("[data-soon]").forEach(el => {
+  el.addEventListener("click", () => showToast("Wkrótce dostępne!"));
+});
+document.getElementById("chatBtn").onclick = () => showToast("Czat będzie dostępny wkrótce.");
+document.getElementById("friendsBtn").onclick = () => showToast("Lista znajomych będzie dostępna wkrótce.");
+
+/* ---- settings dropdown ---- */
+const settingsBtn = document.getElementById("settingsBtn");
+const settingsMenu = document.getElementById("settingsMenu");
+settingsBtn.onclick = (e) => { e.stopPropagation(); settingsMenu.classList.toggle("open"); };
+document.addEventListener("click", () => settingsMenu.classList.remove("open"));
+document.getElementById("resetBtn").onclick = () => {
+  state = {balance: START_BALANCE, inventory: [], invCounter: 0};
+  renderBalance();
+  saveState(state);
+  localStorage.removeItem(FREE_CASE_KEY);
+  localStorage.removeItem(DAILY_BONUS_KEY);
+  renderCooldownButtons();
+  showToast("Konto zresetowane.");
+};
+document.getElementById("inventoryBtn").onclick = () => { window.location.href = "equipment.html"; };
+document.getElementById("topUpBtn").onclick = () => {
+  state.balance += 20;
+  renderBalance();
+  saveState(state);
+};
+
+/* ---- free case (3h) + daily bonus (24h): small virtual rewards on a cooldown ---- */
+function fmtCountdown(ms){
+  const total = Math.max(0, Math.ceil(ms / 1000));
+  const h = String(Math.floor(total / 3600)).padStart(2,"0");
+  const m = String(Math.floor((total % 3600) / 60)).padStart(2,"0");
+  const s = String(total % 60).padStart(2,"0");
+  return `${h}:${m}:${s}`;
+}
+function renderCooldownButtons(){
+  const now = Date.now();
+  const freeBtn = document.getElementById("freeCaseBtn");
+  const freeStatus = document.getElementById("freeCaseStatus");
+  const freeLeft = FREE_CASE_COOLDOWN_MS - (now - Number(localStorage.getItem(FREE_CASE_KEY) || 0));
+  const t = I18N[currentLang];
+  if(freeLeft > 0){
+    freeBtn.disabled = true;
+    freeBtn.textContent = t.freeCaseBtnClaimed;
+    freeStatus.textContent = t.freeStatusWait(fmtCountdown(freeLeft));
+  } else {
+    freeBtn.disabled = false;
+    freeBtn.textContent = t.freeCaseBtnReady;
+    freeStatus.textContent = t.freeStatusReady;
+  }
+  const dailyBtn = document.getElementById("dailyBonusBtn");
+  const dailyLeft = DAILY_BONUS_COOLDOWN_MS - (now - Number(localStorage.getItem(DAILY_BONUS_KEY) || 0));
+  if(dailyLeft > 0){
+    dailyBtn.disabled = true;
+    dailyBtn.textContent = `🎁 ${fmtCountdown(dailyLeft)}`;
+  } else {
+    dailyBtn.disabled = false;
+    dailyBtn.textContent = t.dailyBtnReady;
+  }
+}
+document.getElementById("freeCaseBtn").onclick = () => {
+  location.href = "darmowe.html";
+};
+document.getElementById("dailyBonusBtn").onclick = () => {
+  const now = Date.now();
+  if(now - Number(localStorage.getItem(DAILY_BONUS_KEY) || 0) < DAILY_BONUS_COOLDOWN_MS) return;
+  const reward = 5;
+  state.balance += reward;
+  localStorage.setItem(DAILY_BONUS_KEY, String(now));
+  renderBalance();
+  saveState(state);
+  renderCooldownButtons();
+  showToast(`Daily Bonus: +${fmt(reward)}!`);
+};
+setInterval(renderCooldownButtons, 1000);
+
+/* ---- category chips ---- */
+const chipsEl = document.getElementById("categoryChips");
+function renderChips(){
+  chipsEl.innerHTML = "";
+  CATEGORIES.forEach(cat => {
+    const chip = document.createElement("button");
+    chip.className = "chip" + (filters.category === cat.key ? " selected" : "");
+    const label = I18N[currentLang].categories[cat.key] || cat.label;
+    chip.innerHTML = `<span>${cat.ic}</span><span>${label}</span>`;
+    chip.onclick = () => {
+      filters.category = filters.category === cat.key ? null : cat.key;
+      renderChips();
+      renderGrid();
+    };
+    chipsEl.appendChild(chip);
+  });
+}
+
+/* ---- search + budget toggle ---- */
+document.getElementById("searchInput").addEventListener("input", (e) => {
+  filters.search = e.target.value.trim().toLowerCase();
+  renderGrid();
+});
+const budgetToggle = document.getElementById("budgetToggle");
+budgetToggle.onclick = () => {
+  filters.budgetOnly = !filters.budgetOnly;
+  budgetToggle.classList.toggle("active", filters.budgetOnly);
+  renderGrid();
+};
+
+/* ---- case grid ---- */
+const grid = document.getElementById("casesGrid");
+const emptyMsg = document.getElementById("emptyMsg");
+const sectionLabel = document.getElementById("sectionLabel");
+function renderGrid(){
+  grid.innerHTML = "";
+  let list = CASES.slice();
+  if(filters.category) list = list.filter(c => c.tag === filters.category);
+  if(filters.search) list = list.filter(c => c.name.toLowerCase().includes(filters.search));
+  if(filters.budgetOnly) list = list.filter(c => c.price <= state.balance);
+
+  sectionLabel.textContent = filters.category
+    ? `${CATEGORIES.find(c=>c.key===filters.category).ic} ${I18N[currentLang].categories[filters.category]}`
+    : I18N[currentLang].sectionDefault;
+
+  if(list.length === 0){
+    emptyMsg.classList.remove("hidden");
+    return;
+  }
+  emptyMsg.classList.add("hidden");
+
+  list.forEach(c => {
+    const card = document.createElement("a");
+    card.className = "case-card";
+    card.href = c.file;
+    card.style.setProperty("--case-accent", c.accent);
+
+    const imgWrap = document.createElement("div");
+    imgWrap.className = "case-img";
+    if(c.img){
+      const img = document.createElement("img");
+      img.src = c.img;
+      img.alt = c.name;
+      img.onerror = () => { imgWrap.innerHTML = `<div class="fallback">${c.name.toUpperCase()}</div>`; };
+      imgWrap.appendChild(img);
+    } else {
+      imgWrap.innerHTML = `<div class="fallback">${c.name.toUpperCase()}</div>`;
+    }
+    card.appendChild(imgWrap);
+
+    const rest = document.createElement("div");
+    rest.style.display = "contents";
+    rest.innerHTML = `
+      <div class="case-name">${c.name}</div>
+      <div class="case-desc">${c.desc}</div>
+      <div class="case-row">
+        <div class="case-price-tag">${fmt(c.price)}</div>
+        <span class="open-btn">Otwórz</span>
+      </div>
+    `;
+    card.appendChild(rest);
+
+    grid.appendChild(card);
+  });
+}
+
+/* =========================================================================
+   JĘZYK (Polski / English) — przełącznik w menu ustawień. Tłumaczy stały
+   interfejs (nav, hero, banner darmowej skrzynki, filtry, stopkę); nazwy
+   i opisy skrzynek zostają w oryginalnym, roboczym języku.
+   ========================================================================= */
+const LANG_KEY = "cs2sim_lang";
+const CATEGORY_LABELS_EN = {
+  standardowe:"Standard", "wysokie-ryzyko":"High risk", "z-bronia":"With weapon",
+  "all-in":"All In", naklejki:"Stickers", gem:"GEM CASES", cs2:"CS2 Cases",
+  collections:"CS2 Collections", "5050":"50/50", social:"Social"
+};
+const I18N = {
+  pl: {
+    friendsBtn:"👥 Znajomi", navCases:"Skrzynki", navFree:"Darmowe", navTasks:"Zadania", navInventory:"Ekwipunek",
+    resetBtn:"Zresetuj konto", inventoryBtn:"Ekwipunek",
+    heroTitle:"Skrzynki", heroSub:"Otwórz skrzynkę, zobacz co Ci wpadnie. Czysta symulacja — żadnych prawdziwych pieniędzy.",
+    fbTxt:'Odbierz <span class="accent">darmową skrzynkę</span> co 3h!',
+    freeCaseBtnReady:"Otwórz skrzynki", freeCaseBtnClaimed:"Odebrano",
+    freeStatusReady:"Dostępne teraz!", freeStatusWait:(t)=>`Dostępne za ${t}`,
+    dailyBtnReady:"🎁 Daily Bonus",
+    searchPlaceholder:"Wyszukaj skrzynkę po nazwie...",
+    budgetToggle:"📁 W twoim budżecie",
+    pbEyebrow:"Oficjalne", pbTitle:"Skrzynki",
+    sectionDefault:"✨ Skrzynki standardowe",
+    emptyMsg:"Brak skrzynek w tej kategorii — wkrótce dostępne.",
+    footerTxt:"Symulacja edukacyjna / rozrywkowa — fikcyjna waluta, brak realnych transakcji.",
+    categories: CATEGORIES.reduce((o,c)=>(o[c.key]=c.label, o), {}),
+  },
+  en: {
+    friendsBtn:"👥 Friends", navCases:"Cases", navFree:"Free", navTasks:"Tasks", navInventory:"Inventory",
+    resetBtn:"Reset account", inventoryBtn:"Inventory",
+    heroTitle:"Cases", heroSub:"Open a case, see what drops. Pure simulation — no real money involved.",
+    fbTxt:'Claim a <span class="accent">free case</span> every 3h!',
+    freeCaseBtnReady:"Open cases", freeCaseBtnClaimed:"Claimed",
+    freeStatusReady:"Available now!", freeStatusWait:(t)=>`Available in ${t}`,
+    dailyBtnReady:"🎁 Daily Bonus",
+    searchPlaceholder:"Search for a case by name...",
+    budgetToggle:"📁 Within your budget",
+    pbEyebrow:"Official", pbTitle:"Cases",
+    sectionDefault:"✨ Standard cases",
+    emptyMsg:"No cases in this category yet — coming soon.",
+    footerTxt:"Educational / entertainment simulation — fictional currency, no real transactions.",
+    categories: CATEGORY_LABELS_EN,
+  }
+};
+let currentLang = localStorage.getItem(LANG_KEY) === "en" ? "en" : "pl";
+
+function applyLang(lang){
+  currentLang = lang;
+  localStorage.setItem(LANG_KEY, lang);
+  const t = I18N[lang];
+  document.getElementById("friendsBtn").textContent = t.friendsBtn;
+  document.getElementById("navCases").textContent = t.navCases;
+  document.getElementById("navFree").textContent = t.navFree;
+  document.getElementById("navTasks").textContent = t.navTasks;
+  document.getElementById("navInventory").textContent = t.navInventory;
+  document.getElementById("resetBtn").textContent = t.resetBtn;
+  document.getElementById("inventoryBtn").textContent = t.inventoryBtn;
+  document.getElementById("heroTitle").textContent = t.heroTitle;
+  document.getElementById("heroSub").textContent = t.heroSub;
+  document.getElementById("fbTxt").innerHTML = t.fbTxt;
+  document.getElementById("searchInput").placeholder = t.searchPlaceholder;
+  document.getElementById("budgetToggle").textContent = t.budgetToggle;
+  document.getElementById("pbEyebrow").textContent = t.pbEyebrow;
+  document.getElementById("pbTitle").textContent = t.pbTitle;
+  document.getElementById("emptyMsg").textContent = t.emptyMsg;
+  document.getElementById("footerTxt").textContent = t.footerTxt;
+  document.getElementById("langPl").classList.toggle("active", lang === "pl");
+  document.getElementById("langEn").classList.toggle("active", lang === "en");
+  renderCooldownButtons();
+  renderChips();
+  renderGrid();
+}
+CATEGORIES.forEach(cat => { cat.label = I18N.pl.categories[cat.key]; });
+document.getElementById("langPl").onclick = () => applyLang("pl");
+document.getElementById("langEn").onclick = () => applyLang("en");
+
+renderBalance();
+applyLang(currentLang);
+</script>
+</body>
+</html>
