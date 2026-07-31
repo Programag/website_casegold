@@ -126,8 +126,15 @@
         };
       }
     } else {
+      if (avatar) {
+        avatar.innerHTML = "";
+        avatar.title = t.login;
+      }
       if (avatarWrap) {
+        avatarWrap.title = t.login;
         avatarWrap.onclick = () => { window.location.href = "/auth/steam"; };
+        const badge = avatarWrap.querySelector(".lvl-badge");
+        if (badge) { badge.textContent = "🔑"; badge.title = t.login; }
       }
       if (menu && !document.getElementById("steamAuthRow")) {
         const row = document.createElement("div");
