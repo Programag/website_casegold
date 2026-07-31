@@ -37,6 +37,7 @@
         inventory: s.inventory,
         invCounter: s.invCounter,
         level: typeof s.level === "number" ? s.level : 0,
+        xp: typeof s.xp === "number" ? s.xp : 0,
       }));
       if (s.dailyBonusAt) localStorage.setItem(DAILY_KEY, String(s.dailyBonusAt));
       if (s.freeCaseAt) localStorage.setItem(FREE_CASE_KEY, String(s.freeCaseAt));
@@ -58,6 +59,7 @@
       inventory: state.inventory,
       invCounter: state.invCounter,
       level: typeof state.level === "number" ? state.level : 0,
+      xp: typeof state.xp === "number" ? state.xp : 0,
       dailyBonusAt: Number(localStorage.getItem(DAILY_KEY) || 0) || null,
       freeCaseAt: Number(localStorage.getItem(FREE_CASE_KEY) || 0) || null,
     };

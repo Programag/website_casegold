@@ -2,10 +2,13 @@ require("dotenv").config();
 
 const fs = require("fs");
 const path = require("path");
+const http = require("http");
 const express = require("express");
 const session = require("express-session");
 const passport = require("passport");
 const SteamStrategy = require("passport-steam").Strategy;
+const { Server: SocketIOServer } = require("socket.io");
+const attachBattleLobby = require("./battle-lobby");
 
 const PORT = process.env.PORT || 3000;
 const SITE_URL = (process.env.SITE_URL || `http://localhost:${PORT}`).replace(/\/+$/, "");
@@ -92,19 +95,18 @@ const app = express();
 app.set("trust proxy", 1);
 app.use(express.json({ limit: "512kb" }));
 
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: IS_HTTPS,
-      maxAge: 90 * 24 * 60 * 60 * 1000, // 90 dni
-    },
-  })
-);
+const sessionMiddleware = session({
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: IS_HTTPS,
+    maxAge: 90 * 24 * 60 * 60 * 1000, // 90 dni
+  },
+});
+app.use(sessionMiddleware);
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -141,6 +143,7 @@ app.put("/api/state", (req, res) => {
     inventory: Array.isArray(body.inventory) ? body.inventory : [],
     invCounter: typeof body.invCounter === "number" ? body.invCounter : 0,
     level: typeof body.level === "number" ? body.level : 0,
+    xp: typeof body.xp === "number" ? body.xp : 0,
     dailyBonusAt: typeof body.dailyBonusAt === "number" ? body.dailyBonusAt : null,
     freeCaseAt: typeof body.freeCaseAt === "number" ? body.freeCaseAt : null,
     updatedAt: Date.now(),
@@ -152,6 +155,12 @@ app.put("/api/state", (req, res) => {
 // ---- Static site ----
 app.use(express.static(__dirname, { extensions: ["html"] }));
 
-app.listen(PORT, () => {
+// ---- Real-time Case Battle lobbies ----
+const httpServer = http.createServer(app);
+const io = new SocketIOServer(httpServer);
+io.engine.use(sessionMiddleware); // lets battle-lobby.js read socket.request.session
+attachBattleLobby(io, { readUsers });
+
+httpServer.listen(PORT, () => {
   console.log(`CS2SIM działa: ${SITE_URL} (port ${PORT})`);
 });

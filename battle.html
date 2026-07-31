@@ -1153,6 +1153,7 @@
 <script src="rarity-data.js"></script>
 <script src="jester-mode.js"></script>
 <script src="nav-i18n.js"></script>
+<script src="/socket.io/socket.io.js"></script>
 <script>
 /* =========================================================================
    DANE SKRZYNEK — te same pule przedmiotów co case_simulator.html
@@ -1639,26 +1640,49 @@ function teamOfIdx(idx, totalPlayers){ return idx < totalPlayers / 2 ? 0 : 1; }
 function loadState(){
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
-    if(!raw) return {balance: START_BALANCE, inventory: [], invCounter: 0, level: 0};
+    if(!raw) return {balance: START_BALANCE, inventory: [], invCounter: 0, level: 0, xp: 0};
     const parsed = JSON.parse(raw);
     return {
       balance: typeof parsed.balance === "number" ? parsed.balance : START_BALANCE,
       inventory: Array.isArray(parsed.inventory) ? parsed.inventory : [],
       invCounter: typeof parsed.invCounter === "number" ? parsed.invCounter : 0,
-      level: typeof parsed.level === "number" ? parsed.level : 0
+      level: typeof parsed.level === "number" ? parsed.level : 0,
+      xp: typeof parsed.xp === "number" ? parsed.xp : 0
     };
   }catch(e){
-    return {balance: START_BALANCE, inventory: [], invCounter: 0, level: 0};
+    return {balance: START_BALANCE, inventory: [], invCounter: 0, level: 0, xp: 0};
   }
 }
 function saveState(){
-  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({balance, inventory, invCounter})); }catch(e){}
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({balance, inventory, invCounter, level, xp})); }catch(e){}
 }
 
 const s0 = loadState();
 let balance = s0.balance;
 let inventory = s0.inventory;
 let invCounter = s0.invCounter;
+let level = s0.level;
+let xp = s0.xp;
+const XP_PER_ZL = 1;
+const XP_PER_LEVEL = 100;
+function levelForXp(totalXp){ return Math.floor(totalXp / XP_PER_LEVEL); }
+function awardBattleXp(amountSpent){
+  reloadSharedState();
+  const gained = Math.round(amountSpent * XP_PER_ZL);
+  if(gained <= 0) return;
+  xp += gained;
+  const newLevel = levelForXp(xp);
+  const leveledUp = newLevel > level;
+  level = newLevel;
+  saveState();
+  updateLevelBadge();
+  if(leveledUp) log(`🎉 Awans! Nowy poziom: ${level} (+${gained} EXP za bitwę)`);
+  else log(`+${gained} EXP za udział w bitwie (${xp % XP_PER_LEVEL}/${XP_PER_LEVEL} do poziomu ${level+1}).`);
+}
+function updateLevelBadge(){
+  const badge = document.querySelector(".avatar-wrap .lvl-badge");
+  if(badge && window.__STEAM_AUTH__ && window.__STEAM_AUTH__.loggedIn) badge.textContent = String(level);
+}
 
 const balanceEl = document.getElementById("balance");
 const logEl = document.getElementById("log");
@@ -1683,8 +1707,12 @@ document.getElementById("resetBtn").onclick = () => {
   balance = START_BALANCE;
   inventory = [];
   invCounter = 0;
+  level = 0;
+  xp = 0;
+  saveState();
   localStorage.removeItem(DAILY_BONUS_KEY);
   renderBalance();
+  updateLevelBadge();
   renderDailyBonusBtn();
   if(typeof renderSummary === "function") renderSummary();
   log("Zresetowano symulację.");
@@ -1824,62 +1852,64 @@ muteBtn.onclick = () => {
 // aren't blocked by the browser's autoplay policy
 document.addEventListener("pointerdown", () => getAudioCtx(), {once:true});
 
-/* ---------------- cross-tab lobby (open another window to join) ----------------
-   There's no real backend here, so "another window" means another tab/window of
-   this same browser on this same device: lobby state lives in localStorage and
-   changes are pushed to other tabs via BroadcastChannel + the native 'storage'
-   event, so an empty seat you add in tab A shows up live in tab B. */
-const LOBBY_KEY = "cs2sim_battle_lobbies_v1";
-const myTabId = "tab-" + Math.random().toString(36).slice(2) + Date.now().toString(36);
-let bc = null;
-try{ bc = new BroadcastChannel("cs2sim-battle-lobby"); }catch(e){ bc = null; }
-function notifyOtherTabs(){ if(bc) try{ bc.postMessage({type:"lobbies"}); }catch(e){} }
+/* ---------------- multiplayer lobby (real server, real players) ----------------
+   Case Battle talks to a real backend over Socket.IO: the public lobby list
+   and any lobby you're seated in are pushed live by the server, so a battle
+   created on one computer is visible and joinable from a completely
+   different one. Nobody re-rolls independently — see runLobbyRounds below —
+   the host's browser still computes `results` once (same as before), it
+   just gets relayed to everyone else in that lobby's room by the server
+   instead of through localStorage. */
+const myTabId = (() => {
+  const KEY = "cs2sim_battle_tab_id_v1";
+  let id = sessionStorage.getItem(KEY);
+  if(!id){ id = "p-" + Math.random().toString(36).slice(2,10) + Date.now().toString(36); sessionStorage.setItem(KEY, id); }
+  return id;
+})();
+const socket = io();
+let lobbyCache = {};   // public, joinable lobbies (id -> lobby), kept in sync by the server
+let myLobbyObj = null; // full detail of whichever lobby I'm currently seated in
 
-function loadLobbies(){
-  try{
-    const raw = localStorage.getItem(LOBBY_KEY);
-    const parsed = raw ? JSON.parse(raw) : {};
-    return (parsed && typeof parsed === "object") ? parsed : {};
-  }catch(e){ return {}; }
-}
-function saveLobbies(lobbies){
-  try{ localStorage.setItem(LOBBY_KEY, JSON.stringify(lobbies)); }catch(e){}
-  notifyOtherTabs();
-}
-function getLobby(id){ return loadLobbies()[id] || null; }
-/* mutator receives the lobby and returns true on success / falsy to abort (no save) */
-function updateLobby(id, mutator){
-  const lobbies = loadLobbies();
-  const lobby = lobbies[id];
-  if(!lobby) return { lobby:null, ok:false };
-  const ok = mutator(lobby);
-  if(!ok) return { lobby, ok:false };
-  lobbies[id] = lobby;
-  saveLobbies(lobbies);
-  return { lobby, ok:true };
-}
-function removeLobby(id){
-  const lobbies = loadLobbies();
-  if(lobbies[id]){ delete lobbies[id]; saveLobbies(lobbies); }
-}
-function pruneStaleLobbies(){
-  const lobbies = loadLobbies();
-  const now = Date.now();
-  let changed = false;
-  Object.keys(lobbies).forEach(id => {
-    const age = now - (lobbies[id].createdAt || 0);
-    if(age > 3*60*60*1000){ delete lobbies[id]; changed = true; } // 3h stale cleanup
-  });
-  if(changed) saveLobbies(lobbies);
-}
-pruneStaleLobbies();
+function loadLobbies(){ return lobbyCache; }
+function getLobby(id){ return (myLobbyObj && myLobbyObj.id === id) ? myLobbyObj : (lobbyCache[id] || null); }
+
+socket.on("battle:lobbies", (list) => {
+  lobbyCache = {};
+  list.forEach(l => { lobbyCache[l.id] = l; });
+  if(!myLobbyId) renderOpenLobbies();
+});
+socket.on("battle:lobby", (lobby) => {
+  lobbyCache[lobby.id] = lobby;
+  if(myLobbyId === lobby.id){
+    myLobbyObj = lobby;
+    renderLobbyArena(lobby);
+    if(lobby.status === "lobby" && lobby.hostTabId === myTabId) tryAutoStartLobby(lobby.id);
+  }
+});
+socket.on("battle:closed", ({lobbyId}) => {
+  if(myLobbyId === lobbyId){
+    myLobbyId = null; myLobbyObj = null;
+    sessionStorage.removeItem("myLobbyId_v1");
+    animatingLobbyId = null;
+    log("Bitwa została zamknięta.");
+    showLandingView();
+  }
+});
+socket.on("connect", () => {
+  if(myLobbyId){
+    socket.emit("battle:resume", {lobbyId: myLobbyId, tabId: myTabId}, (res) => {
+      if(res && res.ok){ myLobbyObj = res.lobby; showLobbyView(res.lobby); }
+      else { myLobbyId = null; sessionStorage.removeItem("myLobbyId_v1"); showLandingView(); }
+    });
+  }
+});
 
 /* the single shared wallet (localStorage) can be touched from any tab — always
    re-read the latest copy right before mutating it so two tabs don't clobber
    each other's changes */
 function reloadSharedState(){
   const s = loadState();
-  balance = s.balance; inventory = s.inventory; invCounter = s.invCounter;
+  balance = s.balance; inventory = s.inventory; invCounter = s.invCounter; level = s.level; xp = s.xp;
 }
 function spendShared(amount){
   reloadSharedState();
@@ -2349,11 +2379,9 @@ startBattleBtn.onclick = () => {
 
   const battleMode = combinedMode();
   const totalPlayers = opponentCount + 1;
-  const id = "lobby-" + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
   const chosenIdx = Math.min(hostSlotIdx, totalPlayers - 1);
-  const lobby = {
-    id,
-    hostTabId: myTabId,
+  const cfg = {
+    tabId: myTabId,
     rounds: selectedRounds.slice(),
     mode: battleMode,
     teams: isTeams,
@@ -2361,28 +2389,22 @@ startBattleBtn.onclick = () => {
     private: visibility === "private",
     cost,
     totalPlayers,
-    slots: Array.from({length: totalPlayers}, (_, i) =>
-      i === chosenIdx ? {type:"host", name:"Ty (Host)", tabId: myTabId} : {type:"empty"}
-    ),
-    status: "lobby", // "lobby" -> "running" -> "finished"
-    results: null,
-    stakedTotal: cost, // grows only when a real human seat (host/join) pays in — bots are free
-    createdAt: Date.now()
+    hostSlotIdx: chosenIdx
   };
+  socket.emit("battle:create", cfg, (res) => {
+    if(!res || !res.ok){ alert("Nie udało się utworzyć bitwy — spróbuj ponownie."); return; }
+    const lobby = res.lobby;
+    myLobbyObj = lobby;
+    spendShared(cost); // host's own seat is paid for immediately
 
-  const lobbies = loadLobbies();
-  lobbies[id] = lobby;
-  saveLobbies(lobbies);
+    myLobbyId = lobby.id;
+    sessionStorage.setItem("myLobbyId_v1", lobby.id);
+    animatingLobbyId = null;
 
-  spendShared(cost); // host's own seat is paid for immediately
-
-  myLobbyId = id;
-  sessionStorage.setItem("myLobbyId_v1", id);
-  animatingLobbyId = null;
-
-  const modeLabel = (battleMode === "standard" ? "Standard" : "Underdog") + (isTeams ? " 2v2" : "");
-  log(`Utworzono bitwę (${modeLabel}) — czeka na ${totalPlayers} graczy.`);
-  showLobbyView(lobby);
+    const modeLabel = (battleMode === "standard" ? "Standard" : "Underdog") + (isTeams ? " 2v2" : "");
+    log(`Utworzono bitwę (${modeLabel}) — czeka na ${totalPlayers} graczy.`);
+    showLobbyView(lobby);
+  });
 };
 
 function showLobbyView(lobby){
@@ -2537,11 +2559,14 @@ openLobbiesList.addEventListener("click", (e) => {
 
 /* ---- auto-start: the moment every seat is filled, the host rolls all
    rounds and flips the lobby to "running" — no manual button needed. ---- */
+let autoStartSubmitted = null; // lobbyId we've already sent battle:submitResults for
 function tryAutoStartLobby(lobbyId){
   const current = getLobby(lobbyId);
   if(!current || current.status !== "lobby") return;
   if(current.hostTabId !== myTabId) return; // only the host settles this
   if(current.slots.some(s => s.type === "empty")) return;
+  if(autoStartSubmitted === lobbyId) return; // already submitted, waiting for the server's "running" broadcast
+  autoStartSubmitted = lobbyId;
 
   const results = current.slots.map(() => ({ rounds: [], total: 0 }));
   current.rounds.forEach(caseKey => {
@@ -2553,59 +2578,34 @@ function tryAutoStartLobby(lobbyId){
     });
   });
 
-  const { lobby, ok } = updateLobby(lobbyId, l => {
-    if(l.status !== "lobby") return false;
-    if(l.slots.some(s => s.type === "empty")) return false;
-    l.results = results;
-    l.status = "running";
-    return true;
-  });
-  if(!ok) return;
-  log(`Wszystkie miejsca zajęte — bitwa startuje automatycznie (${lobby.slots.length} graczy, ${lobby.rounds.length} rund).`);
-  if(myLobbyId === lobby.id) renderLobbyArena(lobby);
+  log(`Wszystkie miejsca zajęte — bitwa startuje automatycznie (${current.slots.length} graczy, ${current.rounds.length} rund).`);
+  socket.emit("battle:submitResults", { lobbyId, tabId: myTabId, results });
 }
 
 function addBotToSlot(lobbyId, idx){
-  const usedNames = [];
-  const { lobby, ok } = updateLobby(lobbyId, l => {
-    if(l.hostTabId !== myTabId) return false;
-    if(!l.slots[idx] || l.slots[idx].type !== "empty") return false;
-    l.slots.forEach(s => { if(s.type === "bot") usedNames.push(s.name); });
-    const name = BOT_NAMES.find(n => !usedNames.includes(n)) || `Bot ${idx+1}`;
-    l.slots[idx] = {type:"bot", name, tabId:null};
-    return true;
-  });
-  if(!ok) return;
-  // bots are free — only real human seats (host/join) stake money
-  log(`Dodano bota do bitwy (${lobby.slots[idx].name}).`);
-  if(myLobbyId === lobby.id) renderLobbyArena(lobby);
-  renderOpenLobbies();
-  tryAutoStartLobby(lobby.id);
+  socket.emit("battle:addBot", { lobbyId, idx, tabId: myTabId });
 }
 
 function joinSlot(lobbyId, idx){
   const existing = getLobby(lobbyId);
   if(!existing) return;
   if(existing.slots.some(s => s.tabId === myTabId)) return; // already seated somewhere
-  let name = prompt("Podaj swój nick do bitwy:", "Gracz");
+  const steamUser = window.__STEAM_AUTH__ && window.__STEAM_AUTH__.loggedIn ? window.__STEAM_AUTH__.user : null;
+  let name = steamUser ? steamUser.displayName : prompt("Podaj swój nick do bitwy:", "Gracz");
   if(name == null) return;
-  name = name.trim().slice(0, 18) || "Gracz";
+  name = String(name).trim().slice(0, 18) || "Gracz";
 
-  const { lobby, ok } = updateLobby(lobbyId, l => {
-    if(!l.slots[idx] || l.slots[idx].type !== "empty") return false;
-    l.slots[idx] = {type:"player", name, tabId: myTabId};
-    l.stakedTotal = (l.stakedTotal || l.cost) + l.cost;
-    return true;
+  socket.emit("battle:join", { lobbyId, idx, tabId: myTabId, name }, (res) => {
+    if(!res || !res.ok){ alert("To miejsce zostało już zajęte."); renderOpenLobbies(); return; }
+    const lobby = res.lobby;
+    myLobbyObj = lobby;
+    spendShared(lobby.cost);
+    myLobbyId = lobby.id;
+    sessionStorage.setItem("myLobbyId_v1", lobby.id);
+    animatingLobbyId = null;
+    log(`Dołączono do bitwy jako ${lobby.slots[idx].name}.`);
+    showLobbyView(lobby);
   });
-  if(!ok){ alert("To miejsce zostało już zajęte."); renderOpenLobbies(); return; }
-
-  spendShared(lobby.cost);
-  myLobbyId = lobby.id;
-  sessionStorage.setItem("myLobbyId_v1", lobby.id);
-  animatingLobbyId = null;
-  log(`Dołączono do bitwy jako ${name}.`);
-  showLobbyView(lobby);
-  tryAutoStartLobby(lobby.id);
 }
 
 /* ---------------- mini spinning reel (per-round, per-player) ---------------- */
@@ -3033,6 +3033,10 @@ function finishConclusion(lobby, outcome, mySlotIdx){
 
   renderOutcomeBanner(lobby, outcome);
 
+  // every human participant earns EXP for their own stake, independent of who won —
+  // this runs on each participant's own browser so it never gets double-counted
+  if(mySlotIdx !== -1) awardBattleXp(lobby.cost);
+
   // only the host actually settles the shared wallet, so items/refunds never double up
   if(lobby.hostTabId === myTabId){
     reloadSharedState();
@@ -3082,7 +3086,7 @@ function finishConclusion(lobby, outcome, mySlotIdx){
         log(`Bitwa: wygrywa ${winLabel}. Wejścia przepadają.`);
       }
     }
-    updateLobby(lobby.id, l => { l.status = "finished"; l.outcome = outcome; return true; });
+    socket.emit("battle:finish", { lobbyId: lobby.id, tabId: myTabId, outcome });
   }
 }
 
@@ -3177,10 +3181,7 @@ function renderOpenLobbies(){
 
 document.getElementById("newBattleBtn").onclick = () => {
   if(myLobbyId){
-    const lobby = getLobby(myLobbyId);
-    if(lobby && lobby.hostTabId === myTabId && lobby.status !== "finished"){
-      removeLobby(myLobbyId); // host abandoning an unfinished lobby closes it for everyone
-    }
+    socket.emit("battle:leave", { lobbyId: myLobbyId, tabId: myTabId });
   }
   myLobbyId = null;
   animatingLobbyId = null;
@@ -3205,50 +3206,23 @@ document.getElementById("setupBackBtn").onclick = () => {
   showLandingView();
 };
 
-/* leave an unstarted lobby cleanly if the host closes/reloads the tab */
+/* leave an unstarted lobby cleanly if the host closes/reloads the tab — best
+   effort only; the server's own disconnect-based grace period (see
+   battle-lobby.js) is what actually guarantees cleanup if this never fires */
 window.addEventListener("beforeunload", () => {
-  if(myLobbyId){
-    const lobby = getLobby(myLobbyId);
-    if(lobby && lobby.hostTabId === myTabId && lobby.status === "lobby"){
-      removeLobby(myLobbyId);
-    }
-  }
+  if(myLobbyId) socket.emit("battle:leave", { lobbyId: myLobbyId, tabId: myTabId });
 });
 
-/* ---- cross-tab sync: react when another window changes lobbies or the shared wallet ---- */
-function onLobbiesChanged(){
-  if(myLobbyId){
-    const lobby = getLobby(myLobbyId);
-    if(!lobby){
-      // our lobby was closed/removed from elsewhere
-      myLobbyId = null;
-      sessionStorage.removeItem("myLobbyId_v1");
-      animatingLobbyId = null;
-      showLandingView();
-      return;
-    }
-    renderLobbyArena(lobby);
-    if(lobby.status === "lobby") tryAutoStartLobby(lobby.id);
-  } else if(landingEl.style.display !== "none"){
-    renderOpenLobbies();
-  }
-}
+/* the shared wallet (localStorage) can still be touched from another tab of
+   the same browser — keep that part of the old cross-tab sync */
 window.addEventListener("storage", (e) => {
-  if(e.key === LOBBY_KEY) onLobbiesChanged();
-  else if(e.key === STORAGE_KEY){ reloadSharedState(); renderBalance(); }
+  if(e.key === STORAGE_KEY){ reloadSharedState(); renderBalance(); }
 });
-if(bc){
-  bc.onmessage = (e) => { if(e.data && e.data.type === "lobbies") onLobbiesChanged(); };
-}
 
-/* ---- resume state on load (e.g. this tab refreshed mid-lobby) ---- */
-if(myLobbyId){
-  const existing = getLobby(myLobbyId);
-  if(existing) showLobbyView(existing);
-  else { myLobbyId = null; sessionStorage.removeItem("myLobbyId_v1"); showLandingView(); }
-} else {
-  showLandingView();
-}
+/* initial view: optimistic default, corrected to showLobbyView() by the
+   battle:resume flow above (wired next to the socket "connect" handler) if
+   we reconnect mid-battle */
+showLandingView();
 
 log("Panel bitew gotowy. Wybierz skrzynki i przeciwników, utwórz bitwę, a potem uzupełnij miejsca botami albo poczekaj, aż ktoś dołączy z innego okna — bitwa wystartuje automatycznie, gdy wszystkie miejsca będą zajęte.");
 </script>

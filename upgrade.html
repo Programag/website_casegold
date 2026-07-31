@@ -652,16 +652,17 @@ function rarityColor(it){
 function loadState(){
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
-    if(!raw) return {balance: START_BALANCE, inventory: [], invCounter: 0, level: 0};
+    if(!raw) return {balance: START_BALANCE, inventory: [], invCounter: 0, level: 0, xp: 0};
     const parsed = JSON.parse(raw);
     return {
       balance: typeof parsed.balance === "number" ? parsed.balance : START_BALANCE,
       inventory: Array.isArray(parsed.inventory) ? parsed.inventory : [],
       invCounter: typeof parsed.invCounter === "number" ? parsed.invCounter : 0,
-      level: typeof parsed.level === "number" ? parsed.level : 0
+      level: typeof parsed.level === "number" ? parsed.level : 0,
+      xp: typeof parsed.xp === "number" ? parsed.xp : 0
     };
   }catch(e){
-    return {balance: START_BALANCE, inventory: [], invCounter: 0, level: 0};
+    return {balance: START_BALANCE, inventory: [], invCounter: 0, level: 0, xp: 0};
   }
 }
 function saveState(){

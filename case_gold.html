@@ -705,21 +705,22 @@ function rollItem(){
 function loadState(){
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
-    if(!raw) return {balance: START_BALANCE, inventory: [], invCounter: 0, level: 0};
+    if(!raw) return {balance: START_BALANCE, inventory: [], invCounter: 0, level: 0, xp: 0};
     const parsed = JSON.parse(raw);
     return {
       balance: typeof parsed.balance === "number" ? parsed.balance : START_BALANCE,
       inventory: Array.isArray(parsed.inventory) ? parsed.inventory : [],
       invCounter: typeof parsed.invCounter === "number" ? parsed.invCounter : 0,
-      level: typeof parsed.level === "number" ? parsed.level : 0
+      level: typeof parsed.level === "number" ? parsed.level : 0,
+      xp: typeof parsed.xp === "number" ? parsed.xp : 0
     };
   }catch(e){
-    return {balance: START_BALANCE, inventory: [], invCounter: 0, level: 0};
+    return {balance: START_BALANCE, inventory: [], invCounter: 0, level: 0, xp: 0};
   }
 }
 function saveState(){
   try{
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({balance, inventory, invCounter}));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({balance, inventory, invCounter, level, xp}));
   }catch(e){}
 }
 
@@ -728,6 +729,8 @@ let balance = initial.balance;
 let inventory = initial.inventory;
 let spinning = false;
 let invCounter = initial.invCounter;
+let level = initial.level;
+let xp = initial.xp;
 let pendingResults = null;
 
 const balanceEl = document.getElementById("balance");
@@ -913,6 +916,8 @@ document.getElementById("resetBtn").onclick = () => {
   balance = START_BALANCE;
   inventory = [];
   invCounter = 0;
+  level = 0;
+  xp = 0;
   localStorage.removeItem(DAILY_BONUS_KEY);
   renderBalance();
   renderDailyBonusBtn();
