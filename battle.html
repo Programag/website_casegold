@@ -1875,6 +1875,39 @@ let myLobbyObj = null; // full detail of whichever lobby I'm currently seated in
 function loadLobbies(){ return lobbyCache; }
 function getLobby(id){ return (myLobbyObj && myLobbyObj.id === id) ? myLobbyObj : (lobbyCache[id] || null); }
 
+/* ---- shareable per-battle link (/battle?lobby=<id>) — kept in sync with
+   whichever lobby is currently shown, so #copyLinkBtn (which just copies
+   location.href) always points at the right one, and reloading/sharing the
+   URL lands back on the same battle instead of the generic landing page. */
+function updateBattleUrl(lobbyId){
+  const url = lobbyId ? `${location.pathname}?lobby=${encodeURIComponent(lobbyId)}` : location.pathname;
+  history.replaceState(null, "", url);
+}
+function urlLobbyId(){
+  return new URLSearchParams(location.search).get("lobby");
+}
+/* Opens whatever lobby the URL points at, purely as a viewer — doesn't take
+   a seat. Used when someone follows a shared link without already having
+   one (a seat to reconnect to always takes priority, see the "connect"
+   handler below). Works for lobbies in any state, including already-
+   finished ones (rewatch) and private ones (the link itself is the invite). */
+function tryViewLobbyFromUrl(){
+  const id = urlLobbyId();
+  if(!id || myLobbyId) return;
+  socket.emit("battle:getLobby", { lobbyId: id }, (res) => {
+    if(!res || !res.ok){
+      log("Bitwa spod tego linku już nie istnieje.");
+      updateBattleUrl(null);
+      showLandingView();
+      return;
+    }
+    myLobbyId = res.lobby.id;
+    myLobbyObj = res.lobby;
+    animatingLobbyId = null;
+    showLobbyView(res.lobby);
+  });
+}
+
 socket.on("battle:lobbies", (list) => {
   lobbyCache = {};
   list.forEach(l => { lobbyCache[l.id] = l; });
@@ -1893,6 +1926,7 @@ socket.on("battle:closed", ({lobbyId}) => {
     myLobbyId = null; myLobbyObj = null;
     sessionStorage.removeItem("myLobbyId_v1");
     animatingLobbyId = null;
+    updateBattleUrl(null);
     log("Bitwa została zamknięta.");
     showLandingView();
   }
@@ -1900,9 +1934,11 @@ socket.on("battle:closed", ({lobbyId}) => {
 socket.on("connect", () => {
   if(myLobbyId){
     socket.emit("battle:resume", {lobbyId: myLobbyId, tabId: myTabId}, (res) => {
-      if(res && res.ok){ myLobbyObj = res.lobby; showLobbyView(res.lobby); }
-      else { myLobbyId = null; sessionStorage.removeItem("myLobbyId_v1"); showLandingView(); }
+      if(res && res.ok){ myLobbyObj = res.lobby; showLobbyView(res.lobby); updateBattleUrl(res.lobby.id); }
+      else { myLobbyId = null; sessionStorage.removeItem("myLobbyId_v1"); tryViewLobbyFromUrl(); }
     });
+  } else {
+    tryViewLobbyFromUrl();
   }
 });
 
@@ -2405,6 +2441,7 @@ startBattleBtn.onclick = () => {
     myLobbyId = lobby.id;
     sessionStorage.setItem("myLobbyId_v1", lobby.id);
     animatingLobbyId = null;
+    updateBattleUrl(lobby.id);
 
     const modeLabel = (battleMode === "standard" ? "Standard" : "Underdog") + (isTeams ? " 2v2" : "");
     log(`Utworzono bitwę (${modeLabel}) — czeka na ${totalPlayers} graczy.`);
@@ -2615,6 +2652,7 @@ function joinSlot(lobbyId, idx){
     myLobbyId = lobby.id;
     sessionStorage.setItem("myLobbyId_v1", lobby.id);
     animatingLobbyId = null;
+    updateBattleUrl(lobby.id);
     log(`Dołączono do bitwy jako ${lobby.slots[idx].name}.`);
     showLobbyView(lobby);
   });
@@ -3202,6 +3240,7 @@ document.getElementById("newBattleBtn").onclick = () => {
   myLobbyId = null;
   animatingLobbyId = null;
   sessionStorage.removeItem("myLobbyId_v1");
+  updateBattleUrl(null);
   selectedRounds = [];
   renderSelectedRounds();
   renderSummary();

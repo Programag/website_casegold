@@ -17,7 +17,9 @@ const MAX_ROUNDS = 40;
 const MAX_PLAYERS = 4;
 const MAX_COST = 1000000;
 const DISCONNECT_GRACE_MS = 8000;
-const FINISHED_LOBBY_TTL_MS = 5 * 60 * 1000;
+// Jak długo zakończona bitwa zostaje dostępna pod swoim linkiem (do
+// ponownego obejrzenia), zanim zniknie z pamięci serwera.
+const FINISHED_LOBBY_TTL_MS = 60 * 60 * 1000;
 
 async function steamUserFromSocket(socket, readUsers) {
   const sess = socket.request.session;
@@ -148,6 +150,19 @@ module.exports = function attachBattleLobby(io, { readUsers }) {
       socket.join("lobby:" + lobbyId);
       socketMeta[socket.id] = { lobbyId, tabId };
       cancelPendingFree(lobbyId, tabId);
+      ack({ ok: true, lobby });
+    });
+
+    // Odsłona bitwy pod jej bezpośrednim linkiem (/battle?lobby=<id>) -
+    // niezależnie od tego, czy odwiedzający ma tam miejsce. Działa dla
+    // lobby w dowolnym stanie (poczekalnia/w trakcie/zakończona) i dla
+    // prywatnych bitew też - sama znajomość (nieodgadywalnego) ID wystarczy,
+    // tak samo jak przy każdym linku do udostępnienia.
+    socket.on("battle:getLobby", (payload, ack) => {
+      ack = typeof ack === "function" ? ack : () => {};
+      const lobby = lobbies[(payload || {}).lobbyId];
+      if (!lobby) return ack({ ok: false, reason: "not_found" });
+      socket.join("lobby:" + lobby.id);
       ack({ ok: true, lobby });
     });
 
