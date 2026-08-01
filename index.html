@@ -181,6 +181,7 @@
     background:var(--panel-2); border:1px solid var(--line);
     display:flex; align-items:center; justify-content:center; font-size:30px;
   }
+  .fb-case img{width:70%; height:70%; object-fit:contain;}
   .fb-case:nth-child(2){transform:translateY(-10px);}
   .fb-case .free-tag{
     position:absolute; top:-9px; left:50%; transform:translateX(-50%);
@@ -373,9 +374,9 @@
       <div class="fb-sub" id="freeCaseStatus"></div>
     </div>
     <div class="fb-cases">
-      <div class="fb-case"><span class="free-tag">FREE</span>📦</div>
-      <div class="fb-case"><span class="free-tag">FREE LVL 10</span>📦</div>
-      <div class="fb-case"><span class="free-tag">FREE</span>📦</div>
+      <div class="fb-case"><span class="free-tag">FREE</span><img src="free_case_one.PNG" alt="Free Case" onerror="this.outerHTML='📦';"></div>
+      <div class="fb-case"><span class="free-tag">FREE LVL 10</span><img src="free_case_two.PNG" alt="Free Case Lvl 10" onerror="this.outerHTML='📦';"></div>
+      <div class="fb-case"><span class="free-tag">FREE</span><img src="free_case_three.PNG" alt="Free Case" onerror="this.outerHTML='📦';"></div>
     </div>
     <button class="fb-btn" id="freeCaseBtn">Otwórz skrzynki</button>
   </div>
