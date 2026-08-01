@@ -261,6 +261,7 @@ const DAILY_BONUS_KEY = "cs2sim_daily_bonus_at";
 const DAILY_BONUS_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 const START_BALANCE = 50.00;
 function fmt(n){
+  if(typeof n !== "number" || !isFinite(n)) n = 0;
   return n.toLocaleString("pl-PL", {minimumFractionDigits:2, maximumFractionDigits:2}) + " zł";
 }
 function loadState(){
@@ -339,6 +340,9 @@ function log(msg){
   logEl.prepend(d);
   while(logEl.children.length > 40) logEl.removeChild(logEl.lastChild);
 }
+window.addEventListener("error", (e) => {
+  try{ log(`Błąd JS: ${e.message} (${(e.filename||"").split("/").pop()}:${e.lineno})`); }catch(e2){}
+});
 function renderInvTotal(){
   const total = inventory.reduce((s,i) => s + i.price, 0);
   document.getElementById("invTotalValue").textContent = `Łączna wartość ekwipunku: ${fmt(total)}`;
@@ -350,14 +354,20 @@ function renderInventory(){
   inventory.slice().reverse().forEach(it => inventoryEl.appendChild(itemNode(it, "inv-item")));
 }
 function sellItem(id){
-  const idx = inventory.findIndex(i => i._id === id);
-  if(idx === -1) return;
-  const it = inventory[idx];
-  balance += it.price;
-  inventory.splice(idx, 1);
-  renderBalance();
-  renderInventory();
-  log(`Sprzedano: ${it.weapon} | ${it.skin} (${it.wear}) za ${fmt(it.price)}`);
+  try{
+    const idx = inventory.findIndex(i => i._id === id);
+    if(idx === -1){ log(`Nie znaleziono przedmiotu do sprzedaży (id ${id}).`); return; }
+    const it = inventory[idx];
+    const price = (typeof it.price === "number" && isFinite(it.price)) ? it.price : 0;
+    if(price !== it.price) log(`Uwaga: "${it.weapon || "?"} | ${it.skin || "?"}" miał nieprawidłową cenę (${it.price}) - sprzedano za 0,00 zł. Zgłoś to.`);
+    balance += price;
+    inventory.splice(idx, 1);
+    renderBalance();
+    renderInventory();
+    log(`Sprzedano: ${it.weapon} | ${it.skin} (${it.wear}) za ${fmt(price)}`);
+  }catch(e){
+    log(`Błąd sprzedaży: ${e.message}`);
+  }
 }
 
 /* ---- nagrody za poziomy: skin najbliższy 100 zł za poziom 1, każdy kolejny
@@ -405,14 +415,19 @@ function renderLevelRewards(){
   });
 }
 function claimLevelReward(lvl){
-  const item = window.SteamAuth.claimLevelReward(lvl);
-  if(!item) return;
-  invCounter++;
-  inventory.push({ weapon:item.weapon, skin:item.skin, wear:item.wear, price:item.price, img:getSkinImage(item), _id: invCounter });
-  saveState();
-  renderInventory();
-  renderLevelRewards();
-  log(`Odebrano nagrodę za poziom ${lvl}: ${item.weapon} | ${item.skin} (${item.wear}) o wartości ${fmt(item.price)}.`);
+  try{
+    const item = window.SteamAuth.claimLevelReward(lvl);
+    if(!item){ log(`Nie udało się odebrać nagrody za poziom ${lvl} (już odebrana albo poziom jeszcze nieosiągnięty).`); return; }
+    if(typeof item.price !== "number" || !isFinite(item.price)){ log(`Błąd: nagroda za poziom ${lvl} ma nieprawidłową cenę. Zgłoś to.`); return; }
+    invCounter++;
+    inventory.push({ weapon:item.weapon, skin:item.skin, wear:item.wear, price:item.price, img:getSkinImage(item), _id: invCounter });
+    saveState();
+    renderInventory();
+    renderLevelRewards();
+    log(`Odebrano nagrodę za poziom ${lvl}: ${item.weapon} | ${item.skin} (${item.wear}) o wartości ${fmt(item.price)}.`);
+  }catch(e){
+    log(`Błąd odbioru nagrody: ${e.message}`);
+  }
 }
 
 function init(){
