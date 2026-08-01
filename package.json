@@ -2,7 +2,7 @@
   "name": "cs2sim",
   "version": "1.0.0",
   "private": true,
-  "description": "Skrzynka // Symulator - serwer z logowaniem przez Steam",
+  "description": "Casegold - serwer z logowaniem przez Steam",
   "main": "server.js",
   "engines": {
     "node": ">=18"
