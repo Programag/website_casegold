@@ -332,12 +332,10 @@
     <button class="daily-btn" id="dailyBonusBtn">🎁 Daily Bonus</button>
     <div class="wallet-chip">
       <span class="wc-amount" id="balance">50,00 zł</span>
-      <button class="wc-add" id="topUpBtn" title="Doładuj +20,00 zł">+</button>
     </div>
     <div class="settings-wrap">
       <button class="icon-btn" id="settingsBtn">⚙</button>
       <div class="settings-menu" id="settingsMenu">
-        <button id="resetBtn">Zresetuj konto</button>
         <button id="inventoryBtn">Ekwipunek</button>
         <div class="lang-row" id="langRow">
           <button class="lang-opt" id="langPl" data-lang="pl">🇵🇱 Polski</button>
@@ -528,21 +526,7 @@ const settingsBtn = document.getElementById("settingsBtn");
 const settingsMenu = document.getElementById("settingsMenu");
 settingsBtn.onclick = (e) => { e.stopPropagation(); settingsMenu.classList.toggle("open"); };
 document.addEventListener("click", () => settingsMenu.classList.remove("open"));
-document.getElementById("resetBtn").onclick = () => {
-  state = {balance: START_BALANCE, inventory: [], invCounter: 0, level: 0, xp: 0};
-  renderBalance();
-  saveState(state);
-  localStorage.removeItem(FREE_CASE_KEY);
-  localStorage.removeItem(DAILY_BONUS_KEY);
-  renderCooldownButtons();
-  showToast("Konto zresetowane.");
-};
 document.getElementById("inventoryBtn").onclick = () => { window.location.href = "equipment.html"; };
-document.getElementById("topUpBtn").onclick = () => {
-  state.balance += 20;
-  renderBalance();
-  saveState(state);
-};
 
 /* ---- free case (3h) + daily bonus (24h): small virtual rewards on a cooldown ---- */
 function fmtCountdown(ms){
@@ -693,7 +677,7 @@ const CATEGORY_LABELS_EN = {
 const I18N = {
   pl: {
     friendsBtn:"👥 Znajomi", navCases:"Skrzynki", navFree:"Darmowe", navTasks:"Zadania", navInventory:"Ekwipunek",
-    resetBtn:"Zresetuj konto", inventoryBtn:"Ekwipunek",
+    inventoryBtn:"Ekwipunek",
     heroTitle:"Skrzynki", heroSub:"Otwórz skrzynkę, zobacz co Ci wpadnie. Czysta symulacja — żadnych prawdziwych pieniędzy.",
     fbTxt:'Odbierz <span class="accent">darmową skrzynkę</span> co 3h!',
     freeCaseBtnReady:"Otwórz skrzynki", freeCaseBtnClaimed:"Odebrano",
@@ -709,7 +693,7 @@ const I18N = {
   },
   en: {
     friendsBtn:"👥 Friends", navCases:"Cases", navFree:"Free", navTasks:"Tasks", navInventory:"Inventory",
-    resetBtn:"Reset account", inventoryBtn:"Inventory",
+    inventoryBtn:"Inventory",
     heroTitle:"Cases", heroSub:"Open a case, see what drops. Pure simulation — no real money involved.",
     fbTxt:'Claim a <span class="accent">free case</span> every 3h!',
     freeCaseBtnReady:"Open cases", freeCaseBtnClaimed:"Claimed",
@@ -735,7 +719,6 @@ function applyLang(lang){
   document.getElementById("navFree").textContent = t.navFree;
   document.getElementById("navTasks").textContent = t.navTasks;
   document.getElementById("navInventory").textContent = t.navInventory;
-  document.getElementById("resetBtn").textContent = t.resetBtn;
   document.getElementById("inventoryBtn").textContent = t.inventoryBtn;
   document.getElementById("heroTitle").textContent = t.heroTitle;
   document.getElementById("heroSub").textContent = t.heroSub;

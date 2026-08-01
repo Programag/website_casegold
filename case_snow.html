@@ -550,12 +550,10 @@
     <button class="daily-btn" id="dailyBonusBtn">🎁 Daily Bonus</button>
     <div class="wallet-chip">
       <span class="wc-amount" id="balance">50,00 zł</span>
-      <button class="wc-add" id="topUpBtn" title="Doładuj +20,00 zł">+</button>
     </div>
     <div class="settings-wrap">
       <button class="icon-btn" id="settingsBtn">⚙</button>
       <div class="settings-menu" id="settingsMenu">
-        <button id="resetBtn">Zresetuj konto</button>
         <button id="inventoryBtn">Ekwipunek</button>
       </div>
     </div>
@@ -858,25 +856,6 @@ function commitResults(){
   document.getElementById("resultFlash").classList.remove("show");
 }
 
-document.getElementById("topUpBtn").onclick = () => {
-  balance += 20;
-  renderBalance();
-  log(`Doładowano konto: +${fmt(20)}`);
-};
-
-document.getElementById("resetBtn").onclick = () => {
-  if(spinning) return;
-  balance = START_BALANCE;
-  inventory = [];
-  invCounter = 0;
-  level = 0;
-  xp = 0;
-  localStorage.removeItem(DAILY_BONUS_KEY);
-  renderBalance();
-  renderDailyBonusBtn();
-  logEl.innerHTML = "";
-  log("Zresetowano symulację.");
-};
 document.getElementById("inventoryBtn").onclick = () => { window.location.href = "equipment.html"; };
 
 /* ---- shared top-nav widgets: settings dropdown + daily bonus (24h cooldown) ---- */

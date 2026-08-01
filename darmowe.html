@@ -230,12 +230,10 @@
     <button class="daily-btn" id="dailyBonusBtn">🎁 Daily Bonus</button>
     <div class="wallet-chip">
       <span class="wc-amount" id="balance">50,00 zł</span>
-      <button class="wc-add" id="topUpBtn" title="Doładuj +20,00 zł">+</button>
     </div>
     <div class="settings-wrap">
       <button class="icon-btn" id="settingsBtn">⚙</button>
       <div class="settings-menu" id="settingsMenu">
-        <button id="resetBtn">Zresetuj konto</button>
         <button id="inventoryBtn">Ekwipunek</button>
       </div>
     </div>
@@ -327,22 +325,6 @@ const settingsMenu = document.getElementById("settingsMenu");
 settingsBtn.onclick = (e) => { e.stopPropagation(); settingsMenu.classList.toggle("open"); };
 document.addEventListener("click", () => settingsMenu.classList.remove("open"));
 document.getElementById("inventoryBtn").onclick = () => { window.location.href = "equipment.html"; };
-document.getElementById("topUpBtn").onclick = () => {
-  state.balance += 20;
-  renderBalance();
-  saveState(state);
-};
-document.getElementById("resetBtn").onclick = () => {
-  state = {balance: START_BALANCE, inventory: [], invCounter: 0, level: 0, xp: 0};
-  PLAYER_LEVEL = 0;
-  renderBalance();
-  saveState(state);
-  localStorage.removeItem(DAILY_BONUS_KEY);
-  FREE_CASES.concat(BONUS_FREE_CASES, LEVEL_CASES).forEach(c => localStorage.removeItem(c.key));
-  renderDailyBonusBtn();
-  buildCards();
-  showToast("Konto zresetowane.");
-};
 
 function fmtCountdown(ms){
   const total = Math.max(0, Math.ceil(ms / 1000));

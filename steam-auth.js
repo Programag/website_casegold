@@ -128,6 +128,14 @@
         }
       }
 
+      if (menu && me.isAdmin && !document.getElementById("adminPanelBtn")) {
+        const btn = document.createElement("button");
+        btn.id = "adminPanelBtn";
+        btn.textContent = "🛠 Panel admina";
+        btn.onclick = () => { window.location.href = "/admin.html"; };
+        menu.appendChild(btn);
+      }
+
       if (menu && !document.getElementById("steamAuthRow")) {
         const row = document.createElement("div");
         row.className = "steam-auth-row";

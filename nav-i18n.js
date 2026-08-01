@@ -14,12 +14,12 @@
     pl: {
       cases:"Skrzynki", free:"Darmowe", battle:"Case Battle", upgrader:"Upgrader",
       tasks:"Zadania", inventory:"Ekwipunek",
-      resetBtn:"Zresetuj konto", inventoryBtn:"Ekwipunek", dailyBtn:"🎁 Daily Bonus",
+      inventoryBtn:"Ekwipunek", dailyBtn:"🎁 Daily Bonus",
     },
     en: {
       cases:"Cases", free:"Free", battle:"Case Battle", upgrader:"Upgrader",
       tasks:"Tasks", inventory:"Inventory",
-      resetBtn:"Reset account", inventoryBtn:"Inventory", dailyBtn:"🎁 Daily Bonus",
+      inventoryBtn:"Inventory", dailyBtn:"🎁 Daily Bonus",
     }
   };
 
@@ -38,8 +38,6 @@
     map.forEach(([sel, label]) => {
       document.querySelectorAll(`.nav-links ${sel}`).forEach(el => { el.textContent = label; });
     });
-    const resetBtn = document.getElementById("resetBtn");
-    if(resetBtn) resetBtn.textContent = t.resetBtn;
     const invBtn = document.getElementById("inventoryBtn");
     if(invBtn) invBtn.textContent = t.inventoryBtn;
     const dailyBtn = document.getElementById("dailyBonusBtn");

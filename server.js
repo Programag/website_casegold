@@ -13,6 +13,7 @@ const attachBattleLobby = require("./battle-lobby");
 const PORT = process.env.PORT || 3000;
 const SITE_URL = (process.env.SITE_URL || `http://localhost:${PORT}`).replace(/\/+$/, "");
 const IS_HTTPS = SITE_URL.startsWith("https://");
+const ADMIN_STEAMID = process.env.ADMIN_STEAMID || null;
 
 if (!process.env.STEAM_API_KEY) {
   console.error("Brak STEAM_API_KEY w .env - logowanie przez Steam nie zadziała.");
@@ -128,7 +129,8 @@ app.post("/auth/logout", (req, res) => {
 // ---- Profile / state API ----
 app.get("/api/me", (req, res) => {
   if (!req.user) return res.json({ loggedIn: false });
-  res.json({ loggedIn: true, user: publicUser(req.user) });
+  const isAdmin = !!ADMIN_STEAMID && req.user.steamid === ADMIN_STEAMID;
+  res.json({ loggedIn: true, user: publicUser(req.user), isAdmin });
 });
 
 app.put("/api/state", (req, res) => {
@@ -150,6 +152,47 @@ app.put("/api/state", (req, res) => {
   };
   writeUsers(users);
   res.json({ ok: true });
+});
+
+// ---- Admin: view/edit any player's name + balance ----
+function requireAdmin(req, res, next) {
+  if (!req.user || !ADMIN_STEAMID || req.user.steamid !== ADMIN_STEAMID) {
+    return res.status(403).json({ error: "forbidden" });
+  }
+  next();
+}
+
+app.get("/api/admin/users", requireAdmin, (req, res) => {
+  const users = readUsers();
+  const list = Object.values(users).map((u) => ({
+    steamid: u.steamid,
+    displayName: u.displayName,
+    avatar: u.avatar,
+    balance: u.state ? u.state.balance : 0,
+    level: u.state ? u.state.level : 0,
+    xp: u.state ? u.state.xp : 0,
+    invCount: u.state && Array.isArray(u.state.inventory) ? u.state.inventory.length : 0,
+    updatedAt: u.state ? u.state.updatedAt : null,
+  }));
+  list.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  res.json({ users: list });
+});
+
+app.put("/api/admin/users/:steamid", requireAdmin, (req, res) => {
+  const users = readUsers();
+  const u = users[req.params.steamid];
+  if (!u) return res.status(404).json({ error: "no_such_user" });
+  const body = req.body || {};
+  if (!u.state) u.state = { balance: 0, inventory: [], invCounter: 0, level: 0, xp: 0 };
+  if (typeof body.balance === "number") u.state.balance = body.balance;
+  if (typeof body.level === "number") u.state.level = body.level;
+  if (typeof body.xp === "number") u.state.xp = body.xp;
+  u.state.updatedAt = Date.now();
+  writeUsers(users);
+  res.json({
+    ok: true,
+    user: { steamid: u.steamid, displayName: u.displayName, balance: u.state.balance, level: u.state.level, xp: u.state.xp },
+  });
 });
 
 // ---- Static site ----
