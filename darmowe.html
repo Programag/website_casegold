@@ -169,10 +169,10 @@
   .free-card:hover{transform:translateY(-2px);}
   .free-card.locked{cursor:not-allowed; opacity:.55;}
   .free-card.locked:hover{transform:none;}
-  #topFreeGrid .free-card{animation:free-card-glow 2.2s ease-in-out infinite;}
+  .free-card.free-card--glow{animation:free-card-glow 2.2s ease-in-out infinite;}
   @keyframes free-card-glow{
-    0%,100%{box-shadow:0 0 10px -2px var(--hazard), 0 0 22px -8px var(--hazard);}
-    50%{box-shadow:0 0 22px 2px var(--hazard), 0 0 42px 4px var(--hazard);}
+    0%,100%{box-shadow:0 0 10px -2px var(--card-accent, var(--hazard)), 0 0 22px -8px var(--card-accent, var(--hazard));}
+    50%{box-shadow:0 0 22px 2px var(--card-accent, var(--hazard)), 0 0 42px 4px var(--card-accent, var(--hazard));}
   }
   .free-card .fc-tag{
     position:absolute; top:10px; right:10px; z-index:2;
@@ -366,10 +366,10 @@ setInterval(renderDailyBonusBtn, 1000);
 
 /* ---------------- free / level-gated case cards ---------------- */
 const FREE_CASES = [
-  {id:"free", key:"cs2sim_darmowe_free_at", name:"Free Case", tag:"DARMOWA", icon:"📦", img:"free_case_one.PNG", accent:"var(--hazard)", cooldownMs:3*60*60*1000}
+  {id:"free", key:"cs2sim_darmowe_free_at", name:"Free Case", tag:"DARMOWA", icon:"📦", img:"free_case_one.PNG", accent:"var(--hazard)", glow:true, cooldownMs:3*60*60*1000}
 ];
 const LEVEL_CASES = [
-  {id:"lvl10", key:"cs2sim_darmowe_lvl10_at", name:"Skrzynka Nowicjusza", tag:"LVL 10", icon:"📦", accent:"var(--r-gold)", level:10, cooldownMs:3*60*60*1000},
+  {id:"lvl10", key:"cs2sim_darmowe_lvl10_at", name:"Skrzynka Nowicjusza", tag:"LVL 10", icon:"📦", img:"free_case_two.PNG", accent:"var(--r-restricted)", glow:true, level:10, cooldownMs:3*60*60*1000},
   {id:"lvl20", key:"cs2sim_darmowe_lvl20_at", name:"Skrzynka Odkrywcy", tag:"LVL 20", icon:"📦", accent:"var(--good)", level:20, cooldownMs:3*60*60*1000},
   {id:"lvl30", key:"cs2sim_darmowe_lvl30_at", name:"Skrzynka Weterana", tag:"LVL 30", icon:"📦", accent:"var(--r-covert)", level:30, cooldownMs:3*60*60*1000},
   {id:"lvl40", key:"cs2sim_darmowe_lvl40_at", name:"Skrzynka Mistrza", tag:"LVL 40", icon:"📦", accent:"var(--r-restricted)", level:40, cooldownMs:3*60*60*1000},
@@ -380,7 +380,7 @@ const LEVEL_CASES = [
    tick, so click handlers never get torn down mid-click. */
 function cardNode(c, locked){
   const card = document.createElement("div");
-  card.className = "free-card" + (locked ? " locked" : "");
+  card.className = "free-card" + (locked ? " locked" : "") + (c.glow ? " free-card--glow" : "");
   card.style.setProperty("--card-accent", c.accent);
 
   card.innerHTML = `
