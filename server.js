@@ -51,8 +51,37 @@ function publicUser(u) {
     avatar: u.avatar,
     profileUrl: u.profileUrl,
     createdAt: u.createdAt || null,
+    slug: u.slug || null,
     state: u.state || null,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Publiczne "slugi" profili (np. /profile/aleksio). Przypisywany raz przy
+// pierwszym logowaniu i trzymany na stałe, nawet jeśli gracz zmieni nazwę
+// wyświetlaną w Steam - żeby udostępniony link nigdy się nie zepsuł.
+// ---------------------------------------------------------------------------
+function slugify(name) {
+  return String(name || "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 32);
+}
+
+function assignSlug(users, steamid, displayName) {
+  const base = slugify(displayName) || "gracz";
+  const taken = (s) => Object.values(users).some((u) => u.steamid !== steamid && u.slug === s);
+  if (!taken(base)) return base;
+  let n = 2;
+  while (taken(`${base}-${n}`)) n++;
+  return `${base}-${n}`;
+}
+
+function findUserBySlug(users, slug) {
+  return Object.values(users).find((u) => u.slug === slug) || null;
 }
 
 // ---------------------------------------------------------------------------
@@ -81,6 +110,7 @@ passport.use(
         avatar: (profile.photos && profile.photos[2] && profile.photos[2].value) ||
           (profile.photos && profile.photos[0] && profile.photos[0].value) || null,
         profileUrl: profile._json && profile._json.profileurl,
+        slug: existing && existing.slug ? existing.slug : assignSlug(users, steamid, profile.displayName),
         state: existing ? existing.state : null,
         createdAt: existing ? existing.createdAt : Date.now(),
       };
@@ -132,6 +162,26 @@ app.get("/api/me", (req, res) => {
   if (!req.user) return res.json({ loggedIn: false });
   const isAdmin = !!ADMIN_STEAMID && req.user.steamid === ADMIN_STEAMID;
   res.json({ loggedIn: true, user: publicUser(req.user), isAdmin });
+});
+
+// ---- Publiczny profil gracza (np. GET /api/profile/aleksio) ----
+app.get("/api/profile/:slug", (req, res) => {
+  const users = readUsers();
+  const u = findUserBySlug(users, req.params.slug);
+  if (!u) return res.json({ found: false });
+  const st = u.state || {};
+  res.json({
+    found: true,
+    profile: {
+      slug: u.slug,
+      displayName: u.displayName,
+      avatar: u.avatar,
+      profileUrl: u.profileUrl,
+      createdAt: u.createdAt || null,
+      level: typeof st.level === "number" ? st.level : 0,
+      bestPull: st.bestPull || null,
+    },
+  });
 });
 
 app.put("/api/state", (req, res) => {
@@ -206,6 +256,11 @@ app.put("/api/admin/users/:steamid", requireAdmin, (req, res) => {
     ok: true,
     user: { steamid: u.steamid, displayName: u.displayName, balance: u.state.balance, level: u.state.level, xp: u.state.xp },
   });
+});
+
+// ---- Publiczna podstrona profilu, np. /profile/aleksio ----
+app.get("/profile/:slug", (req, res) => {
+  res.sendFile(path.join(__dirname, "profile.html"));
 });
 
 // ---- Static site ----

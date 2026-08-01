@@ -237,6 +237,7 @@
     const menu = document.getElementById("settingsMenu");
 
     if (me.loggedIn && me.user) {
+      const profileUrl = me.user.slug ? `/profile/${encodeURIComponent(me.user.slug)}` : "/profile.html";
       if (avatar) {
         avatar.innerHTML = "";
         const img = document.createElement("img");
@@ -246,7 +247,7 @@
         avatar.title = me.user.displayName || "";
       }
       if (avatarWrap) {
-        avatarWrap.onclick = () => { window.location.href = "/profile.html"; };
+        avatarWrap.onclick = () => { window.location.href = profileUrl; };
         avatarWrap.title = t.myProfile;
         const badge = avatarWrap.querySelector(".lvl-badge");
         if (badge) {
@@ -261,7 +262,7 @@
         const btn = document.createElement("button");
         btn.id = "myProfileBtn";
         btn.textContent = `👤 ${t.myProfile}`;
-        btn.onclick = () => { window.location.href = "/profile.html"; };
+        btn.onclick = () => { window.location.href = profileUrl; };
         menu.appendChild(btn);
       }
 

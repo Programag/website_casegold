@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<script src="steam-auth.js"></script>
+<script src="/steam-auth.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SKRZYNKA // Mój profil</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -181,12 +181,12 @@
     <span title="Discord">◎</span><span title="Instagram">📷</span><span title="TikTok">🎵</span>
   </div>
   <div class="nav-links">
-    <a class="nav-link" href="index.html">Skrzynki</a>
-    <a class="nav-link" href="darmowe.html">Darmowe</a>
-    <a class="nav-link" href="battle.html">Case Battle</a>
-    <a class="nav-link" href="upgrade.html">Upgrader</a>
+    <a class="nav-link" href="/index.html">Skrzynki</a>
+    <a class="nav-link" href="/darmowe.html">Darmowe</a>
+    <a class="nav-link" href="/battle.html">Case Battle</a>
+    <a class="nav-link" href="/upgrade.html">Upgrader</a>
     <button class="nav-link" data-soon>Zadania</button>
-    <a class="nav-link" href="equipment.html">Ekwipunek</a>
+    <a class="nav-link" href="/equipment.html">Ekwipunek</a>
   </div>
   <div class="nav-right">
     <button class="daily-btn" id="dailyBonusBtn">🎁 Daily Bonus</button>
@@ -210,43 +210,45 @@
 <div class="wrap">
 
   <div class="page-title">
-    <h1>Mój profil <span>//</span> Symulator</h1>
-    <div class="sub">Twoje dane konta i statystyki.</div>
+    <h1 id="pageH1">Mój profil <span>//</span> Symulator</h1>
+    <div class="sub" id="pageSub">Twoje dane konta i statystyki.</div>
   </div>
 
-  <div class="profile-card">
-    <img class="profile-avatar" id="profAvatar" src="" alt="">
-    <div class="profile-name" id="profName">—</div>
-    <a class="profile-steam-link" id="profSteamLink" href="#" target="_blank" rel="noopener">Zobacz profil Steam ↗</a>
-  </div>
+  <div id="profileContent">
+    <div class="profile-card">
+      <img class="profile-avatar" id="profAvatar" src="" alt="">
+      <div class="profile-name" id="profName">—</div>
+      <a class="profile-steam-link" id="profSteamLink" href="#" target="_blank" rel="noopener">Zobacz profil Steam ↗</a>
+    </div>
 
-  <div class="stat-grid">
-    <div class="stat-card">
-      <div class="stat-label">Dołączył</div>
-      <div class="stat-value" id="statJoined">—</div>
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-label">Dołączył</div>
+        <div class="stat-value" id="statJoined">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Poziom</div>
+        <div class="stat-value" id="statLevel">—</div>
+      </div>
+      <div class="stat-card" id="statBalanceRow">
+        <div class="stat-label">Saldo</div>
+        <div class="stat-value" id="statBalance">—</div>
+      </div>
     </div>
-    <div class="stat-card">
-      <div class="stat-label">Poziom</div>
-      <div class="stat-value" id="statLevel">—</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Saldo</div>
-      <div class="stat-value" id="statBalance">—</div>
-    </div>
-  </div>
 
-  <div class="section-title">🏆 Najlepszy drop</div>
-  <div class="best-pull-card" id="bestPullCard">
-    <div class="empty-note">Brak jeszcze żadnych dropów. Otwórz skrzynkę, żeby coś zdobyć!</div>
+    <div class="section-title">🏆 Najlepszy drop</div>
+    <div class="best-pull-card" id="bestPullCard">
+      <div class="empty-note">Brak jeszcze żadnych dropów. Otwórz skrzynkę, żeby coś zdobyć!</div>
+    </div>
   </div>
 
   <footer>Symulacja edukacyjna / rozrywkowa — fikcyjna waluta, brak realnych transakcji.</footer>
 </div>
 </div>
 
-<script src="rarity-data.js"></script>
-<script src="skin-images.js"></script>
-<script src="nav-i18n.js"></script>
+<script src="/rarity-data.js"></script>
+<script src="/skin-images.js"></script>
+<script src="/nav-i18n.js"></script>
 <script>
 const STORAGE_KEY = "cs2sim_state_v1";
 const DAILY_BONUS_KEY = "cs2sim_daily_bonus_at";
@@ -285,20 +287,50 @@ function rarityColorFor(it){
   return "var(--r-gold)";
 }
 
-function renderProfile(){
-  const me = window.__STEAM_AUTH__;
-  const u = me.user;
+function slugFromPath(){
+  const m = window.location.pathname.match(/^\/profile\/([^/]+)\/?$/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+function renderIdentity(p){
+  document.getElementById("profAvatar").src = p.avatar || "";
+  document.getElementById("profAvatar").alt = p.displayName || "Steam";
+  document.getElementById("profName").textContent = p.displayName || "Gracz";
+  const steamLink = document.getElementById("profSteamLink");
+  if(p.profileUrl){ steamLink.href = p.profileUrl; steamLink.style.display = ""; }
+  else { steamLink.style.display = "none"; }
+}
+
+function renderBestPullCard(bp){
+  const card = document.getElementById("bestPullCard");
+  if(!bp){
+    card.style.removeProperty("--rarity");
+    card.innerHTML = `<div class="empty-note">Brak jeszcze żadnych dropów. Otwórz skrzynkę, żeby coś zdobyć!</div>`;
+    return;
+  }
+  card.style.setProperty("--rarity", rarityColorFor(bp));
+  const img = getSkinImage(bp);
+  const when = bp.at ? new Date(bp.at).toLocaleDateString("pl-PL", {day:"numeric", month:"long", year:"numeric"}) : "";
+  card.innerHTML = `
+    <div class="bp-img">${img ? `<img src="${img}" alt="${bp.weapon}" onerror="this.parentElement.innerHTML='<div class=&quot;fallback&quot;>${bp.weapon}</div>'">` : `<div class="fallback">${bp.weapon}</div>`}</div>
+    <div class="bp-info">
+      <div class="bp-weapon">${bp.weapon}</div>
+      <div class="bp-skin">${bp.skin} (${bp.wear})</div>
+      <div class="bp-price">${fmt(bp.price)}</div>
+      ${when ? `<div class="bp-date">Zdobyto: ${when}</div>` : ""}
+    </div>
+  `;
+}
+
+function renderOwnProfile(u){
+  document.getElementById("pageH1").innerHTML = `Mój profil <span>//</span> Symulator`;
+  document.getElementById("pageSub").textContent = "Twoje dane konta i statystyki.";
+  document.getElementById("statBalanceRow").style.display = "";
+
   const s = loadLocalState();
   balance = s.balance;
   renderBalance();
-
-  document.getElementById("profAvatar").src = u.avatar || "";
-  document.getElementById("profAvatar").alt = u.displayName || "Steam";
-  document.getElementById("profName").textContent = u.displayName || "Gracz";
-
-  const steamLink = document.getElementById("profSteamLink");
-  if(u.profileUrl){ steamLink.href = u.profileUrl; }
-  else { steamLink.style.display = "none"; }
+  renderIdentity(u);
 
   const joined = u.createdAt ? new Date(u.createdAt) : null;
   document.getElementById("statJoined").textContent = joined
@@ -306,34 +338,59 @@ function renderProfile(){
     : "—";
   document.getElementById("statLevel").textContent = String(s.level);
   document.getElementById("statBalance").textContent = fmt(s.balance);
-
-  const bp = s.bestPull;
-  const card = document.getElementById("bestPullCard");
-  if(bp){
-    card.style.setProperty("--rarity", rarityColorFor(bp));
-    const img = getSkinImage(bp);
-    const when = bp.at ? new Date(bp.at).toLocaleDateString("pl-PL", {day:"numeric", month:"long", year:"numeric"}) : "";
-    card.innerHTML = `
-      <div class="bp-img">${img ? `<img src="${img}" alt="${bp.weapon}" onerror="this.parentElement.innerHTML='<div class=&quot;fallback&quot;>${bp.weapon}</div>'">` : `<div class="fallback">${bp.weapon}</div>`}</div>
-      <div class="bp-info">
-        <div class="bp-weapon">${bp.weapon}</div>
-        <div class="bp-skin">${bp.skin} (${bp.wear})</div>
-        <div class="bp-price">${fmt(bp.price)}</div>
-        ${when ? `<div class="bp-date">Zdobyto: ${when}</div>` : ""}
-      </div>
-    `;
-  }
+  renderBestPullCard(s.bestPull);
 }
 
-function init(){
+function renderPublicProfile(p){
+  document.getElementById("pageH1").innerHTML = `Profil gracza <span>//</span> Symulator`;
+  document.getElementById("pageSub").textContent = "Statystyki i najlepszy drop.";
+  document.getElementById("statBalanceRow").style.display = "none";
+
+  renderIdentity(p);
+  const joined = p.createdAt ? new Date(p.createdAt) : null;
+  document.getElementById("statJoined").textContent = joined
+    ? joined.toLocaleDateString("pl-PL", {day:"numeric", month:"long", year:"numeric"})
+    : "—";
+  document.getElementById("statLevel").textContent = String(p.level);
+  renderBestPullCard(p.bestPull);
+}
+
+function renderNotFound(slug){
+  document.getElementById("pageH1").innerHTML = `Profil gracza <span>//</span> Symulator`;
+  document.getElementById("pageSub").textContent = "Nie znaleziono takiego gracza.";
+  const content = document.getElementById("profileContent");
+  content.innerHTML = "";
+  const note = document.createElement("div");
+  note.className = "empty-note";
+  note.textContent = `Nie ma gracza o profilu „${slug}”.`;
+  content.appendChild(note);
+}
+
+async function init(){
+  document.getElementById("inventoryBtn").onclick = () => { window.location.href = "/equipment.html"; };
   const me = window.__STEAM_AUTH__ || {loggedIn:false};
-  if(!me.loggedIn || !me.user){
-    window.SteamAuth.requireLogin();
+  const urlSlug = slugFromPath();
+  const ownSlug = me.loggedIn && me.user ? me.user.slug : null;
+  const isOwnProfile = !urlSlug || (ownSlug && urlSlug === ownSlug);
+
+  if(isOwnProfile){
+    if(!me.loggedIn || !me.user){
+      window.SteamAuth.requireLogin();
+      return;
+    }
+    renderOwnProfile(me.user);
     return;
   }
-  document.getElementById("inventoryBtn").onclick = () => { window.location.href = "equipment.html"; };
-  renderProfile();
-  renderBalance();
+
+  // /profile/<slug> dla kogoś innego - publiczny widok, logowanie niewymagane
+  try{
+    const res = await fetch(`/api/profile/${encodeURIComponent(urlSlug)}`);
+    const data = await res.json();
+    if(!data.found){ renderNotFound(urlSlug); return; }
+    renderPublicProfile(data.profile);
+  }catch(e){
+    renderNotFound(urlSlug);
+  }
 }
 init();
 
