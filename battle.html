@@ -3015,8 +3015,12 @@ function finishConclusion(lobby, outcome, mySlotIdx){
   // this runs on each participant's own browser so it never gets double-counted
   if(mySlotIdx !== -1) awardBattleXp(lobby.cost);
 
-  // only the host actually settles the shared wallet, so items/refunds never double up
-  if(lobby.hostTabId === myTabId){
+  // Each participant settles their OWN result on their OWN wallet — nobody else's
+  // client ever touches your balance/inventory. There's no single "host pays
+  // everyone out" step anymore, because real players each have a separate
+  // account now (that used to be safe when host+joiner shared one localStorage
+  // wallet on the same browser, but it isn't once they're different people).
+  if(mySlotIdx !== -1){
     reloadSharedState();
     if(outcome.shared){
       const allItems = [];
@@ -3029,15 +3033,15 @@ function finishConclusion(lobby, outcome, mySlotIdx){
       const myValue = myShare.reduce((s,it)=>s+it.price,0);
       log(`Bitwa: Shared. Pula (${allItems.length} przedmiotów, ${fmt(wonValue)}) podzielona po równo między ${lobby.totalPlayers} graczy. Twoja część: ${myShare.length} przedmiotów o wartości ${fmt(myValue)}.`);
     } else if(outcome.tie){
-      balance += (lobby.stakedTotal || lobby.cost);
+      balance += lobby.cost; // refund only what I personally staked
       saveState();
       renderBalance();
-      log(`Bitwa: remis. Zwrócono ${fmt(lobby.stakedTotal || lobby.cost)} łącznie.`);
+      log(`Bitwa: remis. Zwrócono Twoje wejście: ${fmt(lobby.cost)}.`);
     } else {
       const winners = outcome.winnerIndices.map(i => lobby.slots[i]);
-      const anyHumanWinner = winners.some(w => w.type !== "bot");
       const winLabel = isTeamsMode(lobby) ? `Drużyna ${outcome.winnerTeam === 0 ? "A" : "B"} (${winners.map(w=>w.name).join(", ")})` : winners[0].name;
-      if(anyHumanWinner){
+      const iAmWinner = outcome.winnerIndices.includes(mySlotIdx);
+      if(iAmWinner){
         const allItems = [];
         lobby.results.forEach(r => r.rounds.forEach(it => allItems.push(it)));
         const wonValue = allItems.reduce((s,it)=>s+it.price,0);
@@ -3045,16 +3049,11 @@ function finishConclusion(lobby, outcome, mySlotIdx){
           // the winning team gets the whole pot, but a human member only keeps
           // their own half — represented as fresh, value-matched skins from the
           // general database rather than literally splitting the drops in two
-          const iAmWinner = mySlotIdx >= 0 && outcome.winnerIndices.includes(mySlotIdx);
-          if(iAmWinner){
-            const myShare = pickItemsForValue(wonValue / 2);
-            awardItemsShared(myShare);
-            renderBalance();
-            const myValue = myShare.reduce((s,it)=>s+it.price,0);
-            log(`Bitwa: wygrana dla ${winLabel}. Twoja połowa puli: ${myShare.length} przedmiotów o wartości ${fmt(myValue)} (drużyna zgarnęła łącznie ${allItems.length} przedmiotów o wartości ${fmt(wonValue)}).`);
-          } else {
-            log(`Bitwa: wygrana dla ${winLabel}. Pula (${allItems.length} przedmiotów, ${fmt(wonValue)}) podzielona między graczy zwycięskiej drużyny.`);
-          }
+          const myShare = pickItemsForValue(wonValue / 2);
+          awardItemsShared(myShare);
+          renderBalance();
+          const myValue = myShare.reduce((s,it)=>s+it.price,0);
+          log(`Bitwa: wygrana dla ${winLabel}. Twoja połowa puli: ${myShare.length} przedmiotów o wartości ${fmt(myValue)} (drużyna zgarnęła łącznie ${allItems.length} przedmiotów o wartości ${fmt(wonValue)}).`);
         } else {
           awardItemsShared(allItems);
           renderBalance();
@@ -3064,6 +3063,11 @@ function finishConclusion(lobby, outcome, mySlotIdx){
         log(`Bitwa: wygrywa ${winLabel}. Wejścia przepadają.`);
       }
     }
+  }
+
+  // lobby lifecycle (telling the server this battle is over) stays host-only —
+  // that part has nothing to do with wallets, just who's allowed to close the room
+  if(lobby.hostTabId === myTabId){
     socket.emit("battle:finish", { lobbyId: lobby.id, tabId: myTabId, outcome });
   }
 }
