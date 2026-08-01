@@ -303,6 +303,7 @@ app.put("/api/state", async (req, res) => {
     await writeUsers(users);
     res.json({ ok: true });
   } catch (e) {
+    console.error(`PUT /api/state błąd zapisu dla ${req.user.steamid}:`, e.message);
     res.status(503).json({ error: "storage_unavailable" });
   }
 });

@@ -90,7 +90,11 @@
       body: JSON.stringify(payload),
       credentials: "same-origin",
       keepalive: true,
-    }).catch(() => {});
+    })
+      .then((res) => {
+        if (!res.ok) console.error("[cs2sim] push /api/state nie powiódł się:", res.status, payload);
+      })
+      .catch((e) => console.error("[cs2sim] push /api/state - błąd sieci:", e));
   }
 
   // ---- Zapisz najlepszy drop + liczniki do topki (profil / leaderboard) ----
