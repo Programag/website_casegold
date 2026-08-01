@@ -69,13 +69,13 @@ async function redisCommand(args) {
 
 async function readUsers() {
   if (USE_REDIS) {
-    try {
-      const raw = await redisCommand(["GET", REDIS_USERS_KEY]);
-      return raw ? JSON.parse(raw) : {};
-    } catch (e) {
-      console.error("Redis readUsers błąd:", e.message);
-      return {};
-    }
+    // WAŻNE: NIE łapać tu błędu i zwracać {} - wywołujący (np. logowanie
+    // przez Steam) traktowałby to jak "nikt jeszcze nie istnieje" i przy
+    // zapisie skasowałby WSZYSTKICH graczy, zerując przy okazji stan tego,
+    // kto się właśnie loguje. Przejściowy błąd odczytu musi się propagować
+    // jako błąd, a nie udawać pustą bazę.
+    const raw = await redisCommand(["GET", REDIS_USERS_KEY]);
+    return raw ? JSON.parse(raw) : {};
   }
   try {
     return JSON.parse(fs.readFileSync(USERS_FILE, "utf8"));
@@ -221,7 +221,12 @@ app.get("/api/me", (req, res) => {
 
 // ---- Publiczny profil gracza (np. GET /api/profile/aleksio) ----
 app.get("/api/profile/:slug", async (req, res) => {
-  const users = await readUsers();
+  let users;
+  try {
+    users = await readUsers();
+  } catch (e) {
+    return res.status(503).json({ error: "storage_unavailable" });
+  }
   const u = findUserBySlug(users, req.params.slug);
   if (!u) return res.json({ found: false });
   const st = u.state || {};
@@ -241,7 +246,12 @@ app.get("/api/profile/:slug", async (req, res) => {
 
 // ---- Publiczna topka (saldo / kliknięcia upgrade'ów / otwarte skrzynki) ----
 app.get("/api/leaderboard", async (req, res) => {
-  const users = await readUsers();
+  let users;
+  try {
+    users = await readUsers();
+  } catch (e) {
+    return res.status(503).json({ error: "storage_unavailable" });
+  }
   const list = Object.values(users)
     .filter((u) => u.slug)
     .map((u) => {
@@ -271,7 +281,12 @@ app.get("/api/leaderboard", async (req, res) => {
 app.put("/api/state", async (req, res) => {
   if (!req.user) return res.status(401).json({ error: "not_logged_in" });
   const body = req.body || {};
-  const users = await readUsers();
+  let users;
+  try {
+    users = await readUsers();
+  } catch (e) {
+    return res.status(503).json({ error: "storage_unavailable" });
+  }
   const u = users[req.user.steamid];
   if (!u) return res.status(404).json({ error: "no_such_user" });
 
@@ -333,7 +348,12 @@ function requireAdmin(req, res, next) {
 }
 
 app.get("/api/admin/users", requireAdmin, async (req, res) => {
-  const users = await readUsers();
+  let users;
+  try {
+    users = await readUsers();
+  } catch (e) {
+    return res.status(503).json({ error: "storage_unavailable" });
+  }
   const list = Object.values(users).map((u) => ({
     steamid: u.steamid,
     displayName: u.displayName,
@@ -349,7 +369,12 @@ app.get("/api/admin/users", requireAdmin, async (req, res) => {
 });
 
 app.put("/api/admin/users/:steamid", requireAdmin, async (req, res) => {
-  const users = await readUsers();
+  let users;
+  try {
+    users = await readUsers();
+  } catch (e) {
+    return res.status(503).json({ error: "storage_unavailable" });
+  }
   const u = users[req.params.steamid];
   if (!u) return res.status(404).json({ error: "no_such_user" });
   const body = req.body || {};

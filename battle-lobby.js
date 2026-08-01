@@ -23,7 +23,12 @@ async function steamUserFromSocket(socket, readUsers) {
   const sess = socket.request.session;
   const steamid = sess && sess.passport && sess.passport.user;
   if (!steamid) return null;
-  const users = await readUsers();
+  let users;
+  try {
+    users = await readUsers();
+  } catch (e) {
+    return null; // magazyn chwilowo niedostępny - traktuj jak gościa, nic nie zapisujemy
+  }
   const u = users[steamid];
   if (!u) return null;
   return { steamid: u.steamid, displayName: u.displayName, avatar: u.avatar };
