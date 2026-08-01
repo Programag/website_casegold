@@ -44,7 +44,7 @@ const SKIN_IMAGES = {
   "AWP|Worm God|MW": "https://cdn.g4skins.com/items/730_2/awp-worm-god-(minimal-wear).png?v=4",
   "Bayonet|Gamma Doppler Emerald|FN": "https://cdn.g4skins.com/items/730_2/%E2%98%85-bayonet-gamma-doppler-emerald-(factory-new).png?v=4",
   "Butterfly Knife|Fade|FN": "https://cdn.g4skins.com/items/730_2/%E2%98%85-butterfly-knife-fade-(factory-new).png?v=4",
-  "Butterfly Knife|Gamma Doppler Emerald|FN": "https://cdn.g4skins.com/items/730_2/%E2%98%85-butterfly-knife-gamma-doppler-emerald-(factory-new).png?v=4",
+  "Butterfly Knife|Gamma Doppler Emerald|FN": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Z-ua6bbZrLOmsD2qvxONzouBlSxa-lA8lvziMgIr9HifOOV5kFJp2Ee9b4Rntm4GxY7_ntQHc2o1DmH6r3Hgcv3w4t-pXU6ZzrPHQjQnfcepq0dwfRJw",
   "Bowie Knife|Gamma Doppler Emerald|FN": "https://cdn.g4skins.com/items/730_2/%E2%98%85-bowie-knife-gamma-doppler-emerald-(factory-new).png?v=4",
   "Classic Knife|Fade|FN": "https://cdn.g4skins.com/items/730_2/%E2%98%85-classic-knife-fade-(factory-new).png?v=4",
   "CZ75-Auto|Emerald|FN": "https://cdn.g4skins.com/items/730_2/cz75-auto-emerald-(factory-new).png?v=4",
