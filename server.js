@@ -401,7 +401,22 @@ app.get("/profile/:slug", (req, res) => {
 });
 
 // ---- Static site ----
-app.use(express.static(__dirname, { extensions: ["html"] }));
+// Bez jawnego Cache-Control przeglądarki (zwłaszcza mobilny Safari) potrafią
+// same zdecydować, że stary HTML/JS/CSS jest "świeży" na podstawie samych
+// nagłówków Last-Modified, i trzymać go z pamięci podręcznej nawet po
+// zwykłym odświeżeniu strony - użytkownik utyka wtedy na starej wersji kodu
+// bez żadnego komunikatu o błędzie. "no-cache" nie wyłącza cache'a, tylko
+// wymusza rewalidację (If-None-Match/ETag) przy każdym wczytaniu strony.
+app.use(
+  express.static(__dirname, {
+    extensions: ["html"],
+    setHeaders: (res, filePath) => {
+      if (/\.(html|js|css)$/i.test(filePath)) {
+        res.setHeader("Cache-Control", "no-cache");
+      }
+    },
+  })
+);
 
 // ---- Real-time Case Battle lobbies ----
 const httpServer = http.createServer(app);
