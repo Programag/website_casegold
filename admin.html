@@ -48,6 +48,11 @@
     color:var(--text); padding:6px 8px; font-family:'JetBrains Mono',monospace; font-size:13px;
   }
   input.edit-num:focus{outline:none; border-color:var(--hazard);}
+  input.edit-text{
+    width:150px; background:var(--panel-2); border:1px solid var(--line); border-radius:7px;
+    color:var(--text); padding:6px 8px; font-family:'JetBrains Mono',monospace; font-size:12px;
+  }
+  input.edit-text:focus{outline:none; border-color:var(--hazard);}
   .save-btn{
     background:var(--hazard); color:#181000; border:none; border-radius:7px; padding:7px 14px;
     font-weight:700; font-size:12.5px; cursor:pointer;
@@ -107,6 +112,7 @@ function userRow(u){
     <td><input class="edit-num" data-field="level" type="number" step="1" value="${Number(u.level || 0)}"></td>
     <td><input class="edit-num" data-field="xp" type="number" step="1" value="${Number(u.xp || 0)}"></td>
     <td>${u.invCount ?? 0}</td>
+    <td><input class="edit-text" data-field="claimedLevelRewards" type="text" placeholder="np. 1,2,3" value="${(Array.isArray(u.claimedLevelRewards) ? u.claimedLevelRewards : []).join(',')}"></td>
     <td>
       <button class="save-btn">Zapisz</button>
       <span class="row-status"></span>
@@ -121,6 +127,10 @@ function userRow(u){
     tr.querySelectorAll("input.edit-num").forEach(inp => {
       payload[inp.dataset.field] = Number(inp.value);
     });
+    const claimedInp = tr.querySelector('input[data-field="claimedLevelRewards"]');
+    if(claimedInp){
+      payload.claimedLevelRewards = claimedInp.value.split(",").map(s => s.trim()).filter(s => s !== "").map(Number).filter(n => Number.isFinite(n));
+    }
     try{
       const res = await fetch(`/api/admin/users/${encodeURIComponent(u.steamid)}`, {
         method: "PUT",
@@ -165,6 +175,7 @@ async function init(){
         <th>Poziom</th>
         <th>EXP</th>
         <th>Przedmioty</th>
+        <th>Odebrane nagrody (poziomy)</th>
         <th></th>
       </tr>
     </thead>

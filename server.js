@@ -362,6 +362,7 @@ app.get("/api/admin/users", requireAdmin, async (req, res) => {
     balance: u.state ? u.state.balance : 0,
     level: u.state ? u.state.level : 0,
     xp: u.state ? u.state.xp : 0,
+    claimedLevelRewards: u.state && Array.isArray(u.state.claimedLevelRewards) ? u.state.claimedLevelRewards : [],
     invCount: u.state && Array.isArray(u.state.inventory) ? u.state.inventory.length : 0,
     updatedAt: u.state ? u.state.updatedAt : null,
   }));
@@ -383,6 +384,9 @@ app.put("/api/admin/users/:steamid", requireAdmin, async (req, res) => {
   if (typeof body.balance === "number") u.state.balance = body.balance;
   if (typeof body.level === "number") u.state.level = body.level;
   if (typeof body.xp === "number") u.state.xp = body.xp;
+  if (Array.isArray(body.claimedLevelRewards)) {
+    u.state.claimedLevelRewards = body.claimedLevelRewards.filter((n) => typeof n === "number" && isFinite(n));
+  }
   u.state.updatedAt = Date.now();
   try {
     await writeUsers(users);
