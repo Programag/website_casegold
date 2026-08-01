@@ -26,8 +26,14 @@ if (!process.env.SESSION_SECRET) {
 // ---------------------------------------------------------------------------
 // Bardzo prosty magazyn kont (plik JSON). Wystarczający dla small-scale
 // symulatora na fałszywą walutę - brak realnych transakcji finansowych.
+//
+// UWAGA: to musi leżeć na trwałym dysku. Domyślny katalog (obok kodu
+// aplikacji) na Render i podobnych platformach jest efemeryczny — znika
+// przy każdym redeployu, zerując balans/ekwipunek/statystyki WSZYSTKICH
+// graczy. Ustaw DATA_DIR na ścieżkę zamontowanego persistent disk (patrz
+// render.yaml), żeby dane przetrwały kolejne wdrożenia.
 // ---------------------------------------------------------------------------
-const DATA_DIR = path.join(__dirname, "data");
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "data");
 const USERS_FILE = path.join(DATA_DIR, "users.json");
 
 function readUsers() {

@@ -1,0 +1,26 @@
+# Render Blueprint dla tego serwisu.
+#
+# Kluczowa część: persistent disk pod data/users.json. Bez tego katalog
+# danych żyje na efemerycznym dysku i jest czyszczony przy każdym
+# redeployu, zerując balans/ekwipunek/statystyki wszystkich graczy.
+#
+# Jeśli usługa już istnieje i została utworzona ręcznie (nie przez
+# Blueprint), ten plik sam z siebie niczego nie zmieni — Render trzeba
+# jeszcze poprosić o zsynchronizowanie Blueprinta (Dashboard → New →
+# Blueprint → wskaż to repo) ALBO dodać dysk ręcznie w istniejącym
+# serwisie: Dashboard → usługa → Disks → Add Disk, mount path /var/data,
+# i ustawić zmienną środowiskową DATA_DIR=/var/data (Settings → Environment).
+services:
+  - type: web
+    name: casegold
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: DATA_DIR
+        value: /var/data
+    disk:
+      name: casegold-data
+      mountPath: /var/data
+      sizeGB: 1
