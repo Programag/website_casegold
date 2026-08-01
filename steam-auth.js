@@ -100,8 +100,20 @@
     document.head.appendChild(style);
   }
 
+  function renderBalanceEarly() {
+    const el = document.getElementById("balance");
+    if (!el) return;
+    let bal = 50; // matches every page's hardcoded "50,00 zł" placeholder / START_BALANCE
+    try {
+      const s = JSON.parse(localStorage.getItem(STATE_KEY) || "{}");
+      if (typeof s.balance === "number") bal = s.balance;
+    } catch (e) {}
+    el.textContent = bal.toLocaleString("pl-PL", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " zł";
+  }
+
   function buildUI() {
     injectStyle();
+    renderBalanceEarly();
     const t = DICT[getLang()];
     const avatarWrap = document.querySelector(".avatar-wrap");
     const avatar = avatarWrap && avatarWrap.querySelector(".avatar");
