@@ -1,15 +1,25 @@
 # Render Blueprint dla tego serwisu.
 #
-# Kluczowa część: persistent disk pod data/users.json. Bez tego katalog
-# danych żyje na efemerycznym dysku i jest czyszczony przy każdym
-# redeployu, zerując balans/ekwipunek/statystyki wszystkich graczy.
+# Darmowe web service na Render NIE obsługują persistent disków, więc
+# dane graczy trzymamy w Upstash Redis (darmowe konto na upstash.com,
+# działa przez zwykłe REST API) zamiast na lokalnym dysku - patrz
+# UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN poniżej. Bez tych
+# dwóch zmiennych serwer po cichu wraca do pliku data/users.json obok
+# kodu, co jest wygodne lokalnie, ale ginie przy każdym redeployu na
+# Render.
 #
-# Jeśli usługa już istnieje i została utworzona ręcznie (nie przez
-# Blueprint), ten plik sam z siebie niczego nie zmieni — Render trzeba
-# jeszcze poprosić o zsynchronizowanie Blueprinta (Dashboard → New →
-# Blueprint → wskaż to repo) ALBO dodać dysk ręcznie w istniejącym
-# serwisie: Dashboard → usługa → Disks → Add Disk, mount path /var/data,
-# i ustawić zmienną środowiskową DATA_DIR=/var/data (Settings → Environment).
+# Jeśli usługa już istnieje i została utworzona ręcznie (nie przez ten
+# Blueprint), samo wypchnięcie tego pliku niczego nie zmieni - trzeba
+# jeszcze ręcznie dodać obie zmienne w Dashboard → usługa → Environment
+# (albo zsynchronizować to repo jako Blueprint: Dashboard → New →
+# Blueprint).
+#
+# Jak założyć darmowe Upstash Redis:
+#   1. https://upstash.com → załóż konto → Create Database (Redis).
+#   2. W zakładce "REST API" skopiuj UPSTASH_REDIS_REST_URL i
+#      UPSTASH_REDIS_REST_TOKEN.
+#   3. Wklej je jako zmienne środowiskowe w Render (patrz niżej albo
+#      ręcznie w Dashboard → Environment).
 services:
   - type: web
     name: casegold
@@ -18,9 +28,7 @@ services:
     buildCommand: npm install
     startCommand: npm start
     envVars:
-      - key: DATA_DIR
-        value: /var/data
-    disk:
-      name: casegold-data
-      mountPath: /var/data
-      sizeGB: 1
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false

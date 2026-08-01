@@ -24,19 +24,59 @@ if (!process.env.SESSION_SECRET) {
 }
 
 // ---------------------------------------------------------------------------
-// Bardzo prosty magazyn kont (plik JSON). Wystarczający dla small-scale
-// symulatora na fałszywą walutę - brak realnych transakcji finansowych.
+// Magazyn kont graczy.
 //
-// UWAGA: to musi leżeć na trwałym dysku. Domyślny katalog (obok kodu
-// aplikacji) na Render i podobnych platformach jest efemeryczny — znika
-// przy każdym redeployu, zerując balans/ekwipunek/statystyki WSZYSTKICH
-// graczy. Ustaw DATA_DIR na ścieżkę zamontowanego persistent disk (patrz
-// render.yaml), żeby dane przetrwały kolejne wdrożenia.
+// UWAGA: to musi leżeć na trwałym, sieciowym storage - Render (i podobne
+// platformy) na darmowym planie nie dają dysku, więc lokalny plik JSON
+// znika przy KAŻDYM redeployu, zerując balans/ekwipunek/statystyki
+// WSZYSTKICH graczy. Domyślnie (i lokalnie, bez żadnej konfiguracji)
+// dane wciąż lądują w pliku obok kodu - wygodne do developmentu. Gdy
+// ustawione są UPSTASH_REDIS_REST_URL i UPSTASH_REDIS_REST_TOKEN (darmowe
+// konto na upstash.com, patrz render.yaml), magazynem staje się Upstash
+// Redis przez jego REST API - przeżywa redeploye, bo żyje poza kontenerem.
 // ---------------------------------------------------------------------------
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "data");
 const USERS_FILE = path.join(DATA_DIR, "users.json");
 
-function readUsers() {
+const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
+const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+const USE_REDIS = !!(REDIS_URL && REDIS_TOKEN);
+const REDIS_USERS_KEY = "cs2sim:users";
+
+if (USE_REDIS) {
+  console.log("Magazyn graczy: Upstash Redis (dane przetrwają redeploy).");
+} else {
+  console.warn(
+    "Magazyn graczy: lokalny plik JSON (data/users.json) - zniknie przy " +
+      "następnym redeployu na Render. Ustaw UPSTASH_REDIS_REST_URL i " +
+      "UPSTASH_REDIS_REST_TOKEN, żeby dane były trwałe (patrz render.yaml)."
+  );
+}
+
+async function redisCommand(args) {
+  const res = await fetch(REDIS_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${REDIS_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(args),
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data.result;
+}
+
+async function readUsers() {
+  if (USE_REDIS) {
+    try {
+      const raw = await redisCommand(["GET", REDIS_USERS_KEY]);
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) {
+      console.error("Redis readUsers błąd:", e.message);
+      return {};
+    }
+  }
   try {
     return JSON.parse(fs.readFileSync(USERS_FILE, "utf8"));
   } catch (e) {
@@ -44,7 +84,11 @@ function readUsers() {
   }
 }
 
-function writeUsers(users) {
+async function writeUsers(users) {
+  if (USE_REDIS) {
+    await redisCommand(["SET", REDIS_USERS_KEY, JSON.stringify(users)]);
+    return;
+  }
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
   fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
 }
@@ -95,8 +139,9 @@ function findUserBySlug(users, slug) {
 // ---------------------------------------------------------------------------
 passport.serializeUser((user, done) => done(null, user.steamid));
 passport.deserializeUser((steamid, done) => {
-  const users = readUsers();
-  done(null, users[steamid] || null);
+  readUsers()
+    .then((users) => done(null, users[steamid] || null))
+    .catch((e) => done(e));
 });
 
 passport.use(
@@ -106,22 +151,26 @@ passport.use(
       realm: `${SITE_URL}/`,
       apiKey: process.env.STEAM_API_KEY,
     },
-    (identifier, profile, done) => {
-      const steamid = profile.id;
-      const users = readUsers();
-      const existing = users[steamid];
-      users[steamid] = {
-        steamid,
-        displayName: profile.displayName,
-        avatar: (profile.photos && profile.photos[2] && profile.photos[2].value) ||
-          (profile.photos && profile.photos[0] && profile.photos[0].value) || null,
-        profileUrl: profile._json && profile._json.profileurl,
-        slug: existing && existing.slug ? existing.slug : assignSlug(users, steamid, profile.displayName),
-        state: existing ? existing.state : null,
-        createdAt: existing ? existing.createdAt : Date.now(),
-      };
-      writeUsers(users);
-      done(null, users[steamid]);
+    async (identifier, profile, done) => {
+      try {
+        const steamid = profile.id;
+        const users = await readUsers();
+        const existing = users[steamid];
+        users[steamid] = {
+          steamid,
+          displayName: profile.displayName,
+          avatar: (profile.photos && profile.photos[2] && profile.photos[2].value) ||
+            (profile.photos && profile.photos[0] && profile.photos[0].value) || null,
+          profileUrl: profile._json && profile._json.profileurl,
+          slug: existing && existing.slug ? existing.slug : assignSlug(users, steamid, profile.displayName),
+          state: existing ? existing.state : null,
+          createdAt: existing ? existing.createdAt : Date.now(),
+        };
+        await writeUsers(users);
+        done(null, users[steamid]);
+      } catch (e) {
+        done(e);
+      }
     }
   )
 );
@@ -171,8 +220,8 @@ app.get("/api/me", (req, res) => {
 });
 
 // ---- Publiczny profil gracza (np. GET /api/profile/aleksio) ----
-app.get("/api/profile/:slug", (req, res) => {
-  const users = readUsers();
+app.get("/api/profile/:slug", async (req, res) => {
+  const users = await readUsers();
   const u = findUserBySlug(users, req.params.slug);
   if (!u) return res.json({ found: false });
   const st = u.state || {};
@@ -191,8 +240,8 @@ app.get("/api/profile/:slug", (req, res) => {
 });
 
 // ---- Publiczna topka (saldo / kliknięcia upgrade'ów / otwarte skrzynki) ----
-app.get("/api/leaderboard", (req, res) => {
-  const users = readUsers();
+app.get("/api/leaderboard", async (req, res) => {
+  const users = await readUsers();
   const list = Object.values(users)
     .filter((u) => u.slug)
     .map((u) => {
@@ -219,10 +268,10 @@ app.get("/api/leaderboard", (req, res) => {
   });
 });
 
-app.put("/api/state", (req, res) => {
+app.put("/api/state", async (req, res) => {
   if (!req.user) return res.status(401).json({ error: "not_logged_in" });
   const body = req.body || {};
-  const users = readUsers();
+  const users = await readUsers();
   const u = users[req.user.steamid];
   if (!u) return res.status(404).json({ error: "no_such_user" });
 
@@ -250,8 +299,12 @@ app.put("/api/state", (req, res) => {
     casesOpened: typeof body.casesOpened === "number" ? body.casesOpened : (u.state && u.state.casesOpened) || 0,
     updatedAt: Date.now(),
   };
-  writeUsers(users);
-  res.json({ ok: true });
+  try {
+    await writeUsers(users);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(503).json({ error: "storage_unavailable" });
+  }
 });
 
 // ---- Admin: view/edit any player's name + balance ----
@@ -262,8 +315,8 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-app.get("/api/admin/users", requireAdmin, (req, res) => {
-  const users = readUsers();
+app.get("/api/admin/users", requireAdmin, async (req, res) => {
+  const users = await readUsers();
   const list = Object.values(users).map((u) => ({
     steamid: u.steamid,
     displayName: u.displayName,
@@ -278,8 +331,8 @@ app.get("/api/admin/users", requireAdmin, (req, res) => {
   res.json({ users: list });
 });
 
-app.put("/api/admin/users/:steamid", requireAdmin, (req, res) => {
-  const users = readUsers();
+app.put("/api/admin/users/:steamid", requireAdmin, async (req, res) => {
+  const users = await readUsers();
   const u = users[req.params.steamid];
   if (!u) return res.status(404).json({ error: "no_such_user" });
   const body = req.body || {};
@@ -288,11 +341,15 @@ app.put("/api/admin/users/:steamid", requireAdmin, (req, res) => {
   if (typeof body.level === "number") u.state.level = body.level;
   if (typeof body.xp === "number") u.state.xp = body.xp;
   u.state.updatedAt = Date.now();
-  writeUsers(users);
-  res.json({
-    ok: true,
-    user: { steamid: u.steamid, displayName: u.displayName, balance: u.state.balance, level: u.state.level, xp: u.state.xp },
-  });
+  try {
+    await writeUsers(users);
+    res.json({
+      ok: true,
+      user: { steamid: u.steamid, displayName: u.displayName, balance: u.state.balance, level: u.state.level, xp: u.state.xp },
+    });
+  } catch (e) {
+    res.status(503).json({ error: "storage_unavailable" });
+  }
 });
 
 // ---- Publiczna podstrona profilu, np. /profile/aleksio ----

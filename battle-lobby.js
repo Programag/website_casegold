@@ -19,11 +19,12 @@ const MAX_COST = 1000000;
 const DISCONNECT_GRACE_MS = 8000;
 const FINISHED_LOBBY_TTL_MS = 5 * 60 * 1000;
 
-function steamUserFromSocket(socket, readUsers) {
+async function steamUserFromSocket(socket, readUsers) {
   const sess = socket.request.session;
   const steamid = sess && sess.passport && sess.passport.user;
   if (!steamid) return null;
-  const u = readUsers()[steamid];
+  const users = await readUsers();
+  const u = users[steamid];
   if (!u) return null;
   return { steamid: u.steamid, displayName: u.displayName, avatar: u.avatar };
 }
@@ -74,8 +75,8 @@ module.exports = function attachBattleLobby(io, { readUsers }) {
     }, DISCONNECT_GRACE_MS);
   }
 
-  io.on("connection", (socket) => {
-    const user = steamUserFromSocket(socket, readUsers);
+  io.on("connection", async (socket) => {
+    const user = await steamUserFromSocket(socket, readUsers);
     socket.emit("battle:lobbies", publicLobbies());
 
     socket.on("battle:create", (cfg, ack) => {
