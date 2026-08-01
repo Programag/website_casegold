@@ -67,6 +67,20 @@ async function redisCommand(args) {
   return data.result;
 }
 
+// Ogólne GET/SET z TTL na Upstash, do rzeczy poza kontami graczy (np. trwałe
+// migawki zakończonych bitew - patrz battle-lobby.js). Poza USE_REDIS
+// (lokalny dev bez Upstash) po prostu nie działają - wywołujący ma wtedy
+// polegać wyłącznie na pamięci procesu, tak jak dotąd.
+async function redisGet(key) {
+  if (!USE_REDIS) return null;
+  const raw = await redisCommand(["GET", key]);
+  return raw ? JSON.parse(raw) : null;
+}
+async function redisSet(key, value, ttlSeconds) {
+  if (!USE_REDIS) return;
+  await redisCommand(["SET", key, JSON.stringify(value), "EX", String(ttlSeconds)]);
+}
+
 async function readUsers() {
   if (USE_REDIS) {
     // WAŻNE: NIE łapać tu błędu i zwracać {} - wywołujący (np. logowanie
@@ -384,6 +398,7 @@ app.put("/api/state", async (req, res) => {
     upgradeClicks: typeof body.upgradeClicks === "number" ? body.upgradeClicks : (u.state && u.state.upgradeClicks) || 0,
     casesOpened: typeof body.casesOpened === "number" ? body.casesOpened : (u.state && u.state.casesOpened) || 0,
     claimedLevelRewards: Array.isArray(body.claimedLevelRewards) ? body.claimedLevelRewards : (u.state && u.state.claimedLevelRewards) || [],
+    battleHistory: Array.isArray(body.battleHistory) ? body.battleHistory : (u.state && u.state.battleHistory) || [],
     updatedAt: Date.now(),
   };
   try {
@@ -481,7 +496,7 @@ app.use(
 const httpServer = http.createServer(app);
 const io = new SocketIOServer(httpServer);
 io.engine.use(sessionMiddleware); // lets battle-lobby.js read socket.request.session
-attachBattleLobby(io, { readUsers });
+attachBattleLobby(io, { readUsers, redisGet, redisSet, useRedis: USE_REDIS });
 
 httpServer.listen(PORT, () => {
   console.log(`CS2SIM działa: ${SITE_URL} (port ${PORT})`);

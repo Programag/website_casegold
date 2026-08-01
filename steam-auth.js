@@ -66,6 +66,7 @@
           upgradeClicks: typeof s.upgradeClicks === "number" ? s.upgradeClicks : 0,
           casesOpened: typeof s.casesOpened === "number" ? s.casesOpened : 0,
           claimedLevelRewards: Array.isArray(s.claimedLevelRewards) ? s.claimedLevelRewards : [],
+          battleHistory: Array.isArray(s.battleHistory) ? s.battleHistory : [],
           updatedAt: serverUpdatedAt,
         }));
       }
@@ -96,6 +97,7 @@
       upgradeClicks: typeof state.upgradeClicks === "number" ? state.upgradeClicks : 0,
       casesOpened: typeof state.casesOpened === "number" ? state.casesOpened : 0,
       claimedLevelRewards: Array.isArray(state.claimedLevelRewards) ? state.claimedLevelRewards : [],
+      battleHistory: Array.isArray(state.battleHistory) ? state.battleHistory : [],
       dailyBonusAt: Number(localStorage.getItem(DAILY_KEY) || 0) || null,
       dailyStreak: Number(localStorage.getItem(DAILY_STREAK_KEY) || 0) || 0,
       freeCaseAt: Number(localStorage.getItem(FREE_CASE_KEY) || 0) || null,
@@ -130,6 +132,7 @@
               upgradeClicks: typeof s.upgradeClicks === "number" ? s.upgradeClicks : 0,
               casesOpened: typeof s.casesOpened === "number" ? s.casesOpened : 0,
               claimedLevelRewards: Array.isArray(s.claimedLevelRewards) ? s.claimedLevelRewards : [],
+              battleHistory: Array.isArray(s.battleHistory) ? s.battleHistory : [],
               updatedAt: serverUpdatedAt,
             }));
             console.error("[cs2sim] push /api/state odrzucony (409) - dane były nieaktualne, zsynchronizowano z serwerem.");
@@ -400,11 +403,37 @@
         upgradeClicks: typeof s.upgradeClicks === "number" ? s.upgradeClicks : 0,
         casesOpened: typeof s.casesOpened === "number" ? s.casesOpened : 0,
         claimedLevelRewards: Array.isArray(s.claimedLevelRewards) ? s.claimedLevelRewards : [],
+        battleHistory: Array.isArray(s.battleHistory) ? s.battleHistory : [],
         updatedAt: Date.now(),
       };
     } catch (e) {
-      return { bestPull: null, upgradeClicks: 0, casesOpened: 0, claimedLevelRewards: [], updatedAt: Date.now() };
+      return { bestPull: null, upgradeClicks: 0, casesOpened: 0, claimedLevelRewards: [], battleHistory: [], updatedAt: Date.now() };
     }
+  }
+  // ---- Historia bitew Case Battle (do zakładki "Moje bitwy") ----
+  // Lekkie podsumowanie każdej rozegranej bitwy - pełne dane rund/wyników
+  // żyją tylko na serwerze (i wygasają), więc trzymamy tu tylko tyle, żeby
+  // dało się pokazać listę i spróbować dociągnąć pełny replay po lobbyId.
+  const BATTLE_HISTORY_MAX = 30;
+  function readBattleHistory() {
+    try {
+      const arr = JSON.parse(localStorage.getItem(STATE_KEY) || "{}").battleHistory;
+      return Array.isArray(arr) ? arr : [];
+    } catch (e) {
+      return [];
+    }
+  }
+  function recordBattleHistory(entry) {
+    if (!entry || !entry.lobbyId) return;
+    let s = {};
+    try { s = JSON.parse(localStorage.getItem(STATE_KEY) || "{}"); } catch (e) {}
+    const list = Array.isArray(s.battleHistory) ? s.battleHistory.slice() : [];
+    const filtered = list.filter((e) => e.lobbyId !== entry.lobbyId);
+    filtered.unshift({ ...entry, at: entry.at || Date.now() });
+    s.battleHistory = filtered.slice(0, BATTLE_HISTORY_MAX);
+    s.updatedAt = Date.now();
+    try { localStorage.setItem(STATE_KEY, JSON.stringify(s)); } catch (e) {}
+    schedulePush();
   }
   function recordPull(item) {
     if (!item || typeof item.price !== "number") return;
@@ -772,5 +801,7 @@
     readClaimedLevelRewards,
     claimLevelReward,
     openDailyBonusModal,
+    recordBattleHistory,
+    readBattleHistory,
   };
 })();

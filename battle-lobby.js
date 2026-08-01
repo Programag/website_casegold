@@ -36,7 +36,20 @@ async function steamUserFromSocket(socket, readUsers) {
   return { steamid: u.steamid, displayName: u.displayName, avatar: u.avatar };
 }
 
-module.exports = function attachBattleLobby(io, { readUsers }) {
+// Trwała migawka zakończonej bitwy w Redisie (jeśli skonfigurowany), żeby
+// zakładka "Moje bitwy" mogła ją odtworzyć jeszcze długo po tym, jak wypadnie
+// z pamięci procesu (FINISHED_LOBBY_TTL_MS) albo serwer przejdzie redeploy.
+// Bez Redisa (lokalny dev) replay dalej działa tylko w oknie FINISHED_LOBBY_TTL_MS.
+const BATTLE_SNAPSHOT_PREFIX = "cs2sim:battle:";
+const BATTLE_SNAPSHOT_TTL_SECONDS = 7 * 24 * 60 * 60;
+
+module.exports = function attachBattleLobby(io, { readUsers, redisGet, redisSet, useRedis }) {
+  function persistFinishedLobby(lobby) {
+    if (!useRedis) return;
+    redisSet(BATTLE_SNAPSHOT_PREFIX + lobby.id, lobby, BATTLE_SNAPSHOT_TTL_SECONDS).catch((e) => {
+      console.error(`Nie udało się zapisać migawki bitwy ${lobby.id} w Redisie:`, e.message);
+    });
+  }
   const lobbies = {}; // id -> lobby
   const socketMeta = {}; // socket.id -> {lobbyId, tabId}
   const pendingFrees = {}; // `${lobbyId}:${tabId}` -> Timeout
@@ -160,9 +173,17 @@ module.exports = function attachBattleLobby(io, { readUsers }) {
     // lobby w dowolnym stanie (poczekalnia/w trakcie/zakończona) i dla
     // prywatnych bitew też - sama znajomość (nieodgadywalnego) ID wystarczy,
     // tak samo jak przy każdym linku do udostępnienia.
-    socket.on("battle:getLobby", (payload, ack) => {
+    socket.on("battle:getLobby", async (payload, ack) => {
       ack = typeof ack === "function" ? ack : () => {};
-      const lobby = lobbies[(payload || {}).lobbyId];
+      const lobbyId = (payload || {}).lobbyId;
+      let lobby = lobbies[lobbyId];
+      if (!lobby && useRedis) {
+        try {
+          lobby = await redisGet(BATTLE_SNAPSHOT_PREFIX + lobbyId);
+        } catch (e) {
+          console.error(`Nie udało się odczytać migawki bitwy ${lobbyId} z Redisa:`, e.message);
+        }
+      }
       if (!lobby) return ack({ ok: false, reason: "not_found" });
       socket.join("lobby:" + lobby.id);
       ack({ ok: true, lobby });
@@ -203,6 +224,7 @@ module.exports = function attachBattleLobby(io, { readUsers }) {
       lobby.status = "finished";
       lobby.outcome = outcome || null;
       broadcastLobby(lobby);
+      persistFinishedLobby(lobby);
       setTimeout(() => {
         delete lobbies[lobbyId];
       }, FINISHED_LOBBY_TTL_MS);

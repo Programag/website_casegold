@@ -928,6 +928,21 @@
   .olc-slot .nm{font-size:12px; font-family:'JetBrains Mono',monospace;}
   .olc-slot .mini-btn{width:100%;}
 
+  .my-battle-card{
+    background:var(--panel-2); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:12px;
+    display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
+  }
+  .my-battle-card .mbc-players{display:flex; align-items:center; gap:6px; flex-wrap:wrap; min-width:150px;}
+  .my-battle-card .mbc-info{display:flex; flex-direction:column; gap:4px;}
+  .my-battle-card .mbc-title{font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:1px; font-size:13.5px;}
+  .my-battle-card .mbc-meta{font-size:11px; color:var(--muted); font-family:'JetBrains Mono',monospace;}
+  .my-battle-card .mbc-right{display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  .my-battle-card .mbc-outcome{font-size:13px; font-weight:700; font-family:'JetBrains Mono',monospace; text-align:right;}
+  .my-battle-card .mbc-outcome.win, .my-battle-card .mbc-outcome.shared{color:var(--good);}
+  .my-battle-card .mbc-outcome.loss{color:var(--bad);}
+  .my-battle-card .mbc-outcome.tie{color:var(--muted);}
+  .my-battle-card .mbc-outcome small{display:block; color:var(--muted); font-weight:400; font-size:10px;}
+
   /* ---- spinning reel (per-round, per-player) ---- */
   .mini-reel-outer{position:relative; width:100%; height:100%; overflow:hidden;}
   .mini-reel-outer::before, .mini-reel-outer::after{
@@ -1079,9 +1094,21 @@
     <div class="panel open-lobbies-panel" id="openLobbiesPanel">
       <div class="landing-head">
         <div class="section-title" style="margin:0;">Otwarte bitwy <span class="hint">utworzone w innym oknie na tym urządzeniu — dołącz do pustego miejsca</span></div>
-        <button class="new-battle-btn" id="landingNewBattleBtn">Stwórz własną bitwę</button>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="new-battle-btn" id="myBattlesBtn">🕘 Moje bitwy</button>
+          <button class="new-battle-btn" id="landingNewBattleBtn">Stwórz własną bitwę</button>
+        </div>
       </div>
       <div id="openLobbiesList"></div>
+    </div>
+  </div>
+
+  <!-- ===================== MOJE BITWY ===================== -->
+  <div id="myBattles" style="display:none;">
+    <div class="nb-topbar"><button class="nb-back" id="myBattlesBackBtn">‹ Powrót do listy bitew</button></div>
+    <div class="nb-title"><span class="nb-icon">🕘</span> Moje bitwy</div>
+    <div class="panel">
+      <div id="myBattlesList"></div>
     </div>
   </div>
 
@@ -2212,6 +2239,7 @@ renderSummary();
 const setupEl = document.getElementById("setup");
 const arenaEl = document.getElementById("arena");
 const landingEl = document.getElementById("landing");
+const myBattlesEl = document.getElementById("myBattles");
 const playersGrid = document.getElementById("playersGrid");
 const teamTotalsShell = document.getElementById("teamTotalsShell");
 const arenaOutcome = document.getElementById("arenaOutcome");
@@ -2404,19 +2432,29 @@ startBattleBtn.onclick = () => {
 function showLobbyView(lobby){
   landingEl.style.display = "none";
   setupEl.style.display = "none";
+  myBattlesEl.style.display = "none";
   arenaEl.style.display = "block";
   renderLobbyArena(lobby);
 }
 function showSetupView(){
   landingEl.style.display = "none";
   arenaEl.style.display = "none";
+  myBattlesEl.style.display = "none";
   setupEl.style.display = "block";
 }
 function showLandingView(){
   arenaEl.style.display = "none";
   setupEl.style.display = "none";
+  myBattlesEl.style.display = "none";
   landingEl.style.display = "block";
   renderOpenLobbies();
+}
+function showMyBattlesView(){
+  arenaEl.style.display = "none";
+  setupEl.style.display = "none";
+  landingEl.style.display = "none";
+  myBattlesEl.style.display = "block";
+  renderMyBattles();
 }
 
 /* ---- small avatar next to a player's name, so it's easy to spot yourself/opponents ---- */
@@ -3160,6 +3198,9 @@ function finishConclusion(lobby, outcome, mySlotIdx){
   // gives nothing beyond what cases you separately opened.
   if(mySlotIdx !== -1){
     reloadSharedState();
+    let historyOutcome = "loss";
+    let historyValue = 0;
+    let historyItem = null;
     if(outcome.shared){
       const allItems = [];
       lobby.results.forEach(r => r.rounds.forEach(it => allItems.push(it)));
@@ -3171,11 +3212,15 @@ function finishConclusion(lobby, outcome, mySlotIdx){
       const myValue = myShare.reduce((s,it)=>s+it.price,0);
       awardBattleXp(myValue);
       log(`Bitwa: Shared. Pula (${allItems.length} przedmiotów, ${fmt(wonValue)}) podzielona po równo między ${lobby.totalPlayers} graczy. Twoja część: ${myShare.length} przedmiotów o wartości ${fmt(myValue)}.`);
+      historyOutcome = "shared";
+      historyValue = myValue;
+      historyItem = myShare.reduce((top, it) => (!top || it.price > top.price) ? it : top, null);
     } else if(outcome.tie){
       balance += lobby.cost; // refund only what I personally staked
       saveState();
       renderBalance();
       log(`Bitwa: remis. Zwrócono Twoje wejście: ${fmt(lobby.cost)}.`);
+      historyOutcome = "tie";
     } else {
       const winners = outcome.winnerIndices.map(i => lobby.slots[i]);
       const winLabel = isTeamsMode(lobby) ? `Drużyna ${outcome.winnerTeam === 0 ? "A" : "B"} (${winners.map(w=>w.name).join(", ")})` : winners[0].name;
@@ -3184,6 +3229,7 @@ function finishConclusion(lobby, outcome, mySlotIdx){
         const allItems = [];
         lobby.results.forEach(r => r.rounds.forEach(it => allItems.push(it)));
         const wonValue = allItems.reduce((s,it)=>s+it.price,0);
+        historyOutcome = "win";
         if(isTeamsMode(lobby)){
           // the winning team gets the whole pot, but a human member only keeps
           // their own half — represented as fresh, value-matched skins from the
@@ -3194,16 +3240,32 @@ function finishConclusion(lobby, outcome, mySlotIdx){
           const myValue = myShare.reduce((s,it)=>s+it.price,0);
           awardBattleXp(myValue);
           log(`Bitwa: wygrana dla ${winLabel}. Twoja połowa puli: ${myShare.length} przedmiotów o wartości ${fmt(myValue)} (drużyna zgarnęła łącznie ${allItems.length} przedmiotów o wartości ${fmt(wonValue)}).`);
+          historyValue = myValue;
+          historyItem = myShare.reduce((top, it) => (!top || it.price > top.price) ? it : top, null);
         } else {
           awardItemsShared(allItems);
           renderBalance();
           awardBattleXp(wonValue);
           log(`Bitwa: wygrana dla ${winLabel}. Przyznano ${allItems.length} przedmiotów o wartości ${fmt(wonValue)}.`);
+          historyValue = wonValue;
+          historyItem = allItems.reduce((top, it) => (!top || it.price > top.price) ? it : top, null);
         }
       } else {
         log(`Bitwa: wygrywa ${winLabel}. Wejścia przepadają.`);
+        historyOutcome = "loss";
       }
     }
+    window.SteamAuth.recordBattleHistory({
+      lobbyId: lobby.id,
+      cost: lobby.cost,
+      totalPlayers: lobby.totalPlayers,
+      teams: !!lobby.teams,
+      rounds: lobby.rounds ? lobby.rounds.length : 0,
+      players: lobby.slots.map(s => ({ name: s.name, avatar: s.avatar || null, type: s.type })),
+      outcome: historyOutcome,
+      value: historyValue,
+      item: historyItem ? { weapon: historyItem.weapon, skin: historyItem.skin, wear: historyItem.wear, price: historyItem.price } : null,
+    });
   }
 
   // lobby lifecycle (telling the server this battle is over) stays host-only —
@@ -3261,6 +3323,57 @@ function renderInstantFinalState(lobby){
 }
 
 /* ---- open lobbies panel on the setup screen ---- */
+const OUTCOME_LABELS = { win: "Wygrana", loss: "Przegrana", tie: "Remis", shared: "Shared" };
+function renderMyBattles(){
+  const list = document.getElementById("myBattlesList");
+  const history = window.SteamAuth.readBattleHistory();
+  if(history.length === 0){
+    list.innerHTML = `<div class="landing-empty">Nie rozegrałeś jeszcze żadnej bitwy. Wróć tu po pierwszej!</div>`;
+    return;
+  }
+  list.innerHTML = "";
+  history.forEach(entry => {
+    const card = document.createElement("div");
+    card.className = "my-battle-card";
+    const outcomeLabel = OUTCOME_LABELS[entry.outcome] || entry.outcome;
+    const dateStr = new Date(entry.at).toLocaleString("pl-PL", { day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit" });
+    const playersHtml = (entry.players || []).map(p => avatarHtml(p)).join("");
+    card.innerHTML = `
+      <div class="mbc-players">${playersHtml}</div>
+      <div class="mbc-info">
+        <div class="mbc-title">${entry.rounds || 0} rund${entry.teams ? " · 2v2" : ""} · wejście ${fmt(entry.cost || 0)}</div>
+        <div class="mbc-meta">${dateStr}</div>
+      </div>
+      <div class="mbc-right">
+        <div class="mbc-outcome ${entry.outcome}">${outcomeLabel}${entry.value ? `<small>+${fmt(entry.value)}</small>` : ""}</div>
+        <button class="mini-btn" data-watch="${entry.lobbyId}">▶ Oglądaj</button>
+      </div>
+    `;
+    list.appendChild(card);
+  });
+}
+document.getElementById("myBattlesList").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-watch]");
+  if(!btn) return;
+  const lobbyId = btn.dataset.watch;
+  btn.disabled = true;
+  const originalText = btn.textContent;
+  btn.textContent = "Wczytywanie…";
+  socket.emit("battle:getLobby", { lobbyId }, (res) => {
+    if(!res || !res.ok){
+      log("Ta bitwa nie jest już dostępna do obejrzenia (wygasła).");
+      btn.disabled = false;
+      btn.textContent = originalText;
+      return;
+    }
+    myLobbyId = res.lobby.id;
+    myLobbyObj = res.lobby;
+    animatingLobbyId = null;
+    updateBattleUrl(res.lobby.id);
+    showLobbyView(res.lobby);
+  });
+});
+
 function renderOpenLobbies(){
   const lobbies = loadLobbies();
   const joinable = Object.values(lobbies).filter(l =>
@@ -3327,6 +3440,15 @@ document.getElementById("setupBackBtn").onclick = () => {
   selectedRounds = [];
   renderSelectedRounds();
   renderSummary();
+  showLandingView();
+};
+
+document.getElementById("myBattlesBtn").onclick = () => {
+  if(!window.SteamAuth.requireLogin()) return;
+  showMyBattlesView();
+};
+
+document.getElementById("myBattlesBackBtn").onclick = () => {
   showLandingView();
 };
 
