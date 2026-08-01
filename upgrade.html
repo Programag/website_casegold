@@ -1170,6 +1170,7 @@ function resetNeedleInstant(){
 }
 
 upgradeBtn.onclick = () => {
+  if(!window.SteamAuth.requireLogin()) return;
   const inItems = getInputItems();
   const tgIt = getTargetItem();
   if(spinning || !tgIt) return;

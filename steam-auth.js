@@ -81,8 +81,20 @@
 
   // ---- UI: avatar + przycisk logowania w menu ustawień ----
   const DICT = {
-    pl: { login: "Zaloguj przez Steam", logout: "Wyloguj", mustLogin: "Zaloguj się przez Steam, aby otwierać skrzynki." },
-    en: { login: "Log in with Steam", logout: "Log out", mustLogin: "Log in with Steam to open cases." },
+    pl: {
+      login: "Zaloguj przez Steam", logout: "Wyloguj",
+      wallTitle: "Wymagane logowanie",
+      wallDesc: "Zaloguj się przez Steam, aby korzystać z tej funkcji.",
+      wallSteamBtn: "Zaloguj się przez Steam",
+      wallNote: "Nie są wymagane żadne dane płatności. Symulator używa wirtualnej waluty.",
+    },
+    en: {
+      login: "Log in with Steam", logout: "Log out",
+      wallTitle: "Login required",
+      wallDesc: "Log in with Steam to use this feature.",
+      wallSteamBtn: "Log in with Steam",
+      wallNote: "No payment details required. The simulator uses virtual currency.",
+    },
   };
   function getLang() { return localStorage.getItem(LANG_KEY) === "en" ? "en" : "pl"; }
 
@@ -96,38 +108,91 @@
       .steam-auth-row{display:flex; align-items:center; gap:8px; border-top:1px solid var(--line);}
       .steam-auth-row button{flex:1;}
       #steamLoginBtn{display:flex; align-items:center; gap:8px;}
-      #steamAuthToast{
-        position:fixed; bottom:24px; left:50%; z-index:9999;
-        transform:translateX(-50%) translateY(20px);
-        background:var(--panel,#141821); border:1px solid var(--line,#262c3a); color:var(--text,#e9ecf3);
-        padding:12px 20px; border-radius:10px; font-size:13.5px; font-family:'Inter',sans-serif;
-        opacity:0; pointer-events:none; transition:opacity .2s ease, transform .2s ease;
-        box-shadow:0 12px 30px -10px rgba(0,0,0,.6);
+      #authWallOverlay{
+        position:fixed; inset:0; z-index:9998; display:none;
+        align-items:center; justify-content:center; padding:20px;
+        background:rgba(6,8,13,.72); backdrop-filter:blur(6px);
+        opacity:0; transition:opacity .18s ease;
       }
-      #steamAuthToast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+      #authWallOverlay.show{display:flex; opacity:1;}
+      .auth-wall-panel{
+        position:relative; width:100%; max-width:360px;
+        background:var(--panel,#141821); border:1px solid var(--line,#262c3a);
+        border-radius:16px; padding:32px 26px 26px; text-align:center;
+        box-shadow:0 24px 60px -20px rgba(0,0,0,.7);
+        transform:translateY(10px) scale(.98); transition:transform .18s ease;
+      }
+      #authWallOverlay.show .auth-wall-panel{transform:translateY(0) scale(1);}
+      .auth-wall-close{
+        position:absolute; top:12px; right:12px; width:28px; height:28px; border-radius:8px;
+        background:var(--panel-2,#1b202b); border:1px solid var(--line,#262c3a); color:var(--muted,#7d879b);
+        cursor:pointer; font-size:14px; line-height:1;
+      }
+      .auth-wall-close:hover{color:var(--text,#e9ecf3); border-color:var(--hazard,#ff9500);}
+      .auth-wall-icon{
+        width:64px; height:64px; margin:0 auto 18px; border-radius:16px;
+        background:var(--hazard-dim,#3a2712); border:1px solid var(--hazard,#ff9500);
+        display:flex; align-items:center; justify-content:center; font-size:30px;
+        box-shadow:0 0 24px -6px var(--hazard,#ff9500);
+      }
+      .auth-wall-panel h2{
+        font-family:'Oswald',sans-serif; font-weight:700; text-transform:uppercase; letter-spacing:1px;
+        font-size:20px; margin:0 0 8px; color:var(--text,#e9ecf3);
+      }
+      .auth-wall-panel p{
+        font-family:'Inter',sans-serif; font-size:13.5px; color:var(--muted,#7d879b);
+        margin:0 0 22px; line-height:1.5;
+      }
+      .auth-wall-steam-btn{
+        display:flex; align-items:center; justify-content:center; gap:9px; width:100%;
+        font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:1px;
+        font-size:14.5px; font-weight:600; background:var(--hazard,#ff9500); color:#181000;
+        border:none; padding:13px 18px; border-radius:9px; cursor:pointer;
+        transition:transform .1s ease, box-shadow .1s ease;
+      }
+      .auth-wall-steam-btn:hover{transform:translateY(-1px); box-shadow:0 8px 20px -8px var(--hazard,#ff9500);}
+      .auth-wall-note{
+        font-family:'Inter',sans-serif; font-size:11px; color:var(--muted,#7d879b);
+        margin-top:16px; line-height:1.5;
+      }
     `;
     document.head.appendChild(style);
   }
 
-  // ---- Blokada otwierania skrzynek dla niezalogowanych ----
-  function showAuthToast(msg) {
+  // ---- Blokada funkcji (otwieranie skrzynek, battle, upgrader) dla niezalogowanych ----
+  function buildAuthWall() {
     injectStyle();
-    let el = document.getElementById("steamAuthToast");
-    if (!el) {
-      el = document.createElement("div");
-      el.id = "steamAuthToast";
-      document.body.appendChild(el);
-    }
-    el.textContent = msg;
-    el.classList.add("show");
-    clearTimeout(el._hideTimer);
-    el._hideTimer = setTimeout(() => { el.classList.remove("show"); }, 2600);
+    let overlay = document.getElementById("authWallOverlay");
+    if (overlay) return overlay;
+    const t = DICT[getLang()];
+    overlay = document.createElement("div");
+    overlay.id = "authWallOverlay";
+    overlay.innerHTML = `
+      <div class="auth-wall-panel">
+        <button class="auth-wall-close" id="authWallClose" aria-label="Zamknij">✕</button>
+        <div class="auth-wall-icon">📦</div>
+        <h2>${t.wallTitle}</h2>
+        <p>${t.wallDesc}</p>
+        <button class="auth-wall-steam-btn" id="authWallSteamBtn">🔑 ${t.wallSteamBtn}</button>
+        <div class="auth-wall-note">${t.wallNote}</div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    const hide = () => overlay.classList.remove("show");
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) hide(); });
+    document.getElementById("authWallClose").onclick = hide;
+    document.getElementById("authWallSteamBtn").onclick = () => { window.location.href = "/auth/steam"; };
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") hide(); });
+    return overlay;
+  }
+
+  function showAuthWall() {
+    buildAuthWall().classList.add("show");
   }
 
   function requireLogin() {
     if (me.loggedIn) return true;
-    showAuthToast("🔒 " + DICT[getLang()].mustLogin);
-    setTimeout(() => { window.location.href = "/auth/steam"; }, 900);
+    showAuthWall();
     return false;
   }
 
