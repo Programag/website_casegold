@@ -1045,12 +1045,12 @@
     <span title="Discord">◎</span><span title="Instagram">📷</span><span title="TikTok">🎵</span>
   </div>
   <div class="nav-links">
-    <a class="nav-link" href="index.html">Skrzynki</a>
-    <a class="nav-link" href="darmowe.html">Darmowe</a>
-    <a class="nav-link active" href="battle.html">Case Battle</a>
-    <a class="nav-link" href="upgrade.html">Upgrader</a>
+    <a class="nav-link" href="/">Skrzynki</a>
+    <a class="nav-link" href="/darmowe">Darmowe</a>
+    <a class="nav-link active" href="/battle">Case Battle</a>
+    <a class="nav-link" href="/upgrade">Upgrader</a>
     <button class="nav-link" data-soon>Zadania</button>
-    <a class="nav-link" href="equipment.html">Ekwipunek</a>
+    <a class="nav-link" href="/equipment">Ekwipunek</a>
   </div>
   <div class="nav-right">
     <button class="daily-btn" id="leaderboardBtn"><span>🏆</span><span class="lbl">Topka</span></button>
@@ -1754,7 +1754,7 @@ function renderBalance(){
   balanceEl.classList.toggle("low", balance < 0);
   saveState();
 }
-document.getElementById("inventoryBtn").onclick = () => { window.location.href = "equipment.html"; };
+document.getElementById("inventoryBtn").onclick = () => { window.location.href = "/equipment"; };
 renderBalance();
 
 /* ---- shared top-nav widgets: settings dropdown + daily bonus (24h cooldown) ---- */

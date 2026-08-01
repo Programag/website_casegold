@@ -235,12 +235,12 @@
     <span title="Discord">◎</span><span title="Instagram">📷</span><span title="TikTok">🎵</span>
   </div>
   <div class="nav-links">
-    <a class="nav-link" href="index.html">Skrzynki</a>
-    <a class="nav-link active" href="darmowe.html">Darmowe</a>
-    <a class="nav-link" href="battle.html">Case Battle</a>
-    <a class="nav-link" href="upgrade.html">Upgrader</a>
+    <a class="nav-link" href="/">Skrzynki</a>
+    <a class="nav-link active" href="/darmowe">Darmowe</a>
+    <a class="nav-link" href="/battle">Case Battle</a>
+    <a class="nav-link" href="/upgrade">Upgrader</a>
     <button class="nav-link" data-soon>Zadania</button>
-    <a class="nav-link" href="equipment.html">Ekwipunek</a>
+    <a class="nav-link" href="/equipment">Ekwipunek</a>
   </div>
   <div class="nav-right">
     <button class="daily-btn" id="dailyBonusBtn">🎁 Daily Bonus</button>
@@ -340,7 +340,7 @@ const settingsBtn = document.getElementById("settingsBtn");
 const settingsMenu = document.getElementById("settingsMenu");
 settingsBtn.onclick = (e) => { e.stopPropagation(); settingsMenu.classList.toggle("open"); };
 document.addEventListener("click", () => settingsMenu.classList.remove("open"));
-document.getElementById("inventoryBtn").onclick = () => { window.location.href = "equipment.html"; };
+document.getElementById("inventoryBtn").onclick = () => { window.location.href = "/equipment"; };
 
 function fmtCountdown(ms){
   const total = Math.max(0, Math.ceil(ms / 1000));
@@ -395,7 +395,7 @@ function cardNode(c, locked){
     <div class="fc-status"></div>
   `;
   if(!locked){
-    card.onclick = () => { window.location.href = `darmowe_open.html#${c.id}`; };
+    card.onclick = () => { window.location.href = `/darmowe_open#${c.id}`; };
   }
   return card;
 }

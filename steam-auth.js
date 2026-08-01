@@ -306,7 +306,7 @@
     const menu = document.getElementById("settingsMenu");
 
     if (me.loggedIn && me.user) {
-      const profileUrl = me.user.slug ? `/profile/${encodeURIComponent(me.user.slug)}` : "/profile.html";
+      const profileUrl = me.user.slug ? `/profile/${encodeURIComponent(me.user.slug)}` : "/profile";
       if (avatar) {
         avatar.innerHTML = "";
         const img = document.createElement("img");
@@ -339,7 +339,7 @@
         const btn = document.createElement("button");
         btn.id = "adminPanelBtn";
         btn.textContent = "🛠 Panel admina";
-        btn.onclick = () => { window.location.href = "/admin.html"; };
+        btn.onclick = () => { window.location.href = "/admin"; };
         menu.appendChild(btn);
       }
 

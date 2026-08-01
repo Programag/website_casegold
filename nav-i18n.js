@@ -28,12 +28,12 @@
   function applyNavLang(lang){
     const t = DICT[lang];
     const map = [
-      ['a[href="index.html"]', t.cases],
-      ['a[href="darmowe.html"]', t.free],
-      ['a[href="battle.html"]', t.battle],
-      ['a[href="upgrade.html"]', t.upgrader],
+      ['a[href="/"]', t.cases],
+      ['a[href="/darmowe"]', t.free],
+      ['a[href="/battle"]', t.battle],
+      ['a[href="/upgrade"]', t.upgrader],
       ['button[data-soon]', t.tasks],
-      ['a[href="equipment.html"]', t.inventory],
+      ['a[href="/equipment"]', t.inventory],
     ];
     map.forEach(([sel, label]) => {
       document.querySelectorAll(`.nav-links ${sel}`).forEach(el => { el.textContent = label; });
