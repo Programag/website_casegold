@@ -548,10 +548,11 @@ function fmtCountdown(ms){
 }
 function renderCooldownButtons(){
   const now = Date.now();
+  const loggedIn = !!(window.__STEAM_AUTH__ && window.__STEAM_AUTH__.loggedIn);
   const freeBtn = document.getElementById("freeCaseBtn");
   const freeStatus = document.getElementById("freeCaseStatus");
-  const freeLeft = FREE_CASE_COOLDOWN_MS - (now - Number(localStorage.getItem(FREE_CASE_KEY) || 0));
   const t = I18N[currentLang];
+  const freeLeft = loggedIn ? (FREE_CASE_COOLDOWN_MS - (now - Number(localStorage.getItem(FREE_CASE_KEY) || 0))) : 0;
   if(freeLeft > 0){
     freeBtn.disabled = true;
     freeBtn.textContent = t.freeCaseBtnClaimed;
@@ -562,7 +563,7 @@ function renderCooldownButtons(){
     freeStatus.textContent = t.freeStatusReady;
   }
   const dailyBtn = document.getElementById("dailyBonusBtn");
-  const dailyLeft = DAILY_BONUS_COOLDOWN_MS - (now - Number(localStorage.getItem(DAILY_BONUS_KEY) || 0));
+  const dailyLeft = loggedIn ? (DAILY_BONUS_COOLDOWN_MS - (now - Number(localStorage.getItem(DAILY_BONUS_KEY) || 0))) : 0;
   if(dailyLeft > 0){
     dailyBtn.disabled = true;
     dailyBtn.textContent = `🎁 ${fmtCountdown(dailyLeft)}`;
@@ -572,9 +573,11 @@ function renderCooldownButtons(){
   }
 }
 document.getElementById("freeCaseBtn").onclick = () => {
+  if(!window.SteamAuth.requireLogin()) return;
   location.href = "darmowe.html";
 };
 document.getElementById("dailyBonusBtn").onclick = () => {
+  if(!window.SteamAuth.requireLogin()) return;
   const now = Date.now();
   if(now - Number(localStorage.getItem(DAILY_BONUS_KEY) || 0) < DAILY_BONUS_COOLDOWN_MS) return;
   const reward = 5;

@@ -418,11 +418,13 @@ function fmtCountdown(ms){
 }
 function renderDailyBonusBtn(){
   const btn = document.getElementById("dailyBonusBtn");
+  if(!(window.__STEAM_AUTH__ && window.__STEAM_AUTH__.loggedIn)){ btn.disabled = false; btn.textContent = "🎁 Daily Bonus"; return; }
   const left = DAILY_BONUS_COOLDOWN_MS - (Date.now() - Number(localStorage.getItem(DAILY_BONUS_KEY) || 0));
   if(left > 0){ btn.disabled = true; btn.textContent = `🎁 ${fmtCountdown(left)}`; }
   else { btn.disabled = false; btn.textContent = "🎁 Daily Bonus"; }
 }
 document.getElementById("dailyBonusBtn").onclick = () => {
+  if(!window.SteamAuth.requireLogin()) return;
   const now = Date.now();
   if(now - Number(localStorage.getItem(DAILY_BONUS_KEY) || 0) < DAILY_BONUS_COOLDOWN_MS) return;
   const s = loadLocalState();
