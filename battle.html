@@ -2845,6 +2845,12 @@ function fastForwardRounds(lobby, uptoRoundIdxExclusive){
    of always starting the animation at round 1. */
 function startLiveRounds(lobby){
   const targetRoundIdx = currentRoundIndexFor(lobby);
+  // buildCaseSwiper() builds the mini-case strip AND makes the box visible -
+  // must run before jumping into a mid-battle round, otherwise a spectator
+  // who joins after round 1 (the usual case) never sees the swiper at all,
+  // since runLobbyRounds() only (re)builds it when starting from round 0.
+  buildCaseSwiper(lobby);
+  updateCaseSwiper(targetRoundIdx);
   fastForwardRounds(lobby, targetRoundIdx);
   runLobbyRounds(lobby, targetRoundIdx);
 }
@@ -2870,8 +2876,7 @@ function runLobbyRounds(lobby, roundIdx, opts){
   const isLastRound = roundIdx === lobby.rounds.length - 1;
   const isDeciderMode = lobby.mode === "decider" || lobby.mode === "under-decider";
   roundIndicatorEl.textContent = `Runda ${roundIdx + 1} / ${lobby.rounds.length}` + ((isDeciderMode && isLastRound) ? " — RUNDA DECYDUJĄCA" : "");
-  if(roundIdx === 0) buildCaseSwiper(lobby);
-  else updateCaseSwiper(roundIdx);
+  updateCaseSwiper(roundIdx);
 
   const caseKey = lobby.rounds[roundIdx];
   const pool = getCaseData(caseKey).items;
@@ -2958,6 +2963,7 @@ function replayBattle(){
   arenaOutcome.classList.remove("show");
   lobby._liveStars = null;
   buildPlayersGrid(lobby);
+  buildCaseSwiper(lobby);
   animatingLobbyId = lobby.id;
   runLobbyRounds(lobby, 0, { replay: true });
 }
