@@ -154,13 +154,13 @@
     // point error in the log/pow round-trip can land just under/over a
     // boundary (e.g. exactly 21 XP mis-floored to level 1 instead of 2).
     const EPS = 1e-9;
-    let level = Math.floor(Math.log(xp / 100 + 1) / Math.log(1.1) + EPS);
+    let level = Math.floor(Math.log(xp / 1000 + 1) / Math.log(1.1) + EPS);
     while (xpForLevel(level + 1) - EPS <= xp) level++;
     while (level > 0 && xpForLevel(level) - EPS > xp) level--;
     return level;
   }
   function xpForLevel(level) {
-    return 100 * (Math.pow(1.1, level) - 1);
+    return 1000 * (Math.pow(1.1, level) - 1);
   }
   function xpProgress(totalXp) {
     const xp = typeof totalXp === "number" && totalXp > 0 ? totalXp : 0;
