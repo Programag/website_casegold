@@ -64,6 +64,7 @@
           bestPull: s.bestPull || null,
           upgradeClicks: typeof s.upgradeClicks === "number" ? s.upgradeClicks : 0,
           casesOpened: typeof s.casesOpened === "number" ? s.casesOpened : 0,
+          claimedLevelRewards: Array.isArray(s.claimedLevelRewards) ? s.claimedLevelRewards : [],
           updatedAt: serverUpdatedAt,
         }));
       }
@@ -92,6 +93,7 @@
       bestPull: state.bestPull || null,
       upgradeClicks: typeof state.upgradeClicks === "number" ? state.upgradeClicks : 0,
       casesOpened: typeof state.casesOpened === "number" ? state.casesOpened : 0,
+      claimedLevelRewards: Array.isArray(state.claimedLevelRewards) ? state.claimedLevelRewards : [],
       dailyBonusAt: Number(localStorage.getItem(DAILY_KEY) || 0) || null,
       freeCaseAt: Number(localStorage.getItem(FREE_CASE_KEY) || 0) || null,
       baseUpdatedAt: Number(localStorage.getItem(SERVER_BASE_KEY) || 0) || 0,
@@ -124,6 +126,7 @@
               bestPull: s.bestPull || null,
               upgradeClicks: typeof s.upgradeClicks === "number" ? s.upgradeClicks : 0,
               casesOpened: typeof s.casesOpened === "number" ? s.casesOpened : 0,
+              claimedLevelRewards: Array.isArray(s.claimedLevelRewards) ? s.claimedLevelRewards : [],
               updatedAt: serverUpdatedAt,
             }));
             console.error("[cs2sim] push /api/state odrzucony (409) - dane były nieaktualne, zsynchronizowano z serwerem.");
@@ -168,6 +171,62 @@
     const needed = next - base;
     return { level, xp, into, needed, percent: needed > 0 ? Math.min(100, (into / needed) * 100) : 100 };
   }
+
+  // ---- Nagrody za poziom: skin najbliższy 100 zł za poziom 1, każdy
+  // kolejny poziom o 10% droższy niż poprzedni (100 * 1.1^(L-1)). Dobór
+  // konkretnego przedmiotu jest deterministyczny (zawsze ten sam skin z
+  // GENERAL_SKIN_DB dla danego poziomu), więc nie trzeba go zapamiętywać -
+  // wystarczy pamiętać, KTÓRE poziomy zostały odebrane. To musi być zbiór
+  // (nie samo "najwyższy odebrany poziom"), bo poziomy można odbierać
+  // w dowolnej kolejności - gracz może np. najpierw kliknąć poziom 5,
+  // a dopiero potem wrócić po 1-4; licznik "najwyższy odebrany" błędnie
+  // uznałby wtedy 1-4 za odebrane, mimo że nigdy nie trafiły do ekwipunku.
+  function levelRewardTargetPrice(level) {
+    return 100 * Math.pow(1.1, level - 1);
+  }
+  function levelRewardItem(level) {
+    if (typeof GENERAL_SKIN_DB === "undefined" || !Array.isArray(GENERAL_SKIN_DB) || level < 1) return null;
+    const target = levelRewardTargetPrice(level);
+    let best = null;
+    let bestDiff = Infinity;
+    GENERAL_SKIN_DB.forEach((it) => {
+      const diff = Math.abs(it.price - target);
+      if (diff < bestDiff) { bestDiff = diff; best = it; }
+    });
+    return best;
+  }
+  function readClaimedLevelRewards() {
+    try {
+      const arr = JSON.parse(localStorage.getItem(STATE_KEY) || "{}").claimedLevelRewards;
+      return Array.isArray(arr) ? arr : [];
+    } catch (e) {
+      return [];
+    }
+  }
+  // Marks a level's reward as claimed (persists + pushes) and hands back the
+  // item so the caller (equipment.html) can drop it into its own inventory.
+  // Refuses to double-claim or to claim a level not yet reached; any level
+  // up to the player's current one can be claimed independently/out of order.
+  function claimLevelReward(level) {
+    const currentLevel = levelForXp((() => {
+      try { return JSON.parse(localStorage.getItem(STATE_KEY) || "{}").xp || 0; } catch (e) { return 0; }
+    })());
+    if (level < 1 || level > currentLevel) return null;
+    const claimed = readClaimedLevelRewards();
+    if (claimed.includes(level)) return null;
+    const item = levelRewardItem(level);
+    if (!item) return null;
+    let s = {};
+    try { s = JSON.parse(localStorage.getItem(STATE_KEY) || "{}"); } catch (e) {}
+    const nextClaimed = Array.isArray(s.claimedLevelRewards) ? s.claimedLevelRewards.slice() : [];
+    if (!nextClaimed.includes(level)) nextClaimed.push(level);
+    s.claimedLevelRewards = nextClaimed;
+    s.updatedAt = Date.now();
+    try { localStorage.setItem(STATE_KEY, JSON.stringify(s)); } catch (e) {}
+    schedulePush();
+    return item;
+  }
+
   let lvlTooltipDismissWired = false;
   function refreshLevelBadge() {
     const wrap = document.querySelector(".avatar-wrap");
@@ -217,10 +276,11 @@
         bestPull: s.bestPull || null,
         upgradeClicks: typeof s.upgradeClicks === "number" ? s.upgradeClicks : 0,
         casesOpened: typeof s.casesOpened === "number" ? s.casesOpened : 0,
+        claimedLevelRewards: Array.isArray(s.claimedLevelRewards) ? s.claimedLevelRewards : [],
         updatedAt: Date.now(),
       };
     } catch (e) {
-      return { bestPull: null, upgradeClicks: 0, casesOpened: 0, updatedAt: Date.now() };
+      return { bestPull: null, upgradeClicks: 0, casesOpened: 0, claimedLevelRewards: [], updatedAt: Date.now() };
     }
   }
   function recordPull(item) {
@@ -519,5 +579,9 @@
     xpForLevel,
     xpProgress,
     refreshLevelBadge,
+    levelRewardTargetPrice,
+    levelRewardItem,
+    readClaimedLevelRewards,
+    claimLevelReward,
   };
 })();

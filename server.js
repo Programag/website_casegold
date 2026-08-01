@@ -328,6 +328,7 @@ app.put("/api/state", async (req, res) => {
     bestPull,
     upgradeClicks: typeof body.upgradeClicks === "number" ? body.upgradeClicks : (u.state && u.state.upgradeClicks) || 0,
     casesOpened: typeof body.casesOpened === "number" ? body.casesOpened : (u.state && u.state.casesOpened) || 0,
+    claimedLevelRewards: Array.isArray(body.claimedLevelRewards) ? body.claimedLevelRewards : (u.state && u.state.claimedLevelRewards) || [],
     updatedAt: Date.now(),
   };
   try {

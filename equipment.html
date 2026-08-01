@@ -168,6 +168,17 @@
   .inv-item .nm{font-size:9px;color:var(--muted);text-align:center;margin-bottom:6px;}
   .inv-item .sell-btn{width:100%;font-size:11px;padding:5px;border-radius:5px;background:var(--panel-2);border:1px solid var(--line);color:var(--good);cursor:pointer;font-family:'JetBrains Mono',monospace;}
   .inv-item .sell-btn:hover{border-color:var(--good);}
+  .lvl-rewards{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
+  .lvl-reward-card{background:var(--panel);border:1px solid var(--hazard);border-top:3px solid var(--rarity, var(--r-gold));border-radius:8px;padding:10px 8px;display:flex;flex-direction:column;align-items:center;box-shadow:0 0 18px -8px var(--hazard);}
+  .lvl-reward-card .lvl-tag{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--hazard);letter-spacing:.5px;margin-bottom:4px;}
+  .lvl-reward-card .img-slot{height:60px;width:100%;display:flex;align-items:center;justify-content:center;margin-bottom:4px;}
+  .lvl-reward-card img{max-height:56px;max-width:90%;object-fit:contain;}
+  .lvl-reward-card .fallback{font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace;text-align:center;}
+  .lvl-reward-card .wp{font-size:11px;font-weight:600;text-align:center;}
+  .lvl-reward-card .nm{font-size:9px;color:var(--muted);text-align:center;margin-bottom:6px;}
+  .lvl-reward-card .claim-btn{width:100%;font-size:11px;padding:6px;border-radius:5px;background:var(--hazard);border:none;color:#181000;cursor:pointer;font-family:'Inter',sans-serif;font-weight:700;}
+  .lvl-reward-card .claim-btn:hover{filter:brightness(1.08);}
+  .lvl-reward-card .claim-btn:disabled{opacity:.5;cursor:not-allowed;}
   .log{margin-top:24px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);max-height:120px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;padding:10px 14px;background:var(--panel);}
   .log div{padding:2px 0;border-bottom:1px solid var(--line);}
   .log div:last-child{border-bottom:none;}
@@ -219,6 +230,11 @@
     <div class="sub">Przeglądaj sprzedaj i zarządzaj przedmiotami ze swojego ekwipunku.</div>
   </div>
 
+  <div class="section-title" id="lvlRewardsTitle" style="display:none;">
+    <div class="st-left">Nagrody za poziomy</div>
+  </div>
+  <div class="lvl-rewards" id="lvlRewards" style="margin-bottom:26px;"></div>
+
   <div class="section-title">
     <div class="st-left">
       Ekwipunek
@@ -236,6 +252,8 @@
 </div>
 
 <script src="rarity-data.js"></script>
+<script src="skin-images.js"></script>
+<script src="general-skin-db.js"></script>
 <script src="nav-i18n.js"></script>
 <script>
 const STORAGE_KEY = "cs2sim_state_v1";
@@ -263,13 +281,15 @@ function loadState(){
   }
 }
 function saveState(){
-  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({balance, inventory, invCounter, ...window.SteamAuth.readPersistentExtras()})); window.SteamAuth.schedulePush(); }catch(e){}
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({balance, inventory, invCounter, level, xp, ...window.SteamAuth.readPersistentExtras()})); window.SteamAuth.schedulePush(); }catch(e){}
 }
 
 const initial = loadState();
 let balance = initial.balance;
 let inventory = initial.inventory;
 let invCounter = initial.invCounter;
+let level = initial.level;
+let xp = initial.xp;
 const balanceEl = document.getElementById("balance");
 const inventoryEl = document.getElementById("inventory");
 const invEmpty = document.getElementById("invEmpty");
@@ -340,6 +360,61 @@ function sellItem(id){
   log(`Sprzedano: ${it.weapon} | ${it.skin} (${it.wear}) za ${fmt(it.price)}`);
 }
 
+/* ---- nagrody za poziomy: skin najbliższy 100 zł za poziom 1, każdy kolejny
+   o 10% droższy (window.SteamAuth.levelRewardItem) - pokazuje i pozwala
+   odebrać każdy dotąd nieodebrany poziom, nie tylko ostatni. ---- */
+const lvlRewardsEl = document.getElementById("lvlRewards");
+const lvlRewardsTitleEl = document.getElementById("lvlRewardsTitle");
+function renderLevelRewards(){
+  lvlRewardsEl.innerHTML = "";
+  const claimed = window.SteamAuth.readClaimedLevelRewards();
+  const unclaimed = [];
+  for(let lvl = 1; lvl <= level; lvl++) if(!claimed.includes(lvl)) unclaimed.push(lvl);
+  if(unclaimed.length === 0){
+    lvlRewardsTitleEl.style.display = "none";
+    lvlRewardsEl.style.display = "none";
+    return;
+  }
+  lvlRewardsTitleEl.style.display = "";
+  lvlRewardsEl.style.display = "";
+  unclaimed.forEach(lvl => {
+    const item = window.SteamAuth.levelRewardItem(lvl);
+    if(!item) return;
+    const card = document.createElement("div");
+    card.className = "lvl-reward-card";
+    card.style.setProperty("--rarity", getRarityColor(item));
+    const img = getSkinImage(item);
+    const slot = document.createElement("div");
+    slot.className = "img-slot";
+    if(img){
+      const im = document.createElement("img");
+      im.src = img;
+      im.alt = item.weapon + " " + item.skin;
+      im.onerror = () => { slot.innerHTML = `<div class="fallback">${item.weapon}</div>`; };
+      slot.appendChild(im);
+    } else {
+      slot.innerHTML = `<div class="fallback">${item.weapon}</div>`;
+    }
+    const tag = document.createElement("div"); tag.className = "lvl-tag"; tag.textContent = `POZIOM ${lvl}`;
+    const wp = document.createElement("div"); wp.className = "wp"; wp.textContent = item.weapon;
+    const nm = document.createElement("div"); nm.className = "nm"; nm.textContent = `${item.skin} (${item.wear})`;
+    const btn = document.createElement("button"); btn.className = "claim-btn"; btn.textContent = `Odbierz ${fmt(item.price)}`;
+    btn.onclick = () => claimLevelReward(lvl);
+    card.append(tag, slot, wp, nm, btn);
+    lvlRewardsEl.appendChild(card);
+  });
+}
+function claimLevelReward(lvl){
+  const item = window.SteamAuth.claimLevelReward(lvl);
+  if(!item) return;
+  invCounter++;
+  inventory.push({ weapon:item.weapon, skin:item.skin, wear:item.wear, price:item.price, img:getSkinImage(item), _id: invCounter });
+  saveState();
+  renderInventory();
+  renderLevelRewards();
+  log(`Odebrano nagrodę za poziom ${lvl}: ${item.weapon} | ${item.skin} (${item.wear}) o wartości ${fmt(item.price)}.`);
+}
+
 function init(){
   document.getElementById("sellAllBtn").onclick = () => {
     if(inventory.length === 0) return;
@@ -353,6 +428,7 @@ function init(){
   document.getElementById("inventoryBtn").onclick = () => { window.location.href = "/equipment"; };
   renderBalance();
   renderInventory();
+  renderLevelRewards();
   log("Przegląd ekwipunku gotowy.");
 }
 init();
