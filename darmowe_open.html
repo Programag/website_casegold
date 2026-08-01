@@ -410,18 +410,6 @@ const TIER_ITEMS = {
     {weapon:"MP7", skin:"Akoben", wear:"FT", price:1.88, chance:0.4},
     {weapon:"P2000", skin:"Oceanic", wear:"MW", price:1.92, chance:0.1}
   ],
-  farm: [
-    {weapon:"PP-Bizon", skin:"Jungle Slipstream", wear:"FT", price:1.96, chance:30},
-    {weapon:"UMP-45", skin:"Arctic Wolf", wear:"FT", price:2.16, chance:22},
-    {weapon:"M249", skin:"System Lock", wear:"WW", price:2.20, chance:18},
-    {weapon:"MAG-7", skin:"SWAG-7", wear:"FT", price:2.32, chance:12},
-    {weapon:"Glock-18", skin:"Catacombs", wear:"FT", price:2.36, chance:8},
-    {weapon:"Glock-18", skin:"Warhawk", wear:"MW", price:2.72, chance:5},
-    {weapon:"Tec-9", skin:"Ice Cap", wear:"MW", price:2.84, chance:3},
-    {weapon:"Five-SeveN", skin:"Scumbria", wear:"BS", price:2.92, chance:1.5},
-    {weapon:"MP7", skin:"Cirrus", wear:"FT", price:3.20, chance:0.4},
-    {weapon:"AWP", skin:"Pit Viper", wear:"FT", price:3.92, chance:0.1}
-  ],
   lvl10: [
     {weapon:"Glock-18", skin:"Moonrise", wear:"FT", price:4.04, chance:30},
     {weapon:"CZ75-Auto", skin:"Tacticat", wear:"FT", price:4.08, chance:22},
@@ -496,7 +484,6 @@ function rarityColor(it){
 
 const CASE_DEFS = {
   free:  {name:"Free Case",          tag:"DARMOWA", icon:"🎁", accent:"var(--good)",         key:"cs2sim_darmowe_free_at",  cooldownMs:3*60*60*1000},
-  farm:  {name:"Farm case",          tag:"LVL 5",   icon:"🎁", accent:"var(--r-gold)",       key:"cs2sim_darmowe_farm_at",  cooldownMs:3*60*60*1000,    level:5},
   lvl10: {name:"Skrzynka Nowicjusza",tag:"LVL 10",  icon:"🏆", accent:"var(--r-gold)",       key:"cs2sim_darmowe_lvl10_at", cooldownMs:3*60*60*1000,    level:10},
   lvl20: {name:"Skrzynka Odkrywcy",  tag:"LVL 20",  icon:"🏆", accent:"var(--good)",         key:"cs2sim_darmowe_lvl20_at", cooldownMs:3*60*60*1000,    level:20},
   lvl30: {name:"Skrzynka Weterana",  tag:"LVL 30",  icon:"🏆", accent:"var(--r-covert)",     key:"cs2sim_darmowe_lvl30_at", cooldownMs:3*60*60*1000,    level:30},

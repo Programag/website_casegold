@@ -363,9 +363,6 @@ setInterval(renderDailyBonusBtn, 1000);
 const FREE_CASES = [
   {id:"free", key:"cs2sim_darmowe_free_at", name:"Free Case", tag:"DARMOWA", icon:"📦", img:"free_case_one.PNG", accent:"var(--good)", cooldownMs:3*60*60*1000}
 ];
-const BONUS_FREE_CASES = [
-  {id:"farm", key:"cs2sim_darmowe_farm_at", name:"Farm case", tag:"LVL 5", icon:"📦", accent:"var(--r-gold)", level:5, cooldownMs:3*60*60*1000}
-];
 const LEVEL_CASES = [
   {id:"lvl10", key:"cs2sim_darmowe_lvl10_at", name:"Skrzynka Nowicjusza", tag:"LVL 10", icon:"📦", accent:"var(--r-gold)", level:10, cooldownMs:3*60*60*1000},
   {id:"lvl20", key:"cs2sim_darmowe_lvl20_at", name:"Skrzynka Odkrywcy", tag:"LVL 20", icon:"📦", accent:"var(--good)", level:20, cooldownMs:3*60*60*1000},
@@ -420,7 +417,7 @@ function buildCards(){
     topFreeGrid.appendChild(node);
     cardEntries.push([node, c, false]);
   });
-  BONUS_FREE_CASES.concat(LEVEL_CASES).forEach(c => {
+  LEVEL_CASES.forEach(c => {
     const locked = PLAYER_LEVEL < c.level;
     const node = cardNode(c, locked);
     levelFreeGrid.appendChild(node);
