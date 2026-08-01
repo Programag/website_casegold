@@ -399,6 +399,10 @@ app.put("/api/state", async (req, res) => {
     casesOpened: typeof body.casesOpened === "number" ? body.casesOpened : (u.state && u.state.casesOpened) || 0,
     claimedLevelRewards: Array.isArray(body.claimedLevelRewards) ? body.claimedLevelRewards : (u.state && u.state.claimedLevelRewards) || [],
     battleHistory: Array.isArray(body.battleHistory) ? body.battleHistory : (u.state && u.state.battleHistory) || [],
+    // Serwerowa flaga migracji (nieustawiana przez klienta) - musi przetrwać
+    // każdy zapis stanu z klienta, inaczej kolejny push nadpisuje ją na
+    // false i migracja XP*10 uruchamia się ponownie przy każdym odświeżeniu.
+    xpScaleMigratedV2: !!(u.state && u.state.xpScaleMigratedV2),
     updatedAt: Date.now(),
   };
   try {
@@ -464,6 +468,38 @@ app.put("/api/admin/users/:steamid", requireAdmin, async (req, res) => {
       ok: true,
       user: { steamid: u.steamid, displayName: u.displayName, balance: u.state.balance, level: u.state.level, xp: u.state.xp },
     });
+  } catch (e) {
+    res.status(503).json({ error: "storage_unavailable" });
+  }
+});
+
+// ---- Jednorazowa migracja: próg 1. poziomu podniesiono z 10 na 100 EXP
+// (10x), więc każdy dotychczasowy gracz nagle "spadał" na niższy poziom
+// mimo niezmienionego XP - nowy wzór to dokładnie stary pomnożony przez 10,
+// więc przemnożenie zapisanego XP każdego gracza przez 10 przywraca im
+// dokładnie ten sam poziom co przed zmianą wzoru, bez żadnych przybliżeń.
+// Zabezpieczone flagą per-gracz (xpScaleMigratedV2), więc powtórne
+// uruchomienie nic już nie zmieni - bezpiecznie kliknąć więcej niż raz.
+app.post("/api/admin/migrate-xp-scale", requireAdmin, async (req, res) => {
+  let users;
+  try {
+    users = await readUsers();
+  } catch (e) {
+    return res.status(503).json({ error: "storage_unavailable" });
+  }
+  let migrated = 0;
+  for (const steamid of Object.keys(users)) {
+    const u = users[steamid];
+    if (!u.state || u.state.xpScaleMigratedV2) continue;
+    const oldXp = typeof u.state.xp === "number" ? u.state.xp : 0;
+    u.state.xp = oldXp * 10;
+    u.state.xpScaleMigratedV2 = true;
+    u.state.updatedAt = Date.now();
+    migrated++;
+  }
+  try {
+    await writeUsers(users);
+    res.json({ ok: true, migrated, total: Object.keys(users).length });
   } catch (e) {
     res.status(503).json({ error: "storage_unavailable" });
   }
