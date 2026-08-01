@@ -168,14 +168,37 @@
     const needed = next - base;
     return { level, xp, into, needed, percent: needed > 0 ? Math.min(100, (into / needed) * 100) : 100 };
   }
+  let lvlTooltipDismissWired = false;
   function refreshLevelBadge() {
-    const badge = document.querySelector(".avatar-wrap .lvl-badge");
+    const wrap = document.querySelector(".avatar-wrap");
+    const badge = wrap && wrap.querySelector(".lvl-badge");
     if (!badge || !me.loggedIn) return;
     let xp = 0;
     try { xp = JSON.parse(localStorage.getItem(STATE_KEY) || "{}").xp || 0; } catch (e) {}
     const p = xpProgress(xp);
+    const text = `${p.into.toFixed(2)} / ${p.needed.toFixed(2)} EXP (${p.percent.toFixed(1)}%) do poziomu ${p.level + 1}`;
     badge.textContent = String(p.level);
-    badge.title = `${p.into.toFixed(2)} / ${p.needed.toFixed(2)} EXP (${p.percent.toFixed(1)}%) do poziomu ${p.level + 1}`;
+    badge.title = text; // hover on desktop
+    let tip = wrap.querySelector(".lvl-tooltip");
+    if (!tip) {
+      tip = document.createElement("div");
+      tip.className = "lvl-tooltip";
+      wrap.appendChild(tip);
+    }
+    tip.textContent = text;
+    // tapping the badge on mobile doesn't trigger a hover title, and it sits
+    // inside .avatar-wrap (whose own click navigates to the profile) - stop
+    // that from firing and show the same info as a small popover instead.
+    badge.onclick = (e) => {
+      e.stopPropagation();
+      tip.classList.toggle("show");
+    };
+    if (!lvlTooltipDismissWired) {
+      lvlTooltipDismissWired = true;
+      document.addEventListener("click", () => {
+        document.querySelectorAll(".lvl-tooltip.show").forEach((el) => el.classList.remove("show"));
+      });
+    }
   }
 
   // ---- Zapisz najlepszy drop + liczniki do topki (profil / leaderboard) ----
@@ -277,6 +300,14 @@
         width:16px; height:16px; padding:0; border-radius:50%;
       }
       .lvl-badge.steam-badge svg{width:11px; height:11px; fill:#66c0f4;}
+      .lvl-badge{cursor:pointer;}
+      .lvl-tooltip{
+        display:none; position:absolute; top:calc(100% + 8px); right:-8px; z-index:70;
+        background:var(--panel,#141821); border:1px solid var(--line,#262c3a); border-radius:8px;
+        padding:8px 12px; font-size:12px; color:var(--text,#e9ecf3); white-space:nowrap;
+        box-shadow:0 12px 30px -10px rgba(0,0,0,.6); font-family:'Inter',sans-serif;
+      }
+      .lvl-tooltip.show{display:block;}
       .steam-auth-row{display:flex; align-items:center; gap:8px; border-top:1px solid var(--line);}
       .steam-auth-row button{flex:1;}
       #steamLoginBtn{display:flex; align-items:center; gap:8px;}
