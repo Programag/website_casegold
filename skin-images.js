@@ -180,6 +180,7 @@ const CASE_IMAGES = {
   "Gold Case": "gold_case.png",
   "Ultra Case": "ultra_case.png",
   "Snow Case": "snow_case.png",
+  "Neon Case": "neon_case.png",
 };
 
 /* Zwraca link do obrazka danego przedmiotu na podstawie broni, skina i wear. */
