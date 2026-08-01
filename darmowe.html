@@ -169,6 +169,11 @@
   .free-card:hover{transform:translateY(-2px);}
   .free-card.locked{cursor:not-allowed; opacity:.55;}
   .free-card.locked:hover{transform:none;}
+  #topFreeGrid .free-card{animation:free-card-glow 2.2s ease-in-out infinite;}
+  @keyframes free-card-glow{
+    0%,100%{box-shadow:0 0 10px -2px var(--hazard), 0 0 22px -8px var(--hazard);}
+    50%{box-shadow:0 0 22px 2px var(--hazard), 0 0 42px 4px var(--hazard);}
+  }
   .free-card .fc-tag{
     position:absolute; top:10px; right:10px; z-index:2;
     font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700;
@@ -361,7 +366,7 @@ setInterval(renderDailyBonusBtn, 1000);
 
 /* ---------------- free / level-gated case cards ---------------- */
 const FREE_CASES = [
-  {id:"free", key:"cs2sim_darmowe_free_at", name:"Free Case", tag:"DARMOWA", icon:"📦", img:"free_case_one.PNG", accent:"var(--good)", cooldownMs:3*60*60*1000}
+  {id:"free", key:"cs2sim_darmowe_free_at", name:"Free Case", tag:"DARMOWA", icon:"📦", img:"free_case_one.PNG", accent:"var(--hazard)", cooldownMs:3*60*60*1000}
 ];
 const LEVEL_CASES = [
   {id:"lvl10", key:"cs2sim_darmowe_lvl10_at", name:"Skrzynka Nowicjusza", tag:"LVL 10", icon:"📦", accent:"var(--r-gold)", level:10, cooldownMs:3*60*60*1000},
