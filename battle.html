@@ -629,6 +629,12 @@
   .player-head{display:flex; align-items:center; justify-content:space-between; gap:8px;}
   .round-stage + .player-head{padding-top:12px; border-top:1px solid var(--line);}
   .player-name{font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:1px; font-size:15px; display:flex; align-items:center; gap:8px;}
+  .player-avatar{
+    width:22px; height:22px; border-radius:50%; object-fit:cover; flex:none;
+    background:var(--panel-2); border:1px solid var(--line);
+  }
+  .player-col.you .player-avatar{border-color:var(--hazard);}
+  span.player-avatar{display:flex; align-items:center; justify-content:center; font-size:12px;}
   .player-tag{
     font-family:'JetBrains Mono',monospace; font-size:9.5px; padding:2px 6px; border-radius:4px;
     background:var(--panel-2); border:1px solid var(--line); color:var(--muted);
@@ -2544,6 +2550,13 @@ function showLandingView(){
   renderOpenLobbies();
 }
 
+/* ---- small avatar next to a player's name, so it's easy to spot yourself/opponents ---- */
+function avatarHtml(slot){
+  if(slot.type === "bot") return `<span class="player-avatar">🤖</span>`;
+  if(slot.avatar) return `<img class="player-avatar" src="${slot.avatar}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'player-avatar',textContent:'🙂'}));">`;
+  return `<span class="player-avatar">🙂</span>`;
+}
+
 /* ---- render the players-grid for a lobby, in whichever state it's in ---- */
 function renderLobbyArena(lobby){
   const isHost = lobby.hostTabId === myTabId;
@@ -2604,7 +2617,7 @@ function renderLobbyArena(lobby){
         <div class="result-badge" id="result-badge-${idx}"><div class="rb-label"></div><div class="rb-amount"></div></div>
         <div class="round-stage" id="stage-${idx}"><div class="spin-icon">START&hellip;</div></div>
         <div class="player-head">
-          <div class="player-name">${slot.name} <span class="crown">👑</span> ${teamTag} ${showStars ? `<span class="player-tag star-tag" id="stars-${idx}">⭐ 0</span>` : ""} ${slot.type === "bot" ? '<span class="player-tag">BOT</span>' : (slot.tabId===myTabId ? '<span class="player-tag you-tag">TY</span>' : '<span class="player-tag">GRACZ</span>')}</div>
+          <div class="player-name">${avatarHtml(slot)}${slot.name} <span class="crown">👑</span> ${teamTag} ${showStars ? `<span class="player-tag star-tag" id="stars-${idx}">⭐ 0</span>` : ""} ${slot.type === "bot" ? '<span class="player-tag">BOT</span>' : (slot.tabId===myTabId ? '<span class="player-tag you-tag">TY</span>' : '<span class="player-tag">GRACZ</span>')}</div>
           <div class="player-total" id="total-${idx}">0,00 zł</div>
         </div>
         <div class="history-stack" id="history-${idx}"></div>
@@ -2650,7 +2663,7 @@ function lobbySlotNode(lobby, idx){
     col.className = "player-col" + (slot.tabId === myTabId ? " you" : "") + teamClass;
     const tag = slot.type === "bot" ? '<span class="player-tag">BOT</span>' : (slot.tabId===myTabId ? '<span class="player-tag you-tag">TY</span>' : '<span class="player-tag">GRACZ</span>');
     col.innerHTML = `
-      <div class="player-head"><div class="player-name">${slot.name} ${teamTag} ${tag}</div></div>
+      <div class="player-head"><div class="player-name">${avatarHtml(slot)}${slot.name} ${teamTag} ${tag}</div></div>
       <div class="round-stage empty-slot-stage"><div class="player-total lobby-status">Gotowy</div></div>
     `;
   }

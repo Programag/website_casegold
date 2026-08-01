@@ -103,7 +103,7 @@ module.exports = function attachBattleLobby(io, { readUsers }) {
         totalPlayers,
         slots: Array.from({ length: totalPlayers }, (_, i) =>
           i === hostSlotIdx
-            ? { type: "host", name: hostName, tabId, steamid: user ? user.steamid : null }
+            ? { type: "host", name: hostName, tabId, steamid: user ? user.steamid : null, avatar: user ? user.avatar : null }
             : { type: "empty" }
         ),
         status: "lobby",
@@ -126,7 +126,7 @@ module.exports = function attachBattleLobby(io, { readUsers }) {
       if (!lobby.slots[idx] || lobby.slots[idx].type !== "empty") return ack({ ok: false, reason: "taken" });
       if (lobby.slots.some((s) => s.tabId === tabId)) return ack({ ok: false, reason: "already_in" });
       const playerName = user ? user.displayName : String(name || "Gracz").slice(0, 18);
-      lobby.slots[idx] = { type: "player", name: playerName, tabId: String(tabId || ""), steamid: user ? user.steamid : null };
+      lobby.slots[idx] = { type: "player", name: playerName, tabId: String(tabId || ""), steamid: user ? user.steamid : null, avatar: user ? user.avatar : null };
       lobby.stakedTotal = (lobby.stakedTotal || lobby.cost) + lobby.cost;
       socket.join("lobby:" + lobbyId);
       socketMeta[socket.id] = { lobbyId, tabId: String(tabId || "") };
