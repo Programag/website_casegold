@@ -88,6 +88,7 @@ module.exports = function attachBattleLobby(io, { readUsers }) {
 
     socket.on("battle:create", (cfg, ack) => {
       ack = typeof ack === "function" ? ack : () => {};
+      if (!user) return ack({ ok: false, reason: "not_logged_in" });
       if (!cfg || typeof cfg !== "object") return ack({ ok: false });
       const tabId = String(cfg.tabId || "");
       const rounds = Array.isArray(cfg.rounds) ? cfg.rounds.slice(0, MAX_ROUNDS).map(String) : [];
@@ -127,6 +128,7 @@ module.exports = function attachBattleLobby(io, { readUsers }) {
 
     socket.on("battle:join", (payload, ack) => {
       ack = typeof ack === "function" ? ack : () => {};
+      if (!user) return ack({ ok: false, reason: "not_logged_in" });
       const { lobbyId, idx, tabId, name } = payload || {};
       const lobby = lobbies[lobbyId];
       if (!lobby || lobby.status !== "lobby") return ack({ ok: false, reason: "not_found" });
