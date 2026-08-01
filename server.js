@@ -93,6 +93,59 @@ async function writeUsers(users) {
   fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
 }
 
+// ---------------------------------------------------------------------------
+// Magazyn sesji logowania.
+//
+// express-session bez jawnie podanego `store` używa domyślnego MemoryStore,
+// który trzyma sesje wyłącznie w RAM-ie tego jednego procesu. Redeploy
+// zawsze startuje NOWY proces - MemoryStore startuje wtedy pusty i każdy
+// dotąd zalogowany gracz w jednej chwili przestaje mieć ważną sesję. Strona
+// wtedy traktuje go jak gościa (loggedIn:false), więc KAŻDA podstrona pokazuje
+// saldo 0,00 zł mimo że dane na koncie w Redisie wcale nie zniknęły - to
+// dokładnie objaw "po zmianie w kodzie saldo się zeruje wszystkim naraz".
+// Sesje muszą więc żyć w tym samym trwałym magazynie co konta graczy.
+class UpstashSessionStore extends session.Store {
+  _key(sid) {
+    return `cs2sim:sess:${sid}`;
+  }
+  _ttlSeconds(sessionData) {
+    const maxAge = sessionData && sessionData.cookie && sessionData.cookie.maxAge;
+    return Math.max(60, Math.floor((typeof maxAge === "number" ? maxAge : 90 * 24 * 60 * 60 * 1000) / 1000));
+  }
+  async get(sid, cb) {
+    try {
+      const raw = await redisCommand(["GET", this._key(sid)]);
+      cb(null, raw ? JSON.parse(raw) : null);
+    } catch (e) {
+      cb(e);
+    }
+  }
+  async set(sid, sessionData, cb) {
+    try {
+      await redisCommand(["SET", this._key(sid), JSON.stringify(sessionData), "EX", String(this._ttlSeconds(sessionData))]);
+      if (cb) cb(null);
+    } catch (e) {
+      if (cb) cb(e);
+    }
+  }
+  async destroy(sid, cb) {
+    try {
+      await redisCommand(["DEL", this._key(sid)]);
+      if (cb) cb(null);
+    } catch (e) {
+      if (cb) cb(e);
+    }
+  }
+  async touch(sid, sessionData, cb) {
+    try {
+      await redisCommand(["EXPIRE", this._key(sid), String(this._ttlSeconds(sessionData))]);
+      if (cb) cb(null);
+    } catch (e) {
+      if (cb) cb(e);
+    }
+  }
+}
+
 function publicUser(u) {
   if (!u) return null;
   return {
@@ -183,6 +236,7 @@ app.set("trust proxy", 1);
 app.use(express.json({ limit: "512kb" }));
 
 const sessionMiddleware = session({
+  store: USE_REDIS ? new UpstashSessionStore() : undefined,
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
