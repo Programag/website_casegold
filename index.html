@@ -144,12 +144,11 @@
     font-family:'JetBrains Mono',monospace;
   }
   @media (max-width:760px){
-    .nav-links{
-      flex:1 1 100%; flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch;
-      scrollbar-width:none; -ms-overflow-style:none;
-    }
-    .nav-links::-webkit-scrollbar{display:none;}
-    .nav-link{flex:0 0 auto;}
+    .topnav .nav-links{flex:1 1 100%; flex-wrap:nowrap; gap:3px; justify-content:space-between;}
+    .topnav .nav-link{gap:0; padding:0 0 10px; margin-bottom:0; font-size:10px; letter-spacing:0; white-space:nowrap;}
+  }
+  @media (max-width:400px){
+    .topnav .nav-link{font-size:8.5px;}
   }
 
   /* ---------------- page wrap ---------------- */
