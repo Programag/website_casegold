@@ -2355,6 +2355,7 @@ caseInfoModal.addEventListener("click", (e) => {
 
 /* ---- create a lobby (replaces the old "start battle instantly") ---- */
 startBattleBtn.onclick = () => {
+  if(!window.SteamAuth.requireLogin()) return;
   if(selectedRounds.length === 0){
     if(selectedRounds.length < MAX_ROUNDS) openCaseModal();
     return;

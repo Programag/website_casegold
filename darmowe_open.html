@@ -604,6 +604,7 @@ setInterval(renderCountdown, 1000);
 renderCountdown();
 
 openBtn.onclick = () => {
+  if(!window.SteamAuth.requireLogin()) return;
   const now = Date.now();
   if(spinning || now - Number(localStorage.getItem(CASE.key) || 0) < CASE.cooldownMs) return;
   spinning = true;

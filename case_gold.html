@@ -1023,6 +1023,7 @@ function flashResult(it){
 document.getElementById("resultClose").onclick = () => { console.log('resultClose clicked'); commitResults(); };
 
 openBtn.onclick = () => {
+  if(!window.SteamAuth.requireLogin()) return;
   const count = Number(openCount.value);
   const totalCost = currentCasePrice() * count;
   if(spinning || balance < totalCost) return;

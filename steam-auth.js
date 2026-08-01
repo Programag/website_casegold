@@ -81,8 +81,8 @@
 
   // ---- UI: avatar + przycisk logowania w menu ustawień ----
   const DICT = {
-    pl: { login: "Zaloguj przez Steam", logout: "Wyloguj" },
-    en: { login: "Log in with Steam", logout: "Log out" },
+    pl: { login: "Zaloguj przez Steam", logout: "Wyloguj", mustLogin: "Zaloguj się przez Steam, aby otwierać skrzynki." },
+    en: { login: "Log in with Steam", logout: "Log out", mustLogin: "Log in with Steam to open cases." },
   };
   function getLang() { return localStorage.getItem(LANG_KEY) === "en" ? "en" : "pl"; }
 
@@ -96,8 +96,39 @@
       .steam-auth-row{display:flex; align-items:center; gap:8px; border-top:1px solid var(--line);}
       .steam-auth-row button{flex:1;}
       #steamLoginBtn{display:flex; align-items:center; gap:8px;}
+      #steamAuthToast{
+        position:fixed; bottom:24px; left:50%; z-index:9999;
+        transform:translateX(-50%) translateY(20px);
+        background:var(--panel,#141821); border:1px solid var(--line,#262c3a); color:var(--text,#e9ecf3);
+        padding:12px 20px; border-radius:10px; font-size:13.5px; font-family:'Inter',sans-serif;
+        opacity:0; pointer-events:none; transition:opacity .2s ease, transform .2s ease;
+        box-shadow:0 12px 30px -10px rgba(0,0,0,.6);
+      }
+      #steamAuthToast.show{opacity:1; transform:translateX(-50%) translateY(0);}
     `;
     document.head.appendChild(style);
+  }
+
+  // ---- Blokada otwierania skrzynek dla niezalogowanych ----
+  function showAuthToast(msg) {
+    injectStyle();
+    let el = document.getElementById("steamAuthToast");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "steamAuthToast";
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.classList.add("show");
+    clearTimeout(el._hideTimer);
+    el._hideTimer = setTimeout(() => { el.classList.remove("show"); }, 2600);
+  }
+
+  function requireLogin() {
+    if (me.loggedIn) return true;
+    showAuthToast("🔒 " + DICT[getLang()].mustLogin);
+    setTimeout(() => { window.location.href = "/auth/steam"; }, 900);
+    return false;
   }
 
   function renderBalanceEarly() {
@@ -189,5 +220,5 @@
     buildUI();
   }
 
-  window.SteamAuth = { getUser: () => (me.loggedIn ? me.user : null), refreshUI: buildUI };
+  window.SteamAuth = { getUser: () => (me.loggedIn ? me.user : null), refreshUI: buildUI, requireLogin };
 })();
