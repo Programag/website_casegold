@@ -32,16 +32,31 @@
   if (me.loggedIn && me.user && me.user.state) {
     const s = me.user.state;
     try {
-      localStorage.setItem(STATE_KEY, JSON.stringify({
-        balance: s.balance,
-        inventory: s.inventory,
-        invCounter: s.invCounter,
-        level: typeof s.level === "number" ? s.level : 0,
-        xp: typeof s.xp === "number" ? s.xp : 0,
-        bestPull: s.bestPull || null,
-        upgradeClicks: typeof s.upgradeClicks === "number" ? s.upgradeClicks : 0,
-        casesOpened: typeof s.casesOpened === "number" ? s.casesOpened : 0,
-      }));
+      // Push na serwer jest debounce'owany (500ms) i wysyłany asynchronicznie
+      // przy beforeunload - jeśli gracz kliknie kolejną stronę tuż po wygranej,
+      // synchroniczne /api/me tej nowej strony potrafi odpowiedzieć zanim
+      // serwer zdąży zapisać ten push. Bez tej straży świeży lokalny stan
+      // (dopiero co wygrany przedmiot, zaktualizowane saldo) zostałby
+      // nadpisany starszą kopią z serwera - dokładnie objaw "saldo wraca do
+      // pierwotnego, przedmiotu nie ma w ekwipunku". Ufamy więc serwerowi
+      // tylko wtedy, gdy jego updatedAt jest rzeczywiście świeższy niż to,
+      // co mamy już lokalnie.
+      let localUpdatedAt = 0;
+      try { localUpdatedAt = JSON.parse(localStorage.getItem(STATE_KEY) || "{}").updatedAt || 0; } catch (e2) {}
+      const serverUpdatedAt = typeof s.updatedAt === "number" ? s.updatedAt : 0;
+      if (serverUpdatedAt >= localUpdatedAt) {
+        localStorage.setItem(STATE_KEY, JSON.stringify({
+          balance: s.balance,
+          inventory: s.inventory,
+          invCounter: s.invCounter,
+          level: typeof s.level === "number" ? s.level : 0,
+          xp: typeof s.xp === "number" ? s.xp : 0,
+          bestPull: s.bestPull || null,
+          upgradeClicks: typeof s.upgradeClicks === "number" ? s.upgradeClicks : 0,
+          casesOpened: typeof s.casesOpened === "number" ? s.casesOpened : 0,
+          updatedAt: serverUpdatedAt,
+        }));
+      }
       if (s.dailyBonusAt) localStorage.setItem(DAILY_KEY, String(s.dailyBonusAt));
       if (s.freeCaseAt) localStorage.setItem(FREE_CASE_KEY, String(s.freeCaseAt));
     } catch (e) {}
@@ -94,9 +109,10 @@
         bestPull: s.bestPull || null,
         upgradeClicks: typeof s.upgradeClicks === "number" ? s.upgradeClicks : 0,
         casesOpened: typeof s.casesOpened === "number" ? s.casesOpened : 0,
+        updatedAt: Date.now(),
       };
     } catch (e) {
-      return { bestPull: null, upgradeClicks: 0, casesOpened: 0 };
+      return { bestPull: null, upgradeClicks: 0, casesOpened: 0, updatedAt: Date.now() };
     }
   }
   function recordPull(item) {
@@ -106,6 +122,7 @@
       let state = {};
       try { state = JSON.parse(localStorage.getItem(STATE_KEY) || "{}"); } catch (e) {}
       state.bestPull = { weapon: item.weapon, skin: item.skin, wear: item.wear, price: item.price, at: Date.now() };
+      state.updatedAt = Date.now();
       try { localStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch (e) {}
     }
   }
@@ -113,6 +130,7 @@
     let state = {};
     try { state = JSON.parse(localStorage.getItem(STATE_KEY) || "{}"); } catch (e) {}
     state[key] = (typeof state[key] === "number" ? state[key] : 0) + by;
+    state.updatedAt = Date.now();
     try { localStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch (e) {}
   }
   function recordUpgradeClick() { incrementCounter("upgradeClicks", 1); }
