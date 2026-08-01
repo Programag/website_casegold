@@ -757,6 +757,7 @@ function loadState(){
 function saveState(){
   try{
     localStorage.setItem(STORAGE_KEY, JSON.stringify({balance, inventory, invCounter, level, xp, ...window.SteamAuth.readPersistentExtras()}));
+    window.SteamAuth.schedulePush();
   }catch(e){}
 }
 

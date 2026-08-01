@@ -671,7 +671,7 @@ function loadState(){
   }
 }
 function saveState(){
-  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({balance, inventory, invCounter, ...window.SteamAuth.readPersistentExtras()})); }catch(e){}
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({balance, inventory, invCounter, ...window.SteamAuth.readPersistentExtras()})); window.SteamAuth.schedulePush(); }catch(e){}
 }
 
 const s0 = loadState();

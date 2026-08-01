@@ -67,19 +67,22 @@
   function showDebugLog(msg) {
     let box = document.getElementById("cs2simDebugLog");
     if (!box) {
+      // U góry ekranu (nie na dole!) i mały - żeby przypadkiem nie zasłaniać
+      // przycisków typu "Otwórz skrzynkę" / "Zamknij", które w tym UI
+      // zwykle siedzą blisko dołu ekranu na telefonie.
       box = document.createElement("div");
       box.id = "cs2simDebugLog";
       box.style.cssText =
-        "position:fixed; bottom:0; left:0; right:0; max-height:42vh; overflow-y:auto; " +
-        "background:rgba(6,8,13,.95); color:#3ddc84; font-family:monospace; font-size:11px; " +
-        "line-height:1.5; padding:8px 34px 8px 8px; z-index:99999; white-space:pre-wrap; " +
-        "border-top:2px solid #ff9500;";
+        "position:fixed; top:0; left:0; right:0; max-height:22vh; overflow-y:auto; " +
+        "background:rgba(6,8,13,.95); color:#3ddc84; font-family:monospace; font-size:10px; " +
+        "line-height:1.45; padding:6px 34px 6px 8px; z-index:99999; white-space:pre-wrap; " +
+        "border-bottom:2px solid #ff9500; pointer-events:auto;";
       const close = document.createElement("button");
       close.textContent = "✕";
       close.style.cssText =
-        "position:fixed; bottom:8px; right:8px; z-index:100000; width:26px; height:26px; " +
-        "border-radius:6px; border:1px solid #262c3a; background:#1b202b; color:#e9ecf3; font-size:12px;";
-      close.onclick = () => box.remove();
+        "position:fixed; top:4px; right:4px; z-index:100000; width:24px; height:24px; " +
+        "border-radius:6px; border:1px solid #262c3a; background:#1b202b; color:#e9ecf3; font-size:11px;";
+      close.onclick = () => { box.remove(); close.remove(); };
       document.body.appendChild(box);
       document.body.appendChild(close);
     }
@@ -169,6 +172,7 @@
       state.updatedAt = Date.now();
       try { localStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch (e) {}
     }
+    schedulePush();
   }
   function incrementCounter(key, by) {
     let state = {};
@@ -176,15 +180,25 @@
     state[key] = (typeof state[key] === "number" ? state[key] : 0) + by;
     state.updatedAt = Date.now();
     try { localStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch (e) {}
+    schedulePush();
   }
   function recordUpgradeClick() { incrementCounter("upgradeClicks", 1); }
   function recordCasesOpened(n) { incrementCounter("casesOpened", typeof n === "number" ? n : 1); }
 
-  const nativeSetItem = localStorage.setItem.bind(localStorage);
-  localStorage.setItem = function (key, value) {
-    nativeSetItem(key, value);
-    if (key === STATE_KEY || key === DAILY_KEY || key === FREE_CASE_KEY) schedulePush();
-  };
+  // Monkey-patch jako dodatkowa siatka bezpieczeństwa - część przeglądarek
+  // (zwłaszcza mobilny WebKit, czyli też "Chrome" na iPhonie) potrafi po
+  // cichu ignorować nadpisanie localStorage.setItem, więc NIE polegamy już
+  // wyłącznie na nim: saveState() na każdej stronie i funkcje powyżej wołają
+  // schedulePush() jawnie. To tu zostaje tylko na wszelki wypadek.
+  try {
+    const nativeSetItem = localStorage.setItem.bind(localStorage);
+    localStorage.setItem = function (key, value) {
+      nativeSetItem(key, value);
+      if (key === STATE_KEY || key === DAILY_KEY || key === FREE_CASE_KEY) schedulePush();
+    };
+  } catch (e) {
+    showDebugLog("UWAGA: nadpisanie localStorage.setItem nie powiodło się: " + e.message);
+  }
   window.addEventListener("beforeunload", () => { if (pushTimer) pushNow(); });
 
   // ---- UI: avatar + przycisk logowania w menu ustawień ----
@@ -416,5 +430,6 @@
     readPersistentExtras,
     recordUpgradeClick,
     recordCasesOpened,
+    schedulePush,
   };
 })();
