@@ -62,12 +62,43 @@
     } catch (e) {}
   }
 
+  // ---- TYMCZASOWY panel debug na ekranie (diagnoza pushu bez DevTools na telefonie) ----
+  // Usunąć razem z wywołaniami showDebugLog() poniżej, gdy problem z topką zostanie znaleziony.
+  function showDebugLog(msg) {
+    let box = document.getElementById("cs2simDebugLog");
+    if (!box) {
+      box = document.createElement("div");
+      box.id = "cs2simDebugLog";
+      box.style.cssText =
+        "position:fixed; bottom:0; left:0; right:0; max-height:42vh; overflow-y:auto; " +
+        "background:rgba(6,8,13,.95); color:#3ddc84; font-family:monospace; font-size:11px; " +
+        "line-height:1.5; padding:8px 34px 8px 8px; z-index:99999; white-space:pre-wrap; " +
+        "border-top:2px solid #ff9500;";
+      const close = document.createElement("button");
+      close.textContent = "✕";
+      close.style.cssText =
+        "position:fixed; bottom:8px; right:8px; z-index:100000; width:26px; height:26px; " +
+        "border-radius:6px; border:1px solid #262c3a; background:#1b202b; color:#e9ecf3; font-size:12px;";
+      close.onclick = () => box.remove();
+      document.body.appendChild(box);
+      document.body.appendChild(close);
+    }
+    const line = document.createElement("div");
+    line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    box.appendChild(line);
+    box.scrollTop = box.scrollHeight;
+  }
+
   // ---- Push lokalnych zmian na serwer, gdy zalogowany ----
   let pushTimer = null;
   function schedulePush() {
-    if (!me.loggedIn) return;
+    if (!me.loggedIn) {
+      showDebugLog("schedulePush: pominięty, me.loggedIn=false");
+      return;
+    }
     clearTimeout(pushTimer);
     pushTimer = setTimeout(pushNow, 500);
+    showDebugLog("schedulePush: zaplanowano push za 500ms");
   }
   function pushNow() {
     let state = {};
@@ -84,6 +115,7 @@
       dailyBonusAt: Number(localStorage.getItem(DAILY_KEY) || 0) || null,
       freeCaseAt: Number(localStorage.getItem(FREE_CASE_KEY) || 0) || null,
     };
+    showDebugLog("pushNow: wysyłam PUT /api/state, casesOpened=" + payload.casesOpened + ", balance=" + payload.balance);
     fetch("/api/state", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -92,9 +124,17 @@
       keepalive: true,
     })
       .then((res) => {
-        if (!res.ok) console.error("[cs2sim] push /api/state nie powiódł się:", res.status, payload);
+        if (!res.ok) {
+          console.error("[cs2sim] push /api/state nie powiódł się:", res.status, payload);
+          res.text().then((t) => showDebugLog("push NIEUDANY: status=" + res.status + " body=" + t)).catch(() => {});
+        } else {
+          showDebugLog("push OK (status " + res.status + ")");
+        }
       })
-      .catch((e) => console.error("[cs2sim] push /api/state - błąd sieci:", e));
+      .catch((e) => {
+        console.error("[cs2sim] push /api/state - błąd sieci:", e);
+        showDebugLog("push BŁĄD SIECI: " + e.message);
+      });
   }
 
   // ---- Zapisz najlepszy drop + liczniki do topki (profil / leaderboard) ----
