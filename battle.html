@@ -2545,7 +2545,7 @@ function renderLobbyArena(lobby){
 
   if(lobby.status === "running" && animatingLobbyId !== lobby.id){
     animatingLobbyId = lobby.id;
-    runLobbyRounds(lobby, 0);
+    startLiveRounds(lobby);
   } else if(lobby.status === "finished" && animatingLobbyId !== lobby.id){
     // this tab only just observed a battle that already finished elsewhere — show the final state instantly, no animation
     animatingLobbyId = lobby.id;
@@ -2752,6 +2752,90 @@ function fadeOutStages(lobby, roundIdx){
       resolve();
     }, 240);
   });
+}
+
+/* Fixed, deterministic wall-clock length of one round's full animation
+   cycle (spin + settle-pause + fade transition into the next round) — see
+   the timeouts inside runLobbyRounds()/fadeOutStages() below, which this
+   must stay in sync with. Used to work out, from lobby.startedAt, which
+   round should be showing RIGHT NOW so every browser watching this battle
+   (whether it's been open since the start or just opened the link) lands
+   on the same round instead of each one animating from round 1 on its own
+   private timeline. */
+const ROUND_PERIOD_MS = MINI_SPIN_MS + 150 + 700 + 240;
+function currentRoundIndexFor(lobby){
+  if(!lobby.startedAt || !lobby.rounds.length) return 0;
+  const elapsed = Date.now() - lobby.startedAt;
+  return Math.max(0, Math.min(lobby.rounds.length - 1, Math.floor(elapsed / ROUND_PERIOD_MS)));
+}
+/* Instantly stamps rounds [0, uptoRoundIdxExclusive) into every slot's
+   history + running total (and burst star counts), with no animation —
+   used to fast-forward a browser that's joining/reconnecting partway
+   through a battle straight to the round everyone else is currently on. */
+function fastForwardRounds(lobby, uptoRoundIdxExclusive){
+  if(uptoRoundIdxExclusive <= 0) return;
+  const slotTotals = [];
+  lobby.slots.forEach((s, i) => {
+    const history = document.getElementById(`history-${i}`);
+    let runningTotal = 0, bestPrice = -1, bestEntry = null;
+    if(history) history.innerHTML = "";
+    for(let r = 0; r < uptoRoundIdxExclusive; r++){
+      const it = lobby.results[i].rounds[r];
+      if(!it) continue;
+      runningTotal += it.price;
+      if(!history) continue;
+      const img = getSkinImage(it);
+      const entry = document.createElement("div");
+      entry.className = "history-entry" + (isTopStandardowePull(it) ? " top-standardowe" : "");
+      entry.style.setProperty("--rarity", rarityColor(it));
+      entry.innerHTML = `
+        <span class="h-wear-tag">${it.wear}</span>
+        <span class="h-star">⭐</span>
+        <div class="h-img">${img ? `<img src="${img}" alt="${it.weapon}" onerror="this.parentElement.innerHTML='<div class=&quot;fb&quot;>${it.weapon}</div>'">` : `<div class="fb">${it.weapon}</div>`}</div>
+        <div class="h-info"><div class="h-wp">${it.weapon}</div><div class="h-nm">${it.skin}</div></div>
+        <div class="h-pr">${fmt(it.price)}</div>
+      `;
+      history.insertBefore(entry, history.firstChild);
+      if(it.price >= bestPrice){ bestPrice = it.price; bestEntry = entry; }
+    }
+    if(bestEntry) bestEntry.classList.add("best");
+    const totalEl = document.getElementById(`total-${i}`);
+    if(totalEl) totalEl.textContent = fmt(runningTotal);
+    slotTotals[i] = runningTotal;
+  });
+  if(lobby.mode === "burst" || lobby.mode === "under-burst"){
+    lobby._liveStars = new Array(lobby.slots.length).fill(0);
+    const invert = lobby.mode === "under-burst";
+    for(let r = 0; r < uptoRoundIdxExclusive; r++){
+      if(isTeamsMode(lobby)){
+        const teamSums = [0, 0];
+        lobby.slots.forEach((s2, i2) => { teamSums[teamOfIdx(i2, lobby.totalPlayers)] += lobby.results[i2].rounds[r].price; });
+        const extreme = invert ? Math.min(...teamSums) : Math.max(...teamSums);
+        const candidateTeams = [0, 1].filter(t => teamSums[t] === extreme);
+        const winnerTeam = candidateTeams.length === 1 ? candidateTeams[0] : seededIndex(lobby.id + ':burstteamround:' + r, 2);
+        lobby.slots.forEach((s2, i2) => { if(teamOfIdx(i2, lobby.totalPlayers) === winnerTeam) lobby._liveStars[i2]++; });
+      } else {
+        const roundPrices = lobby.slots.map((s2, i2) => lobby.results[i2].rounds[r].price);
+        const extreme = invert ? Math.min(...roundPrices) : Math.max(...roundPrices);
+        const cands = roundPrices.map((p,i2)=>i2).filter(i2 => roundPrices[i2] === extreme);
+        const starWinner = cands.length === 1 ? cands[0] : cands[seededIndex(lobby.id + ':burstround:' + r, cands.length)];
+        lobby._liveStars[starWinner]++;
+      }
+    }
+    lobby.slots.forEach((s2, i2) => {
+      const starEl = document.getElementById(`stars-${i2}`);
+      if(starEl) starEl.textContent = `⭐ ${lobby._liveStars[i2]}`;
+    });
+  }
+  updateLeadingColumns(lobby, slotTotals);
+}
+/* Entry point used by renderLobbyArena for a "running" lobby — figures out
+   which round the rest of the world is on and jumps straight there instead
+   of always starting the animation at round 1. */
+function startLiveRounds(lobby){
+  const targetRoundIdx = currentRoundIndexFor(lobby);
+  fastForwardRounds(lobby, targetRoundIdx);
+  runLobbyRounds(lobby, targetRoundIdx);
 }
 
 /* Replays the host-computed results in sync across every tab watching this

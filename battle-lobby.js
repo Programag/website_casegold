@@ -185,6 +185,12 @@ module.exports = function attachBattleLobby(io, { readUsers }) {
       if (!Array.isArray(results) || results.length !== lobby.slots.length) return;
       lobby.results = results;
       lobby.status = "running";
+      // Znacznik czasu, od którego każda przeglądarka (obecna od początku,
+      // dołączająca w trakcie, albo oglądająca link ze spektatorem) liczy,
+      // która runda właśnie leci - dzięki temu wszyscy widzą tę samą rundę
+      // w tej samej chwili, zamiast każdy odtwarzał od rundy 1 od momentu,
+      // gdy sam się połączył.
+      lobby.startedAt = Date.now();
       broadcastLobby(lobby);
     });
 
