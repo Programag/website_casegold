@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <script src="steam-auth.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SKRZYNKA // Ekwipunek</title>
+<title>SKRZYNKA // Mój profil</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
@@ -93,10 +93,6 @@
     padding:6px 6px 6px 12px; border-radius:9px;
   }
   .wallet-chip .wc-amount{font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--good); font-size:14.5px; white-space:nowrap;}
-  .wallet-chip .wc-add{
-    width:26px; height:26px; border-radius:7px; border:none; cursor:pointer;
-    background:var(--hazard); color:#181000; font-weight:800; font-size:15px; line-height:1;
-  }
   .icon-btn{
     width:34px; height:34px; border-radius:9px; background:var(--panel-2); border:1px solid var(--line);
     color:var(--muted); cursor:pointer; font-size:16px; position:relative;
@@ -131,45 +127,47 @@
   @media (max-width:400px){
     .topnav .nav-link{font-size:8.5px;}
   }
+
+  /* ---------------- page content ---------------- */
   .page-title{margin-bottom:26px;}
-  header{
-    display:flex;
-    justify-content:space-between;
-    align-items:flex-end;
-    flex-wrap:wrap;
-    gap:16px;
-    margin-bottom:22px;
-  }
   h1{font-family:'Oswald',sans-serif;font-weight:700;letter-spacing:2px;text-transform:uppercase;font-size:clamp(28px,4vw,42px);margin:0;line-height:1;}
   h1 span{color:var(--hazard);}
   .sub{color:var(--muted);font-size:13px;letter-spacing:.5px;margin-top:6px;}
-  .wallet{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 18px;text-align:right;min-width:220px;}
-  .wallet .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;}
-  .wallet .amount{font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;color:var(--good);}
-  .wallet .amount.low{color:var(--bad);}
-  .wallet-actions{display:flex;gap:8px;margin-top:8px;}
-  .mini-btn{flex:1;background:var(--panel-2);border:1px solid var(--line);color:var(--text);font-size:11px;padding:6px 8px;border-radius:6px;cursor:pointer;font-family:'Inter',sans-serif;}
-  .mini-btn:hover{border-color:var(--hazard);color:var(--hazard);}
-  .section-title{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:1.5px;font-size:16px;margin:26px 0 10px;display:flex;justify-content:space-between;align-items:center;}
-  .section-title .st-left{display:flex;flex-direction:column;gap:3px;}
-  .section-title .inv-total{font-family:'Inter',sans-serif;text-transform:none;letter-spacing:normal;font-size:11.5px;font-weight:500;color:var(--muted);}
-  .section-title button{background:var(--panel-2);border:1px solid var(--line);color:var(--muted);font-size:11px;padding:6px 10px;border-radius:6px;cursor:pointer;letter-spacing:.5px;font-family:'Inter',sans-serif;text-transform:none;}
-  .section-title button:hover{color:var(--hazard);border-color:var(--hazard);}
-  .inventory{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;}
-  .empty-note{color:var(--muted);font-size:13px;padding:14px;border:1px dashed var(--line);border-radius:10px;text-align:center;}
-  .inv-item{background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--rarity, var(--r-milspec));border-radius:8px;padding:8px;display:flex;flex-direction:column;align-items:center;}
-  .inv-item .img-slot{height:60px;width:100%;display:flex;align-items:center;justify-content:center;margin-bottom:4px;}
-  .inv-item img{max-height:56px;max-width:90%;object-fit:contain;}
-  .inv-item .fallback{font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace;text-align:center;}
-  .inv-item .wp{font-size:11px;font-weight:600;text-align:center;}
-  .inv-item .nm{font-size:9px;color:var(--muted);text-align:center;margin-bottom:6px;}
-  .inv-item .sell-btn{width:100%;font-size:11px;padding:5px;border-radius:5px;background:var(--panel-2);border:1px solid var(--line);color:var(--good);cursor:pointer;font-family:'JetBrains Mono',monospace;}
-  .inv-item .sell-btn:hover{border-color:var(--good);}
-  .log{margin-top:24px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);max-height:120px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;padding:10px 14px;background:var(--panel);}
-  .log div{padding:2px 0;border-bottom:1px solid var(--line);}
-  .log div:last-child{border-bottom:none;}
-  .back-link{color:var(--muted);font-size:12px;text-decoration:none;letter-spacing:.5px;}
-  .back-link:hover{color:var(--hazard);}
+
+  .profile-card{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    padding:32px 24px; text-align:center; margin-bottom:26px;
+  }
+  .profile-avatar{
+    width:88px; height:88px; border-radius:50%; object-fit:cover;
+    border:2px solid var(--hazard); margin-bottom:14px; background:var(--panel-2);
+    box-shadow:0 0 24px -6px var(--hazard);
+  }
+  .profile-name{font-family:'Oswald',sans-serif; font-weight:700; font-size:22px; text-transform:uppercase; letter-spacing:1px;}
+  .profile-steam-link{font-size:12px; color:var(--muted); text-decoration:none; display:inline-block; margin-top:8px;}
+  .profile-steam-link:hover{color:var(--hazard);}
+
+  .stat-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px; margin-bottom:30px;}
+  .stat-card{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px 18px;}
+  .stat-label{font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:var(--muted); margin-bottom:6px;}
+  .stat-value{font-family:'JetBrains Mono',monospace; font-size:20px; font-weight:700; color:var(--text);}
+
+  .section-title{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:1.5px;font-size:16px;margin:0 0 12px;}
+
+  .best-pull-card{
+    background:var(--panel); border:1px solid var(--line); border-top:3px solid var(--rarity, var(--r-gold));
+    border-radius:12px; padding:22px; display:flex; align-items:center; gap:22px; flex-wrap:wrap;
+  }
+  .best-pull-card .bp-img{width:100px; height:80px; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .best-pull-card .bp-img img{max-width:100%; max-height:100%; object-fit:contain;}
+  .best-pull-card .bp-img .fallback{font-size:10px; color:var(--muted); font-family:'JetBrains Mono',monospace; text-align:center;}
+  .best-pull-card .bp-info{flex:1; min-width:160px;}
+  .best-pull-card .bp-weapon{font-family:'Oswald',sans-serif; font-weight:600; font-size:17px; text-transform:uppercase;}
+  .best-pull-card .bp-skin{color:var(--muted); font-size:13px; margin-top:2px;}
+  .best-pull-card .bp-price{font-family:'JetBrains Mono',monospace; font-size:22px; font-weight:700; color:var(--good); margin-top:8px;}
+  .best-pull-card .bp-date{font-size:11px; color:var(--muted); margin-top:4px;}
+  .empty-note{color:var(--muted); font-size:13px; padding:14px; border:1px dashed var(--line); border-radius:10px; text-align:center; width:100%;}
+
   footer{text-align:center;color:var(--muted);font-size:11px;margin-top:30px;letter-spacing:.5px;}
 </style>
 </head>
@@ -188,7 +186,7 @@
     <a class="nav-link" href="battle.html">Case Battle</a>
     <a class="nav-link" href="upgrade.html">Upgrader</a>
     <button class="nav-link" data-soon>Zadania</button>
-    <a class="nav-link active" href="equipment.html">Ekwipunek</a>
+    <a class="nav-link" href="equipment.html">Ekwipunek</a>
   </div>
   <div class="nav-right">
     <button class="daily-btn" id="dailyBonusBtn">🎁 Daily Bonus</button>
@@ -212,94 +210,71 @@
 <div class="wrap">
 
   <div class="page-title">
-    <h1>Ekwipunek <span>//</span> Symulator</h1>
-    <div class="sub">Przeglądaj sprzedaj i zarządzaj przedmiotami ze swojego ekwipunku.</div>
+    <h1>Mój profil <span>//</span> Symulator</h1>
+    <div class="sub">Twoje dane konta i statystyki.</div>
   </div>
 
-  <div class="section-title">
-    <div class="st-left">
-      Ekwipunek
-      <span class="inv-total" id="invTotalValue">Łączna wartość ekwipunku: 0,00 zł</span>
+  <div class="profile-card">
+    <img class="profile-avatar" id="profAvatar" src="" alt="">
+    <div class="profile-name" id="profName">—</div>
+    <a class="profile-steam-link" id="profSteamLink" href="#" target="_blank" rel="noopener">Zobacz profil Steam ↗</a>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-label">Dołączył</div>
+      <div class="stat-value" id="statJoined">—</div>
     </div>
-    <button id="sellAllBtn">Sprzedaj wszystko</button>
-  </div>
-  <div class="inventory" id="inventory">
-    <div class="empty-note" id="invEmpty">Brak przedmiotów. Otwórz skrzynkę, żeby coś zdobyć.</div>
+    <div class="stat-card">
+      <div class="stat-label">Poziom</div>
+      <div class="stat-value" id="statLevel">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Saldo</div>
+      <div class="stat-value" id="statBalance">—</div>
+    </div>
   </div>
 
-  <div class="log" id="log"></div>
+  <div class="section-title">🏆 Najlepszy drop</div>
+  <div class="best-pull-card" id="bestPullCard">
+    <div class="empty-note">Brak jeszcze żadnych dropów. Otwórz skrzynkę, żeby coś zdobyć!</div>
+  </div>
+
   <footer>Symulacja edukacyjna / rozrywkowa — fikcyjna waluta, brak realnych transakcji.</footer>
 </div>
 </div>
 
 <script src="rarity-data.js"></script>
+<script src="skin-images.js"></script>
 <script src="nav-i18n.js"></script>
 <script>
 const STORAGE_KEY = "cs2sim_state_v1";
 const DAILY_BONUS_KEY = "cs2sim_daily_bonus_at";
 const DAILY_BONUS_COOLDOWN_MS = 24 * 60 * 60 * 1000;
-const START_BALANCE = 50.00;
 function fmt(n){
   return n.toLocaleString("pl-PL", {minimumFractionDigits:2, maximumFractionDigits:2}) + " zł";
 }
-function loadState(){
+function loadLocalState(){
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
-    if(!raw) return {balance: START_BALANCE, inventory: [], invCounter: 0, level: 0, xp: 0};
+    if(!raw) return {balance:50, level:0, xp:0, bestPull:null};
     const parsed = JSON.parse(raw);
     return {
-      balance: typeof parsed.balance === "number" ? parsed.balance : START_BALANCE,
-      inventory: Array.isArray(parsed.inventory) ? parsed.inventory : [],
-      invCounter: typeof parsed.invCounter === "number" ? parsed.invCounter : 0,
+      balance: typeof parsed.balance === "number" ? parsed.balance : 50,
       level: typeof parsed.level === "number" ? parsed.level : 0,
-      xp: typeof parsed.xp === "number" ? parsed.xp : 0
+      xp: typeof parsed.xp === "number" ? parsed.xp : 0,
+      bestPull: parsed.bestPull || null,
     };
   }catch(e){
-    return {balance: START_BALANCE, inventory: [], invCounter: 0, level: 0, xp: 0};
+    return {balance:50, level:0, xp:0, bestPull:null};
   }
 }
-function saveState(){
-  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({balance, inventory, invCounter, bestPull: window.SteamAuth.readBestPull()})); }catch(e){}
-}
-
-const initial = loadState();
-let balance = initial.balance;
-let inventory = initial.inventory;
-let invCounter = initial.invCounter;
+let balance = loadLocalState().balance;
 const balanceEl = document.getElementById("balance");
-const inventoryEl = document.getElementById("inventory");
-const invEmpty = document.getElementById("invEmpty");
-const logEl = document.getElementById("log");
-
 function renderBalance(){
   balanceEl.textContent = fmt(balance);
-  balanceEl.classList.toggle("low", balance < 0);
-  saveState();
 }
-function itemNode(it, cls){
-  const div = document.createElement("div");
-  div.className = cls;
-  div.style.setProperty("--rarity", getRarityColor(it));
-  const slot = document.createElement("div");
-  slot.className = "img-slot";
-  if(it.img){
-    const img = document.createElement("img");
-    img.src = it.img;
-    img.alt = it.weapon + " " + it.skin;
-    img.onerror = () => { slot.innerHTML = `<div class="fallback">${it.weapon}</div>`; };
-    slot.appendChild(img);
-  } else {
-    slot.innerHTML = `<div class="fallback">${it.weapon}</div>`;
-  }
-  div.appendChild(slot);
-  const wp = document.createElement("div"); wp.className = "wp"; wp.textContent = it.weapon; div.appendChild(wp);
-  const nm = document.createElement("div"); nm.className = "nm"; nm.textContent = `${it.skin} (${it.wear})`; div.appendChild(nm);
-  const btn = document.createElement("button"); btn.className = "sell-btn"; btn.textContent = `Sprzedaj ${fmt(it.price)}`;
-  btn.onclick = () => sellItem(it._id);
-  div.appendChild(btn);
-  return div;
-}
-function getRarityColor(it){
+function rarityColorFor(it){
   const known = getSkinRarityColor(it.weapon, it.skin);
   if(known) return known;
   const price = it.price;
@@ -309,53 +284,62 @@ function getRarityColor(it){
   if(price < 100) return "var(--r-covert)";
   return "var(--r-gold)";
 }
-function log(msg){
-  const d = document.createElement("div");
-  d.textContent = msg;
-  logEl.prepend(d);
-  while(logEl.children.length > 40) logEl.removeChild(logEl.lastChild);
-}
-function renderInvTotal(){
-  const total = inventory.reduce((s,i) => s + i.price, 0);
-  document.getElementById("invTotalValue").textContent = `Łączna wartość ekwipunku: ${fmt(total)}`;
-}
-function renderInventory(){
-  inventoryEl.innerHTML = "";
-  renderInvTotal();
-  if(inventory.length === 0){ inventoryEl.appendChild(invEmpty); return; }
-  inventory.slice().reverse().forEach(it => inventoryEl.appendChild(itemNode(it, "inv-item")));
-}
-function sellItem(id){
-  const idx = inventory.findIndex(i => i._id === id);
-  if(idx === -1) return;
-  const it = inventory[idx];
-  balance += it.price;
-  inventory.splice(idx, 1);
+
+function renderProfile(){
+  const me = window.__STEAM_AUTH__;
+  const u = me.user;
+  const s = loadLocalState();
+  balance = s.balance;
   renderBalance();
-  renderInventory();
-  log(`Sprzedano: ${it.weapon} | ${it.skin} (${it.wear}) za ${fmt(it.price)}`);
+
+  document.getElementById("profAvatar").src = u.avatar || "";
+  document.getElementById("profAvatar").alt = u.displayName || "Steam";
+  document.getElementById("profName").textContent = u.displayName || "Gracz";
+
+  const steamLink = document.getElementById("profSteamLink");
+  if(u.profileUrl){ steamLink.href = u.profileUrl; }
+  else { steamLink.style.display = "none"; }
+
+  const joined = u.createdAt ? new Date(u.createdAt) : null;
+  document.getElementById("statJoined").textContent = joined
+    ? joined.toLocaleDateString("pl-PL", {day:"numeric", month:"long", year:"numeric"})
+    : "—";
+  document.getElementById("statLevel").textContent = String(s.level);
+  document.getElementById("statBalance").textContent = fmt(s.balance);
+
+  const bp = s.bestPull;
+  const card = document.getElementById("bestPullCard");
+  if(bp){
+    card.style.setProperty("--rarity", rarityColorFor(bp));
+    const img = getSkinImage(bp);
+    const when = bp.at ? new Date(bp.at).toLocaleDateString("pl-PL", {day:"numeric", month:"long", year:"numeric"}) : "";
+    card.innerHTML = `
+      <div class="bp-img">${img ? `<img src="${img}" alt="${bp.weapon}" onerror="this.parentElement.innerHTML='<div class=&quot;fallback&quot;>${bp.weapon}</div>'">` : `<div class="fallback">${bp.weapon}</div>`}</div>
+      <div class="bp-info">
+        <div class="bp-weapon">${bp.weapon}</div>
+        <div class="bp-skin">${bp.skin} (${bp.wear})</div>
+        <div class="bp-price">${fmt(bp.price)}</div>
+        ${when ? `<div class="bp-date">Zdobyto: ${when}</div>` : ""}
+      </div>
+    `;
+  }
 }
 
 function init(){
-  document.getElementById("sellAllBtn").onclick = () => {
-    if(inventory.length === 0) return;
-    const total = inventory.reduce((s,i) => s + i.price, 0);
-    balance += total;
-    inventory = [];
-    renderBalance();
-    renderInventory();
-    log(`Sprzedano wszystko za ${fmt(total)}`);
-  };
+  const me = window.__STEAM_AUTH__ || {loggedIn:false};
+  if(!me.loggedIn || !me.user){
+    window.SteamAuth.requireLogin();
+    return;
+  }
   document.getElementById("inventoryBtn").onclick = () => { window.location.href = "equipment.html"; };
+  renderProfile();
   renderBalance();
-  renderInventory();
-  log("Przegląd ekwipunku gotowy.");
 }
 init();
 
 /* ---- shared top-nav widgets: settings dropdown + daily bonus (24h cooldown) ---- */
 document.querySelectorAll("[data-soon]").forEach(el => {
-  el.addEventListener("click", () => log("Wkrótce dostępne!"));
+  el.addEventListener("click", () => {});
 });
 const settingsBtn = document.getElementById("settingsBtn");
 const settingsMenu = document.getElementById("settingsMenu");
@@ -377,11 +361,12 @@ function renderDailyBonusBtn(){
 document.getElementById("dailyBonusBtn").onclick = () => {
   const now = Date.now();
   if(now - Number(localStorage.getItem(DAILY_BONUS_KEY) || 0) < DAILY_BONUS_COOLDOWN_MS) return;
-  balance += 5;
+  const s = loadLocalState();
+  balance = s.balance + 5;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({...s, balance}));
   localStorage.setItem(DAILY_BONUS_KEY, String(now));
   renderBalance();
   renderDailyBonusBtn();
-  log("Daily Bonus: +5,00 zł!");
 };
 setInterval(renderDailyBonusBtn, 1000);
 renderDailyBonusBtn();

@@ -50,6 +50,7 @@ function publicUser(u) {
     displayName: u.displayName,
     avatar: u.avatar,
     profileUrl: u.profileUrl,
+    createdAt: u.createdAt || null,
     state: u.state || null,
   };
 }
@@ -140,6 +141,17 @@ app.put("/api/state", (req, res) => {
   const u = users[req.user.steamid];
   if (!u) return res.status(404).json({ error: "no_such_user" });
 
+  const bestPull =
+    body.bestPull && typeof body.bestPull === "object" && typeof body.bestPull.price === "number"
+      ? {
+          weapon: String(body.bestPull.weapon || ""),
+          skin: String(body.bestPull.skin || ""),
+          wear: String(body.bestPull.wear || ""),
+          price: body.bestPull.price,
+          at: typeof body.bestPull.at === "number" ? body.bestPull.at : Date.now(),
+        }
+      : (u.state && u.state.bestPull) || null;
+
   u.state = {
     balance: typeof body.balance === "number" ? body.balance : 0,
     inventory: Array.isArray(body.inventory) ? body.inventory : [],
@@ -148,6 +160,7 @@ app.put("/api/state", (req, res) => {
     xp: typeof body.xp === "number" ? body.xp : 0,
     dailyBonusAt: typeof body.dailyBonusAt === "number" ? body.dailyBonusAt : null,
     freeCaseAt: typeof body.freeCaseAt === "number" ? body.freeCaseAt : null,
+    bestPull,
     updatedAt: Date.now(),
   };
   writeUsers(users);

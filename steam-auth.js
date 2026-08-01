@@ -38,6 +38,7 @@
         invCounter: s.invCounter,
         level: typeof s.level === "number" ? s.level : 0,
         xp: typeof s.xp === "number" ? s.xp : 0,
+        bestPull: s.bestPull || null,
       }));
       if (s.dailyBonusAt) localStorage.setItem(DAILY_KEY, String(s.dailyBonusAt));
       if (s.freeCaseAt) localStorage.setItem(FREE_CASE_KEY, String(s.freeCaseAt));
@@ -60,6 +61,7 @@
       invCounter: state.invCounter,
       level: typeof state.level === "number" ? state.level : 0,
       xp: typeof state.xp === "number" ? state.xp : 0,
+      bestPull: state.bestPull || null,
       dailyBonusAt: Number(localStorage.getItem(DAILY_KEY) || 0) || null,
       freeCaseAt: Number(localStorage.getItem(FREE_CASE_KEY) || 0) || null,
     };
@@ -72,6 +74,25 @@
     }).catch(() => {});
   }
 
+  // ---- Zapisz najlepszy drop (do profilu) ----
+  // Każda strona ma swój własny saveState(), który serializuje tylko znane
+  // sobie pola (balance/inventory/level/xp...) - żeby najlepszy drop nie
+  // ginął przy pierwszym takim zapisie po recordPull(), każdy saveState()
+  // powinien dograć świeżą wartość przez readBestPull() tuż przed zapisem.
+  function readBestPull() {
+    try { return JSON.parse(localStorage.getItem(STATE_KEY) || "{}").bestPull || null; } catch (e) { return null; }
+  }
+  function recordPull(item) {
+    if (!item || typeof item.price !== "number") return;
+    const current = readBestPull();
+    if (!current || item.price > current.price) {
+      let state = {};
+      try { state = JSON.parse(localStorage.getItem(STATE_KEY) || "{}"); } catch (e) {}
+      state.bestPull = { weapon: item.weapon, skin: item.skin, wear: item.wear, price: item.price, at: Date.now() };
+      try { localStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch (e) {}
+    }
+  }
+
   const nativeSetItem = localStorage.setItem.bind(localStorage);
   localStorage.setItem = function (key, value) {
     nativeSetItem(key, value);
@@ -82,14 +103,14 @@
   // ---- UI: avatar + przycisk logowania w menu ustawień ----
   const DICT = {
     pl: {
-      login: "Zaloguj przez Steam", logout: "Wyloguj",
+      login: "Zaloguj przez Steam", logout: "Wyloguj", myProfile: "Mój profil",
       wallTitle: "Wymagane logowanie",
       wallDesc: "Zaloguj się przez Steam, aby korzystać z tej funkcji.",
       wallSteamBtn: "Zaloguj się przez Steam",
       wallNote: "Nie są wymagane żadne dane płatności. Symulator używa wirtualnej waluty.",
     },
     en: {
-      login: "Log in with Steam", logout: "Log out",
+      login: "Log in with Steam", logout: "Log out", myProfile: "My profile",
       wallTitle: "Login required",
       wallDesc: "Log in with Steam to use this feature.",
       wallSteamBtn: "Log in with Steam",
@@ -225,8 +246,8 @@
         avatar.title = me.user.displayName || "";
       }
       if (avatarWrap) {
-        avatarWrap.onclick = null;
-        avatarWrap.title = "";
+        avatarWrap.onclick = () => { window.location.href = "/profile.html"; };
+        avatarWrap.title = t.myProfile;
         const badge = avatarWrap.querySelector(".lvl-badge");
         if (badge) {
           let lvl = 0;
@@ -234,6 +255,14 @@
           badge.textContent = String(lvl);
           badge.title = "";
         }
+      }
+
+      if (menu && !document.getElementById("myProfileBtn")) {
+        const btn = document.createElement("button");
+        btn.id = "myProfileBtn";
+        btn.textContent = `👤 ${t.myProfile}`;
+        btn.onclick = () => { window.location.href = "/profile.html"; };
+        menu.appendChild(btn);
       }
 
       if (menu && me.isAdmin && !document.getElementById("adminPanelBtn")) {
@@ -285,5 +314,5 @@
     buildUI();
   }
 
-  window.SteamAuth = { getUser: () => (me.loggedIn ? me.user : null), refreshUI: buildUI, requireLogin };
+  window.SteamAuth = { getUser: () => (me.loggedIn ? me.user : null), refreshUI: buildUI, requireLogin, recordPull, readBestPull };
 })();

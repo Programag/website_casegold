@@ -704,7 +704,7 @@ function loadState(){
 }
 function saveState(){
   try{
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({balance, inventory, invCounter, level, xp}));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({balance, inventory, invCounter, level, xp, bestPull: window.SteamAuth.readBestPull()}));
   }catch(e){}
 }
 
@@ -843,6 +843,7 @@ function log(msg){
 function addToInventory(it){
   invCounter++;
   inventory.push({...it, _id: invCounter});
+  window.SteamAuth.recordPull(it);
 }
 
 function commitResults(){
