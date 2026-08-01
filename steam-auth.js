@@ -14,6 +14,9 @@
   const FREE_CASE_KEY = "cs2sim_free_case_at";
   const LANG_KEY = "cs2sim_lang";
 
+  const STEAM_ICON_SVG = '<svg viewBox="0 0 24 24"><path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.03 4.524 4.524s-2.03 4.524-4.524 4.524h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.605.001 11.979.001zM7.54 18.21l-1.473-.61c.262.543.714.999 1.314 1.25 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.455-.397.957-1.497 1.41-2.454 1.012H7.54zm11.415-9.303c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.663 0 3.015-1.35 3.015-3.015zm-5.273-.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.253 0-2.265-1.014-2.265-2.265z"/></svg>';
+  function steamIconBadge() { return `<span class="steam-icon-badge">${STEAM_ICON_SVG}</span>`; }
+
   function fetchMeSync() {
     try {
       const xhr = new XMLHttpRequest();
@@ -186,6 +189,18 @@
     style.textContent = `
       .avatar img{width:100%; height:100%; border-radius:50%; object-fit:cover;}
       .avatar-wrap{cursor:pointer;}
+      .steam-icon-badge{
+        display:inline-flex; align-items:center; justify-content:center; flex:none;
+        width:20px; height:20px; border-radius:50%;
+        background:linear-gradient(135deg,#1b2838,#2a475e);
+      }
+      .steam-icon-badge svg{width:13px; height:13px; fill:#66c0f4;}
+      .lvl-badge.steam-badge{
+        background:linear-gradient(135deg,#1b2838,#2a475e) !important;
+        display:flex; align-items:center; justify-content:center;
+        width:16px; height:16px; padding:0; border-radius:50%;
+      }
+      .lvl-badge.steam-badge svg{width:11px; height:11px; fill:#66c0f4;}
       .steam-auth-row{display:flex; align-items:center; gap:8px; border-top:1px solid var(--line);}
       .steam-auth-row button{flex:1;}
       #steamLoginBtn{display:flex; align-items:center; gap:8px;}
@@ -260,7 +275,7 @@
         <div class="auth-wall-icon"><img src="/casegold_logo.PNG" alt="Casegold" onerror="this.outerHTML='📦';"></div>
         <h2>${t.wallTitle}</h2>
         <p>${t.wallDesc}</p>
-        <button class="auth-wall-steam-btn" id="authWallSteamBtn">🔑 ${t.wallSteamBtn}</button>
+        <button class="auth-wall-steam-btn" id="authWallSteamBtn">${steamIconBadge()} ${t.wallSteamBtn}</button>
         <div class="auth-wall-note">${t.wallNote}</div>
       </div>
     `;
@@ -322,6 +337,7 @@
         if (badge) {
           let lvl = 0;
           try { lvl = JSON.parse(localStorage.getItem(STATE_KEY) || "{}").level || 0; } catch (e) {}
+          badge.classList.remove("steam-badge");
           badge.textContent = String(lvl);
           badge.title = "";
         }
@@ -363,13 +379,13 @@
         avatarWrap.title = t.login;
         avatarWrap.onclick = () => { window.location.href = "/auth/steam"; };
         const badge = avatarWrap.querySelector(".lvl-badge");
-        if (badge) { badge.textContent = "🔑"; badge.title = t.login; }
+        if (badge) { badge.classList.add("steam-badge"); badge.innerHTML = STEAM_ICON_SVG; badge.title = t.login; }
       }
       if (menu && !document.getElementById("steamAuthRow")) {
         const row = document.createElement("div");
         row.className = "steam-auth-row";
         row.id = "steamAuthRow";
-        row.innerHTML = `<button id="steamLoginBtn">🔑 ${t.login}</button>`;
+        row.innerHTML = `<button id="steamLoginBtn">${steamIconBadge()} ${t.login}</button>`;
         menu.appendChild(row);
         document.getElementById("steamLoginBtn").onclick = () => {
           window.location.href = "/auth/steam";
