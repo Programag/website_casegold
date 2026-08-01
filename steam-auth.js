@@ -211,10 +211,16 @@
       }
       .auth-wall-close:hover{color:var(--text,#e9ecf3); border-color:var(--hazard,#ff9500);}
       .auth-wall-icon{
-        width:64px; height:64px; margin:0 auto 18px; border-radius:16px;
-        background:var(--hazard-dim,#3a2712); border:1px solid var(--hazard,#ff9500);
+        width:64px; height:64px; margin:0 auto 18px;
         display:flex; align-items:center; justify-content:center; font-size:30px;
-        box-shadow:0 0 24px -6px var(--hazard,#ff9500);
+      }
+      .auth-wall-icon img{
+        width:100%; height:100%; object-fit:contain;
+        animation:auth-wall-logo-glow 2.4s ease-in-out infinite;
+      }
+      @keyframes auth-wall-logo-glow{
+        0%,100%{filter:drop-shadow(0 0 4px #ffd700) drop-shadow(0 0 9px rgba(255,215,0,.55));}
+        50%{filter:drop-shadow(0 0 7px #ffd700) drop-shadow(0 0 16px rgba(255,215,0,.85));}
       }
       .auth-wall-panel h2{
         font-family:'Oswald',sans-serif; font-weight:700; text-transform:uppercase; letter-spacing:1px;
@@ -251,7 +257,7 @@
     overlay.innerHTML = `
       <div class="auth-wall-panel">
         <button class="auth-wall-close" id="authWallClose" aria-label="Zamknij">✕</button>
-        <div class="auth-wall-icon">📦</div>
+        <div class="auth-wall-icon"><img src="/casegold_logo.PNG" alt="Casegold" onerror="this.outerHTML='📦';"></div>
         <h2>${t.wallTitle}</h2>
         <p>${t.wallDesc}</p>
         <button class="auth-wall-steam-btn" id="authWallSteamBtn">🔑 ${t.wallSteamBtn}</button>
