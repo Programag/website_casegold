@@ -1692,25 +1692,21 @@ let inventory = s0.inventory;
 let invCounter = s0.invCounter;
 let level = s0.level;
 let xp = s0.xp;
-const XP_PER_ZL = 1;
-const XP_PER_LEVEL = 100;
-function levelForXp(totalXp){ return Math.floor(totalXp / XP_PER_LEVEL); }
-function awardBattleXp(amountSpent){
+/* 10 zł wygranych w bitwie = 1 EXP (formuła i progi poziomów są wspólne
+   dla całej strony, patrz window.SteamAuth w steam-auth.js). */
+function awardBattleXp(amountWon){
   reloadSharedState();
-  const gained = Math.round(amountSpent * XP_PER_ZL);
-  if(gained <= 0) return;
+  const gained = amountWon * window.SteamAuth.xpPerZl;
+  if(!(gained > 0)) return;
+  const oldLevel = window.SteamAuth.levelForXp(xp);
   xp += gained;
-  const newLevel = levelForXp(xp);
-  const leveledUp = newLevel > level;
-  level = newLevel;
+  level = window.SteamAuth.levelForXp(xp);
   saveState();
-  updateLevelBadge();
-  if(leveledUp) log(`🎉 Awans! Nowy poziom: ${level} (+${gained} EXP za bitwę)`);
-  else log(`+${gained} EXP za udział w bitwie (${xp % XP_PER_LEVEL}/${XP_PER_LEVEL} do poziomu ${level+1}).`);
-}
-function updateLevelBadge(){
-  const badge = document.querySelector(".avatar-wrap .lvl-badge");
-  if(badge && window.__STEAM_AUTH__ && window.__STEAM_AUTH__.loggedIn) badge.textContent = String(level);
+  window.SteamAuth.refreshLevelBadge();
+  const leveledUp = level > oldLevel;
+  const p = window.SteamAuth.xpProgress(xp);
+  if(leveledUp) log(`🎉 Awans! Nowy poziom: ${level} (+${gained.toFixed(2)} EXP za wygraną)`);
+  else log(`+${gained.toFixed(2)} EXP za wygraną (${p.into.toFixed(2)}/${p.needed.toFixed(2)} do poziomu ${level+1}).`);
 }
 
 const balanceEl = document.getElementById("balance");
@@ -3206,15 +3202,13 @@ function finishConclusion(lobby, outcome, mySlotIdx){
 
   renderOutcomeBanner(lobby, outcome);
 
-  // every human participant earns EXP for their own stake, independent of who won —
-  // this runs on each participant's own browser so it never gets double-counted
-  if(mySlotIdx !== -1) awardBattleXp(lobby.cost);
-
   // Each participant settles their OWN result on their OWN wallet — nobody else's
   // client ever touches your balance/inventory. There's no single "host pays
   // everyone out" step anymore, because real players each have a separate
   // account now (that used to be safe when host+joiner shared one localStorage
   // wallet on the same browser, but it isn't once they're different people).
+  // EXP is earned only on actual winnings (10 zł won = 1 EXP) — a tie/loss
+  // gives nothing beyond what cases you separately opened.
   if(mySlotIdx !== -1){
     reloadSharedState();
     if(outcome.shared){
@@ -3226,6 +3220,7 @@ function finishConclusion(lobby, outcome, mySlotIdx){
       awardItemsShared(myShare);
       renderBalance();
       const myValue = myShare.reduce((s,it)=>s+it.price,0);
+      awardBattleXp(myValue);
       log(`Bitwa: Shared. Pula (${allItems.length} przedmiotów, ${fmt(wonValue)}) podzielona po równo między ${lobby.totalPlayers} graczy. Twoja część: ${myShare.length} przedmiotów o wartości ${fmt(myValue)}.`);
     } else if(outcome.tie){
       balance += lobby.cost; // refund only what I personally staked
@@ -3248,10 +3243,12 @@ function finishConclusion(lobby, outcome, mySlotIdx){
           awardItemsShared(myShare);
           renderBalance();
           const myValue = myShare.reduce((s,it)=>s+it.price,0);
+          awardBattleXp(myValue);
           log(`Bitwa: wygrana dla ${winLabel}. Twoja połowa puli: ${myShare.length} przedmiotów o wartości ${fmt(myValue)} (drużyna zgarnęła łącznie ${allItems.length} przedmiotów o wartości ${fmt(wonValue)}).`);
         } else {
           awardItemsShared(allItems);
           renderBalance();
+          awardBattleXp(wonValue);
           log(`Bitwa: wygrana dla ${winLabel}. Przyznano ${allItems.length} przedmiotów o wartości ${fmt(wonValue)}.`);
         }
       } else {

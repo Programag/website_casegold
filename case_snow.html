@@ -993,7 +993,10 @@ openBtn.onclick = () => {
   openBtn.disabled = true;
 
   balance -= totalCost;
+  xp += totalCost * window.SteamAuth.xpPerZl;
+  level = window.SteamAuth.levelForXp(xp);
   renderBalance();
+  window.SteamAuth.refreshLevelBadge();
 
   reelsContainer.innerHTML = "";
   const results = Array.from({length: count}, () => rollItem());

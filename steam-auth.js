@@ -139,6 +139,45 @@
       });
   }
 
+  // ---- EXP / poziomy ----
+  // 10 zł wydane na skrzynki albo wygrane z bitwy = 1 EXP. Próg pierwszego
+  // poziomu to 10 EXP; każdy kolejny próg rośnie o 10% względem poprzedniego
+  // (klasyczna rosnąca krzywa poziomów, nie liniowa). Suma progów to szereg
+  // geometryczny: cumulative(L) = 100 * (1.1^L - 1) - patrz xpForLevel niżej.
+  const XP_PER_ZL = 1 / 10;
+  function levelForXp(totalXp) {
+    const xp = typeof totalXp === "number" && totalXp > 0 ? totalXp : 0;
+    // log-based estimate first, then nudge to the exact threshold - floating
+    // point error in the log/pow round-trip can land just under/over a
+    // boundary (e.g. exactly 21 XP mis-floored to level 1 instead of 2).
+    const EPS = 1e-9;
+    let level = Math.floor(Math.log(xp / 100 + 1) / Math.log(1.1) + EPS);
+    while (xpForLevel(level + 1) - EPS <= xp) level++;
+    while (level > 0 && xpForLevel(level) - EPS > xp) level--;
+    return level;
+  }
+  function xpForLevel(level) {
+    return 100 * (Math.pow(1.1, level) - 1);
+  }
+  function xpProgress(totalXp) {
+    const xp = typeof totalXp === "number" && totalXp > 0 ? totalXp : 0;
+    const level = levelForXp(xp);
+    const base = xpForLevel(level);
+    const next = xpForLevel(level + 1);
+    const into = xp - base;
+    const needed = next - base;
+    return { level, xp, into, needed, percent: needed > 0 ? Math.min(100, (into / needed) * 100) : 100 };
+  }
+  function refreshLevelBadge() {
+    const badge = document.querySelector(".avatar-wrap .lvl-badge");
+    if (!badge || !me.loggedIn) return;
+    let xp = 0;
+    try { xp = JSON.parse(localStorage.getItem(STATE_KEY) || "{}").xp || 0; } catch (e) {}
+    const p = xpProgress(xp);
+    badge.textContent = String(p.level);
+    badge.title = `${p.into.toFixed(2)} / ${p.needed.toFixed(2)} EXP (${p.percent.toFixed(1)}%) do poziomu ${p.level + 1}`;
+  }
+
   // ---- Zapisz najlepszy drop + liczniki do topki (profil / leaderboard) ----
   // Każda strona ma swój własny saveState(), który serializuje tylko znane
   // sobie pola (balance/inventory/level/xp...) - żeby te dodatkowe pola nie
@@ -372,11 +411,8 @@
         avatarWrap.title = t.myProfile;
         const badge = avatarWrap.querySelector(".lvl-badge");
         if (badge) {
-          let lvl = 0;
-          try { lvl = JSON.parse(localStorage.getItem(STATE_KEY) || "{}").level || 0; } catch (e) {}
           badge.classList.remove("steam-badge");
-          badge.textContent = String(lvl);
-          badge.title = "";
+          refreshLevelBadge();
         }
       }
 
@@ -447,5 +483,10 @@
     recordUpgradeClick,
     recordCasesOpened,
     schedulePush,
+    xpPerZl: XP_PER_ZL,
+    levelForXp,
+    xpForLevel,
+    xpProgress,
+    refreshLevelBadge,
   };
 })();
