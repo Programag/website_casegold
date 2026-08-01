@@ -633,13 +633,13 @@ document.getElementById("dailyBonusBtn").onclick = () => {
   if(!window.SteamAuth.requireLogin()) return;
   const now = Date.now();
   if(now - Number(localStorage.getItem(DAILY_BONUS_KEY) || 0) < DAILY_BONUS_COOLDOWN_MS) return;
-  const reward = 5;
-  state.balance += reward;
-  localStorage.setItem(DAILY_BONUS_KEY, String(now));
-  renderBalance();
-  saveState(state);
-  renderCooldownButtons();
-  showToast(`Daily Bonus: +${fmt(reward)}!`);
+  window.SteamAuth.openDailyBonusModal((reward) => {
+    state.balance += reward;
+    renderBalance();
+    saveState(state);
+    renderCooldownButtons();
+    showToast(`Daily Bonus: +${fmt(reward)}!`);
+  });
 };
 setInterval(renderCooldownButtons, 1000);
 

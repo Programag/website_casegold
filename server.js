@@ -324,6 +324,7 @@ app.put("/api/state", async (req, res) => {
     level: typeof body.level === "number" ? body.level : 0,
     xp: typeof body.xp === "number" ? body.xp : 0,
     dailyBonusAt: typeof body.dailyBonusAt === "number" ? body.dailyBonusAt : null,
+    dailyStreak: typeof body.dailyStreak === "number" ? body.dailyStreak : (u.state && u.state.dailyStreak) || 0,
     freeCaseAt: typeof body.freeCaseAt === "number" ? body.freeCaseAt : null,
     bestPull,
     upgradeClicks: typeof body.upgradeClicks === "number" ? body.upgradeClicks : (u.state && u.state.upgradeClicks) || 0,

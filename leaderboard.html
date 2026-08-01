@@ -257,15 +257,10 @@ document.getElementById("dailyBonusBtn").onclick = () => {
   if(!window.SteamAuth.requireLogin()) return;
   const now = Date.now();
   if(now - Number(localStorage.getItem(DAILY_BONUS_KEY) || 0) < DAILY_BONUS_COOLDOWN_MS) return;
-  let s = {};
-  try{ s = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); }catch(e){}
-  s.balance = (typeof s.balance === "number" ? s.balance : 50) + 5;
-  s.updatedAt = Date.now();
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
-  localStorage.setItem(DAILY_BONUS_KEY, String(now));
-  window.SteamAuth.schedulePush();
-  renderBalance();
-  renderDailyBonusBtn();
+  window.SteamAuth.openDailyBonusModal(() => {
+    renderBalance();
+    renderDailyBonusBtn();
+  });
 };
 setInterval(renderDailyBonusBtn, 1000);
 renderDailyBonusBtn();

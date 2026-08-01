@@ -11,6 +11,7 @@
 (function () {
   const STATE_KEY = "cs2sim_state_v1";
   const DAILY_KEY = "cs2sim_daily_bonus_at";
+  const DAILY_STREAK_KEY = "cs2sim_daily_streak";
   const FREE_CASE_KEY = "cs2sim_free_case_at";
   const LANG_KEY = "cs2sim_lang";
   // Ostatni updatedAt serwera, jaki ta karta faktycznie widziała (nie mylić z
@@ -69,6 +70,7 @@
         }));
       }
       if (s.dailyBonusAt) localStorage.setItem(DAILY_KEY, String(s.dailyBonusAt));
+      if (typeof s.dailyStreak === "number") localStorage.setItem(DAILY_STREAK_KEY, String(s.dailyStreak));
       if (s.freeCaseAt) localStorage.setItem(FREE_CASE_KEY, String(s.freeCaseAt));
     } catch (e) {}
   }
@@ -95,6 +97,7 @@
       casesOpened: typeof state.casesOpened === "number" ? state.casesOpened : 0,
       claimedLevelRewards: Array.isArray(state.claimedLevelRewards) ? state.claimedLevelRewards : [],
       dailyBonusAt: Number(localStorage.getItem(DAILY_KEY) || 0) || null,
+      dailyStreak: Number(localStorage.getItem(DAILY_STREAK_KEY) || 0) || 0,
       freeCaseAt: Number(localStorage.getItem(FREE_CASE_KEY) || 0) || null,
       baseUpdatedAt: Number(localStorage.getItem(SERVER_BASE_KEY) || 0) || 0,
     };
@@ -225,6 +228,126 @@
     try { localStorage.setItem(STATE_KEY, JSON.stringify(s)); } catch (e) {}
     schedulePush();
     return item;
+  }
+
+  // ---- Dzienny bonus (rosnąca passa) ----
+  // Dzień 1 = 600 zł, każdy kolejny dzień +600 zł, aż do 3000 zł od dnia 5
+  // (i tyle samo w każdym kolejnym dniu passy - próg 5 to pułap, nie reset).
+  // Brak odbioru przez 48h zeruje passę (liczoną od DAILY_KEY, jak dotąd).
+  const DAILY_BONUS_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+  const DAILY_STREAK_RESET_MS = 48 * 60 * 60 * 1000;
+  const DAILY_BONUS_DAY_AMOUNT = 600;
+  const DAILY_BONUS_MAX_DAYS = 5;
+  function dailyBonusRewardForDay(day) {
+    return Math.min(Math.max(day, 1), DAILY_BONUS_MAX_DAYS) * DAILY_BONUS_DAY_AMOUNT;
+  }
+  function dailyBonusStatus() {
+    const lastClaim = Number(localStorage.getItem(DAILY_KEY) || 0);
+    const prevStreak = Number(localStorage.getItem(DAILY_STREAK_KEY) || 0);
+    const now = Date.now();
+    const msSinceClaim = lastClaim ? now - lastClaim : Infinity;
+    const effectiveStreak = msSinceClaim > DAILY_STREAK_RESET_MS ? 0 : prevStreak;
+    const pendingDay = Math.min(effectiveStreak + 1, DAILY_BONUS_MAX_DAYS);
+    return {
+      effectiveStreak,
+      pendingDay,
+      reward: dailyBonusRewardForDay(pendingDay),
+      canClaim: msSinceClaim >= DAILY_BONUS_COOLDOWN_MS,
+      msLeft: Math.max(0, DAILY_BONUS_COOLDOWN_MS - msSinceClaim),
+    };
+  }
+  function claimDailyBonus() {
+    const status = dailyBonusStatus();
+    if (!status.canClaim) return null;
+    const newStreak = status.effectiveStreak + 1;
+    let s = {};
+    try { s = JSON.parse(localStorage.getItem(STATE_KEY) || "{}"); } catch (e) {}
+    s.balance = (typeof s.balance === "number" ? s.balance : 0) + status.reward;
+    s.updatedAt = Date.now();
+    try { localStorage.setItem(STATE_KEY, JSON.stringify(s)); } catch (e) {}
+    try {
+      localStorage.setItem(DAILY_KEY, String(Date.now()));
+      localStorage.setItem(DAILY_STREAK_KEY, String(newStreak));
+    } catch (e) {}
+    schedulePush();
+    return { reward: status.reward, newStreak, day: status.pendingDay };
+  }
+  function fmtDailyBonus(n) {
+    return n.toLocaleString("pl-PL", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " zł";
+  }
+  let dailyBonusOnClaimedCb = null;
+  function buildDailyBonusModal() {
+    injectStyle();
+    let overlay = document.getElementById("dailyBonusOverlay");
+    if (overlay) return overlay;
+    overlay = document.createElement("div");
+    overlay.id = "dailyBonusOverlay";
+    overlay.innerHTML = `
+      <div class="db-panel">
+        <button class="db-close" id="dbClose" aria-label="Zamknij">✕</button>
+        <div class="db-header"><span class="db-gift">🎁</span><h2>Dzienny bonus</h2></div>
+        <div class="db-days" id="dbDays"></div>
+        <div class="db-streak">🔥&nbsp;Passa: <b id="dbStreakNum">0</b>&nbsp;dni z rzędu</div>
+        <div class="db-reward-label">Do odebrania:</div>
+        <div class="db-reward-amount" id="dbRewardAmount">+0,00 zł</div>
+        <button class="db-claim-btn" id="dbClaimBtn">🎁 Odbierz bonus</button>
+        <div class="db-note">Loguj się codziennie, żeby utrzymać passę i zbierać wyższe bonusy. Brak odbioru przez 48h resetuje passę.</div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    const hide = () => overlay.classList.remove("show");
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) hide(); });
+    document.getElementById("dbClose").onclick = hide;
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") hide(); });
+    return overlay;
+  }
+  function renderDailyBonusModal() {
+    const status = dailyBonusStatus();
+    const daysEl = document.getElementById("dbDays");
+    daysEl.innerHTML = "";
+    for (let d = 1; d <= 4; d++) {
+      const done = d <= status.effectiveStreak;
+      const active = d === status.pendingDay;
+      const tile = document.createElement("div");
+      tile.className = "db-day-tile" + (done ? " done" : "") + (active ? " active" : "");
+      tile.innerHTML = `
+        <div class="db-day-label">DZIEŃ ${d}</div>
+        <div class="db-day-icon">${done ? "✓" : fmtDailyBonus(dailyBonusRewardForDay(d))}</div>
+      `;
+      daysEl.appendChild(tile);
+    }
+    const day5 = document.createElement("div");
+    day5.className = "db-day-tile db-day-5" + (status.pendingDay >= 5 ? " active" : "");
+    day5.innerHTML = `
+      <div class="db-day-label">DZIEŃ 5+ <span class="db-star">★</span></div>
+      <div class="db-day-icon">${fmtDailyBonus(dailyBonusRewardForDay(5))}</div>
+      <div class="db-day-tag">BONUS!</div>
+    `;
+    daysEl.appendChild(day5);
+
+    document.getElementById("dbStreakNum").textContent = status.effectiveStreak;
+    document.getElementById("dbRewardAmount").textContent = "+" + fmtDailyBonus(status.reward);
+
+    const btn = document.getElementById("dbClaimBtn");
+    btn.disabled = false;
+    btn.textContent = "🎁 ODBIERZ BONUS";
+    btn.onclick = () => {
+      const result = claimDailyBonus();
+      if (!result) return;
+      btn.disabled = true;
+      btn.textContent = "✓ Odebrano!";
+      if (typeof dailyBonusOnClaimedCb === "function") dailyBonusOnClaimedCb(result.reward);
+      setTimeout(() => {
+        const ov = document.getElementById("dailyBonusOverlay");
+        if (ov) ov.classList.remove("show");
+      }, 1100);
+    };
+  }
+  function openDailyBonusModal(onClaimed) {
+    dailyBonusOnClaimedCb = onClaimed || null;
+    const overlay = buildDailyBonusModal();
+    renderDailyBonusModal();
+    overlay.classList.add("show");
   }
 
   let lvlTooltipDismissWired = false;
@@ -424,6 +547,71 @@
         font-family:'Inter',sans-serif; font-size:11px; color:var(--muted,#7d879b);
         margin-top:16px; line-height:1.5;
       }
+      #dailyBonusOverlay{
+        position:fixed; inset:0; z-index:9998; display:none;
+        align-items:center; justify-content:center; padding:20px;
+        background:rgba(6,8,13,.72); backdrop-filter:blur(6px);
+        opacity:0; transition:opacity .18s ease;
+      }
+      #dailyBonusOverlay.show{display:flex; opacity:1;}
+      .db-panel{
+        position:relative; width:100%; max-width:460px;
+        background:var(--panel,#141821); border:1px solid var(--line,#262c3a);
+        border-radius:16px; padding:26px; text-align:center;
+        box-shadow:0 24px 60px -20px rgba(0,0,0,.7);
+        transform:translateY(10px) scale(.98); transition:transform .18s ease;
+        font-family:'Inter',sans-serif;
+      }
+      #dailyBonusOverlay.show .db-panel{transform:translateY(0) scale(1);}
+      .db-close{
+        position:absolute; top:12px; right:12px; width:28px; height:28px; border-radius:8px;
+        background:var(--panel-2,#1b202b); border:1px solid var(--line,#262c3a); color:var(--muted,#7d879b);
+        cursor:pointer; font-size:14px; line-height:1;
+      }
+      .db-close:hover{color:var(--text,#e9ecf3); border-color:var(--hazard,#ff9500);}
+      .db-header{display:flex; align-items:center; gap:10px; margin-bottom:20px; text-align:left;}
+      .db-gift{font-size:22px;}
+      .db-header h2{
+        font-family:'Oswald',sans-serif; font-weight:700; text-transform:uppercase; letter-spacing:1px;
+        font-size:19px; margin:0; color:var(--text,#e9ecf3);
+      }
+      .db-days{display:grid; grid-template-columns:repeat(5, 1fr); gap:8px; margin-bottom:16px;}
+      .db-day-tile{
+        background:var(--panel-2,#1b202b); border:1px solid var(--line,#262c3a); border-radius:10px;
+        padding:10px 4px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+        min-height:66px;
+      }
+      .db-day-label{font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700; color:var(--muted,#7d879b); letter-spacing:.2px; white-space:nowrap;}
+      .db-day-icon{font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; color:var(--muted,#7d879b);}
+      .db-day-tile.done{border-color:var(--good,#3ddc84);}
+      .db-day-tile.done .db-day-label{color:var(--good,#3ddc84);}
+      .db-day-tile.done .db-day-icon{color:var(--good,#3ddc84); font-size:15px;}
+      .db-day-tile.active{border-color:var(--hazard,#ff9500); box-shadow:0 0 16px -4px var(--hazard,#ff9500);}
+      .db-day-tile.active .db-day-label{color:var(--hazard,#ff9500);}
+      .db-day-tile.active .db-day-icon{color:var(--hazard,#ff9500);}
+      .db-day-5 .db-star{color:var(--r-gold,#ffd700); font-size:9px;}
+      .db-day-5 .db-day-tag{font-family:'JetBrains Mono',monospace; font-size:7.5px; font-weight:700; color:var(--r-gold,#ffd700); margin-top:1px;}
+      .db-day-5.active{border-color:var(--r-gold,#ffd700); box-shadow:0 0 18px -4px var(--r-gold,#ffd700);}
+      .db-day-5.active .db-day-label, .db-day-5.active .db-day-icon{color:var(--r-gold,#ffd700);}
+      .db-streak{
+        background:var(--panel-2,#1b202b); border:1px solid var(--line,#262c3a); border-radius:10px;
+        padding:12px; font-size:13.5px; color:var(--text,#e9ecf3); margin-bottom:20px;
+      }
+      .db-reward-label{font-size:13px; color:var(--muted,#7d879b); margin-bottom:4px;}
+      .db-reward-amount{
+        font-family:'JetBrains Mono',monospace; font-weight:800; font-size:30px; color:var(--good,#3ddc84);
+        margin-bottom:20px;
+      }
+      .db-claim-btn{
+        display:flex; align-items:center; justify-content:center; gap:9px; width:100%;
+        font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:1px;
+        font-size:14.5px; font-weight:700; background:linear-gradient(135deg,var(--hazard,#ff9500),#ff6a00); color:#181000;
+        border:none; padding:14px 18px; border-radius:10px; cursor:pointer;
+        transition:transform .1s ease, box-shadow .1s ease;
+      }
+      .db-claim-btn:hover{transform:translateY(-1px); box-shadow:0 8px 20px -8px var(--hazard,#ff9500);}
+      .db-claim-btn:disabled{opacity:.6; cursor:default; transform:none; box-shadow:none;}
+      .db-note{font-size:11px; color:var(--muted,#7d879b); margin-top:16px; line-height:1.5;}
     `;
     document.head.appendChild(style);
   }
@@ -583,5 +771,6 @@
     levelRewardItem,
     readClaimedLevelRewards,
     claimLevelReward,
+    openDailyBonusModal,
   };
 })();
