@@ -396,10 +396,15 @@
     }
   }
 
+  function logStartup() {
+    showDebugLog("steam-auth.js (v=dbg1) załadowany, loggedIn=" + me.loggedIn + (me.user ? ", steamid=" + me.user.steamid : ""));
+  }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", buildUI);
+    document.addEventListener("DOMContentLoaded", logStartup);
   } else {
     buildUI();
+    logStartup();
   }
 
   window.SteamAuth = {
