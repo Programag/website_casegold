@@ -39,6 +39,8 @@
         level: typeof s.level === "number" ? s.level : 0,
         xp: typeof s.xp === "number" ? s.xp : 0,
         bestPull: s.bestPull || null,
+        upgradeClicks: typeof s.upgradeClicks === "number" ? s.upgradeClicks : 0,
+        casesOpened: typeof s.casesOpened === "number" ? s.casesOpened : 0,
       }));
       if (s.dailyBonusAt) localStorage.setItem(DAILY_KEY, String(s.dailyBonusAt));
       if (s.freeCaseAt) localStorage.setItem(FREE_CASE_KEY, String(s.freeCaseAt));
@@ -62,6 +64,8 @@
       level: typeof state.level === "number" ? state.level : 0,
       xp: typeof state.xp === "number" ? state.xp : 0,
       bestPull: state.bestPull || null,
+      upgradeClicks: typeof state.upgradeClicks === "number" ? state.upgradeClicks : 0,
+      casesOpened: typeof state.casesOpened === "number" ? state.casesOpened : 0,
       dailyBonusAt: Number(localStorage.getItem(DAILY_KEY) || 0) || null,
       freeCaseAt: Number(localStorage.getItem(FREE_CASE_KEY) || 0) || null,
     };
@@ -74,13 +78,26 @@
     }).catch(() => {});
   }
 
-  // ---- Zapisz najlepszy drop (do profilu) ----
+  // ---- Zapisz najlepszy drop + liczniki do topki (profil / leaderboard) ----
   // Każda strona ma swój własny saveState(), który serializuje tylko znane
-  // sobie pola (balance/inventory/level/xp...) - żeby najlepszy drop nie
-  // ginął przy pierwszym takim zapisie po recordPull(), każdy saveState()
-  // powinien dograć świeżą wartość przez readBestPull() tuż przed zapisem.
+  // sobie pola (balance/inventory/level/xp...) - żeby te dodatkowe pola nie
+  // ginęły przy pierwszym takim zapisie po recordPull()/recordCasesOpened()/
+  // recordUpgradeClick(), każdy saveState() powinien dograć świeże wartości
+  // przez readPersistentExtras() tuż przed zapisem.
   function readBestPull() {
     try { return JSON.parse(localStorage.getItem(STATE_KEY) || "{}").bestPull || null; } catch (e) { return null; }
+  }
+  function readPersistentExtras() {
+    try {
+      const s = JSON.parse(localStorage.getItem(STATE_KEY) || "{}");
+      return {
+        bestPull: s.bestPull || null,
+        upgradeClicks: typeof s.upgradeClicks === "number" ? s.upgradeClicks : 0,
+        casesOpened: typeof s.casesOpened === "number" ? s.casesOpened : 0,
+      };
+    } catch (e) {
+      return { bestPull: null, upgradeClicks: 0, casesOpened: 0 };
+    }
   }
   function recordPull(item) {
     if (!item || typeof item.price !== "number") return;
@@ -92,6 +109,14 @@
       try { localStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch (e) {}
     }
   }
+  function incrementCounter(key, by) {
+    let state = {};
+    try { state = JSON.parse(localStorage.getItem(STATE_KEY) || "{}"); } catch (e) {}
+    state[key] = (typeof state[key] === "number" ? state[key] : 0) + by;
+    try { localStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch (e) {}
+  }
+  function recordUpgradeClick() { incrementCounter("upgradeClicks", 1); }
+  function recordCasesOpened(n) { incrementCounter("casesOpened", typeof n === "number" ? n : 1); }
 
   const nativeSetItem = localStorage.setItem.bind(localStorage);
   localStorage.setItem = function (key, value) {
@@ -315,5 +340,14 @@
     buildUI();
   }
 
-  window.SteamAuth = { getUser: () => (me.loggedIn ? me.user : null), refreshUI: buildUI, requireLogin, recordPull, readBestPull };
+  window.SteamAuth = {
+    getUser: () => (me.loggedIn ? me.user : null),
+    refreshUI: buildUI,
+    requireLogin,
+    recordPull,
+    readBestPull,
+    readPersistentExtras,
+    recordUpgradeClick,
+    recordCasesOpened,
+  };
 })();

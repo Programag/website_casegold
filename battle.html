@@ -492,6 +492,33 @@
     background:var(--panel-2); border:1px solid var(--line); color:var(--text);
     border-radius:6px; width:28px; height:28px; cursor:pointer;
   }
+  .lb-modal-card{max-width:460px;}
+  .lb-tabs{display:flex; gap:8px; margin-bottom:14px;}
+  .lb-tab{
+    flex:1; background:var(--panel-2); border:1px solid var(--line); color:var(--muted);
+    padding:9px 8px; border-radius:8px; cursor:pointer; font-size:11.5px; font-weight:600;
+    font-family:'Inter',sans-serif; white-space:nowrap;
+  }
+  .lb-tab:hover{color:var(--text); border-color:var(--hazard);}
+  .lb-tab.active{color:var(--hazard); border-color:var(--hazard); background:var(--hazard-dim);}
+  .lb-list{display:flex; flex-direction:column; gap:6px; max-height:56vh; overflow-y:auto;}
+  .lb-row{
+    display:flex; align-items:center; gap:10px; padding:8px 10px;
+    background:var(--panel-2); border:1px solid var(--line); border-radius:8px;
+  }
+  .lb-row.empty{opacity:.35;}
+  .lb-rank{width:22px; text-align:center; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:12px; color:var(--muted); flex:none;}
+  .lb-row.rank-1 .lb-rank{color:var(--r-gold);}
+  .lb-row.rank-2 .lb-rank{color:#c8ccd6;}
+  .lb-row.rank-3 .lb-rank{color:#cd8a4d;}
+  .lb-avatar{width:28px; height:28px; border-radius:50%; background:var(--panel); border:1px solid var(--line); object-fit:cover; flex:none;}
+  .lb-name{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; font-weight:600; color:var(--text); text-decoration:none;}
+  a.lb-name:hover{color:var(--hazard);}
+  .lb-value{font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700; color:var(--good); flex:none;}
+  .lb-loading, .lb-error{color:var(--muted); font-size:12.5px; text-align:center; padding:20px;}
+  @media (max-width:480px){
+    #leaderboardBtn .lbl{display:none;}
+  }
   .jester-picker-toggle{
     display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none;
     font-size:12.5px; color:var(--muted); margin-bottom:14px;
@@ -1018,6 +1045,7 @@
     <a class="nav-link" href="equipment.html">Ekwipunek</a>
   </div>
   <div class="nav-right">
+    <button class="daily-btn" id="leaderboardBtn"><span>🏆</span><span class="lbl">Topka</span></button>
     <button class="daily-btn" id="dailyBonusBtn">🎁 Daily Bonus</button>
     <div class="wallet-chip">
       <span class="wc-amount" id="balance">50,00 zł</span>
@@ -1117,6 +1145,21 @@
         </label>
         <div class="case-picker-grid" id="casePickerGrid"></div>
       </div>
+    </div>
+  </div>
+
+  <div class="nb-case-modal" id="leaderboardModal">
+    <div class="nb-case-modal-card lb-modal-card">
+      <div class="nb-case-modal-head">
+        <div>🏆 Topka</div>
+        <button id="leaderboardModalClose" type="button">✕</button>
+      </div>
+      <div class="lb-tabs">
+        <button class="lb-tab active" data-lb-tab="balance">💰 Saldo</button>
+        <button class="lb-tab" data-lb-tab="upgrades">🎡 Upgrade'y</button>
+        <button class="lb-tab" data-lb-tab="cases">📦 Skrzynki</button>
+      </div>
+      <div class="lb-list" id="leaderboardList"></div>
     </div>
   </div>
 
@@ -1659,7 +1702,7 @@ function loadState(){
   }
 }
 function saveState(){
-  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({balance, inventory, invCounter, level, xp, bestPull: window.SteamAuth.readBestPull()})); }catch(e){}
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({balance, inventory, invCounter, level, xp, ...window.SteamAuth.readPersistentExtras()})); }catch(e){}
 }
 
 const s0 = loadState();
@@ -1914,6 +1957,7 @@ function awardItemsShared(items){
     invCounter++;
     inventory.push({ weapon:it.weapon, skin:it.skin, wear:it.wear, price:it.price, img:getSkinImage(it), _id: invCounter });
     window.SteamAuth.recordPull(it);
+    window.SteamAuth.recordCasesOpened(1);
   });
   saveState();
 }
@@ -1977,6 +2021,89 @@ function openCaseModal(){ caseModal.classList.add("show"); }
 function closeCaseModal(){ caseModal.classList.remove("show"); }
 document.getElementById("caseModalClose").onclick = closeCaseModal;
 caseModal.addEventListener("click", (e) => { if(e.target === caseModal) closeCaseModal(); });
+
+/* ---------------- leaderboard ("Topka") ---------------- */
+const LB_MAX_ROWS = 20;
+const LB_TABS = {
+  balance: { key: "balance", fmtValue: (v) => fmt(v) },
+  upgrades: { key: "upgrades", fmtValue: (v) => String(v) },
+  cases: { key: "cases", fmtValue: (v) => String(v) },
+};
+const leaderboardModal = document.getElementById("leaderboardModal");
+const leaderboardList = document.getElementById("leaderboardList");
+let leaderboardData = null;
+let leaderboardTab = "balance";
+
+function openLeaderboardModal(){
+  leaderboardModal.classList.add("show");
+  loadLeaderboard();
+}
+function closeLeaderboardModal(){ leaderboardModal.classList.remove("show"); }
+document.getElementById("leaderboardBtn").onclick = openLeaderboardModal;
+document.getElementById("leaderboardModalClose").onclick = closeLeaderboardModal;
+leaderboardModal.addEventListener("click", (e) => { if(e.target === leaderboardModal) closeLeaderboardModal(); });
+
+document.querySelectorAll(".lb-tab").forEach(tab => {
+  tab.onclick = () => {
+    leaderboardTab = tab.dataset.lbTab;
+    document.querySelectorAll(".lb-tab").forEach(t => t.classList.toggle("active", t === tab));
+    renderLeaderboard();
+  };
+});
+
+async function loadLeaderboard(){
+  leaderboardList.innerHTML = `<div class="lb-loading">Ładowanie…</div>`;
+  try{
+    const res = await fetch("/api/leaderboard");
+    leaderboardData = await res.json();
+    renderLeaderboard();
+  }catch(e){
+    leaderboardList.innerHTML = `<div class="lb-error">Nie udało się wczytać topki.</div>`;
+  }
+}
+
+function renderLeaderboard(){
+  if(!leaderboardData) return;
+  const rows = leaderboardData[leaderboardTab] || [];
+  const cfg = LB_TABS[leaderboardTab];
+  leaderboardList.innerHTML = "";
+  for(let i = 0; i < LB_MAX_ROWS; i++){
+    const entry = rows[i];
+    const row = document.createElement(entry ? "a" : "div");
+    row.className = "lb-row" + (entry ? "" : " empty") + (i < 3 && entry ? ` rank-${i+1}` : "");
+    if(entry){
+      row.href = `/profile/${encodeURIComponent(entry.slug || "")}`;
+    }
+    const rank = document.createElement("div");
+    rank.className = "lb-rank";
+    rank.textContent = `#${i+1}`;
+    row.appendChild(rank);
+
+    const avatarSrc = entry ? entry.avatar : "";
+    if(avatarSrc){
+      const avatar = document.createElement("img");
+      avatar.className = "lb-avatar";
+      avatar.src = avatarSrc;
+      avatar.alt = "";
+      avatar.onerror = () => { avatar.replaceWith(Object.assign(document.createElement("div"), {className: "lb-avatar"})); };
+      row.appendChild(avatar);
+    } else {
+      row.appendChild(Object.assign(document.createElement("div"), {className: "lb-avatar"}));
+    }
+
+    const name = document.createElement("div");
+    name.className = "lb-name";
+    name.textContent = entry ? (entry.displayName || "Gracz") : "—";
+    row.appendChild(name);
+
+    const value = document.createElement("div");
+    value.className = "lb-value";
+    value.textContent = entry ? cfg.fmtValue(entry.value) : "—";
+    row.appendChild(value);
+
+    leaderboardList.appendChild(row);
+  }
+}
 
 const selectedRoundsEl = document.getElementById("selectedRounds");
 const caseCountLabelEl = document.getElementById("caseCountLabel");

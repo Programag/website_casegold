@@ -184,6 +184,35 @@ app.get("/api/profile/:slug", (req, res) => {
   });
 });
 
+// ---- Publiczna topka (saldo / kliknięcia upgrade'ów / otwarte skrzynki) ----
+app.get("/api/leaderboard", (req, res) => {
+  const users = readUsers();
+  const list = Object.values(users)
+    .filter((u) => u.slug)
+    .map((u) => {
+      const st = u.state || {};
+      return {
+        slug: u.slug,
+        displayName: u.displayName,
+        avatar: u.avatar,
+        balance: typeof st.balance === "number" ? st.balance : 0,
+        upgradeClicks: typeof st.upgradeClicks === "number" ? st.upgradeClicks : 0,
+        casesOpened: typeof st.casesOpened === "number" ? st.casesOpened : 0,
+      };
+    });
+  const top = (field) =>
+    list
+      .slice()
+      .sort((a, b) => b[field] - a[field])
+      .slice(0, 20)
+      .map((u) => ({ slug: u.slug, displayName: u.displayName, avatar: u.avatar, value: u[field] }));
+  res.json({
+    balance: top("balance"),
+    upgrades: top("upgradeClicks"),
+    cases: top("casesOpened"),
+  });
+});
+
 app.put("/api/state", (req, res) => {
   if (!req.user) return res.status(401).json({ error: "not_logged_in" });
   const body = req.body || {};
@@ -211,6 +240,8 @@ app.put("/api/state", (req, res) => {
     dailyBonusAt: typeof body.dailyBonusAt === "number" ? body.dailyBonusAt : null,
     freeCaseAt: typeof body.freeCaseAt === "number" ? body.freeCaseAt : null,
     bestPull,
+    upgradeClicks: typeof body.upgradeClicks === "number" ? body.upgradeClicks : (u.state && u.state.upgradeClicks) || 0,
+    casesOpened: typeof body.casesOpened === "number" ? body.casesOpened : (u.state && u.state.casesOpened) || 0,
     updatedAt: Date.now(),
   };
   writeUsers(users);

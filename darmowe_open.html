@@ -343,7 +343,7 @@ function loadState(){
   }
 }
 function saveState(state){
-  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({...state, bestPull: window.SteamAuth.readBestPull()})); }catch(e){}
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({...state, ...window.SteamAuth.readPersistentExtras()})); }catch(e){}
 }
 let state = loadState();
 const PLAYER_LEVEL = state.level;
@@ -621,6 +621,7 @@ openBtn.onclick = () => {
     spinning = false;
     state.balance += winner.price;
     window.SteamAuth.recordPull(winner);
+    window.SteamAuth.recordCasesOpened(1);
     localStorage.setItem(CASE.key, String(now));
     renderBalance();
     saveState(state);

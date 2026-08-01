@@ -503,7 +503,7 @@ function loadState(){
   }
 }
 function saveState(state){
-  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({...state, bestPull: window.SteamAuth.readBestPull()})); }catch(e){}
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({...state, ...window.SteamAuth.readPersistentExtras()})); }catch(e){}
 }
 
 let state = loadState();

@@ -671,7 +671,7 @@ function loadState(){
   }
 }
 function saveState(){
-  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({balance, inventory, invCounter, bestPull: window.SteamAuth.readBestPull()})); }catch(e){}
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({balance, inventory, invCounter, ...window.SteamAuth.readPersistentExtras()})); }catch(e){}
 }
 
 const s0 = loadState();
@@ -1182,6 +1182,7 @@ upgradeBtn.onclick = () => {
   if(chance > MAX_SELECTABLE_CHANCE) return; // safety net, shouldn't happen via normal UI flow
   const winDeg = chance/100*360;
 
+  window.SteamAuth.recordUpgradeClick();
   spinning = true;
   updateAll();
   outcomeBanner.classList.remove("show", "win", "lose");

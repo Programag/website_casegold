@@ -725,7 +725,7 @@ function loadState(){
 }
 function saveState(){
   try{
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({balance, inventory, invCounter, level, xp, bestPull: window.SteamAuth.readBestPull()}));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({balance, inventory, invCounter, level, xp, ...window.SteamAuth.readPersistentExtras()}));
   }catch(e){}
 }
 
@@ -891,6 +891,7 @@ function addToInventory(it){
   invCounter++;
   inventory.push({...it, _id: invCounter});
   window.SteamAuth.recordPull(it);
+  window.SteamAuth.recordCasesOpened(1);
 }
 
 function commitResults(){
