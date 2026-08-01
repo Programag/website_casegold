@@ -589,6 +589,7 @@
     display:flex; flex-direction:column; gap:14px;
     position:relative;
     transition:border-color .2s ease, box-shadow .2s ease;
+    container-type: inline-size;
   }
   .player-col.you{border-color:#33405c;}
   .player-col.leading{border-color:var(--good); box-shadow:0 0 0 1px var(--good), 0 0 24px -4px rgba(61,220,132,.35); animation:leadingGlow 1.6s ease-in-out infinite;}
@@ -631,6 +632,7 @@
     border-radius:10px;
     margin-bottom:2px;
     opacity:0;
+    overflow:hidden;
   }
   .player-col.winner .result-badge,
   .player-col.loser .result-badge,
@@ -643,7 +645,13 @@
     letter-spacing:2.5px; text-transform:uppercase; margin-bottom:6px;
   }
   .result-badge .rb-amount{
-    font-family:'Oswald',sans-serif; font-size:26px; font-weight:700; letter-spacing:.5px;
+    font-family:'Oswald',sans-serif; font-weight:700; letter-spacing:.5px;
+    /* scales with the actual column width (2 vs 4 players) instead of a
+       fixed size, so a long amount (many rounds / expensive skins) shrinks
+       to fit instead of spilling outside the badge */
+    font-size:clamp(13px, 11cqi, 26px);
+    overflow-wrap:break-word;
+    word-break:break-word;
   }
   .player-col.winner .result-badge{background:radial-gradient(ellipse at center, rgba(61,220,132,.14), transparent 70%);}
   .player-col.winner .result-badge .rb-label{color:var(--good);}
