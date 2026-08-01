@@ -333,9 +333,10 @@ function itemNode(it, cls){
   div.appendChild(lockBtn);
   const slot = document.createElement("div");
   slot.className = "img-slot";
-  if(it.img){
+  const imgSrc = it.img || (typeof getSkinImage === "function" ? getSkinImage(it) : "");
+  if(imgSrc){
     const img = document.createElement("img");
-    img.src = it.img;
+    img.src = imgSrc;
     img.alt = it.weapon + " " + it.skin;
     img.onerror = () => { slot.innerHTML = `<div class="fallback">${it.weapon}</div>`; };
     slot.appendChild(img);
