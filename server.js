@@ -275,6 +275,22 @@ app.put("/api/state", async (req, res) => {
   const u = users[req.user.steamid];
   if (!u) return res.status(404).json({ error: "no_such_user" });
 
+  // Ochrona przed nadpisaniem ręcznej edycji z panelu admina (albo zapisu z
+  // innej karty/urządzenia) przez spóźniony, "nieświadomy" tego push z tej
+  // karty. Klient wysyła `baseUpdatedAt` - updatedAt serwera, jakie ostatnio
+  // faktycznie widział. Jeśli serwer ma już coś nowszego niż ta baza, to
+  // znaczy, że coś zmieniło stan w międzyczasie (np. admin) - odrzucamy ten
+  // zapis zamiast bezmyślnie go nadpisywać i zwracamy aktualny stan serwera,
+  // żeby klient mógł się na nowo zsynchronizować.
+  if (
+    u.state &&
+    typeof u.state.updatedAt === "number" &&
+    typeof body.baseUpdatedAt === "number" &&
+    u.state.updatedAt > body.baseUpdatedAt
+  ) {
+    return res.status(409).json({ error: "stale_write", state: u.state });
+  }
+
   const bestPull =
     body.bestPull && typeof body.bestPull === "object" && typeof body.bestPull.price === "number"
       ? {
@@ -301,7 +317,7 @@ app.put("/api/state", async (req, res) => {
   };
   try {
     await writeUsers(users);
-    res.json({ ok: true });
+    res.json({ ok: true, updatedAt: u.state.updatedAt });
   } catch (e) {
     console.error(`PUT /api/state błąd zapisu dla ${req.user.steamid}:`, e.message);
     res.status(503).json({ error: "storage_unavailable" });

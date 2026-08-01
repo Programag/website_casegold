@@ -13,6 +13,12 @@
   const DAILY_KEY = "cs2sim_daily_bonus_at";
   const FREE_CASE_KEY = "cs2sim_free_case_at";
   const LANG_KEY = "cs2sim_lang";
+  // Ostatni updatedAt serwera, jaki ta karta faktycznie widziała (nie mylić z
+  // updatedAt w STATE_KEY, który zmienia się przy KAŻDYM lokalnym zapisie).
+  // Wysyłany przy każdym pushu, żeby serwer mógł wykryć, że ktoś/coś zmieniło
+  // stan w międzyczasie (np. ręczna edycja salda z panelu admina) i odrzucić
+  // spóźniony, nieświadomy tego push zamiast go bezmyślnie nadpisać.
+  const SERVER_BASE_KEY = "cs2sim_server_base_at";
 
   const STEAM_ICON_SVG = '<svg viewBox="0 0 24 24"><path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.03 4.524 4.524s-2.03 4.524-4.524 4.524h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.605.001 11.979.001zM7.54 18.21l-1.473-.61c.262.543.714.999 1.314 1.25 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.455-.397.957-1.497 1.41-2.454 1.012H7.54zm11.415-9.303c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.663 0 3.015-1.35 3.015-3.015zm-5.273-.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.253 0-2.265-1.014-2.265-2.265z"/></svg>';
   function steamIconBadge() { return `<span class="steam-icon-badge">${STEAM_ICON_SVG}</span>`; }
@@ -47,6 +53,7 @@
       let localUpdatedAt = 0;
       try { localUpdatedAt = JSON.parse(localStorage.getItem(STATE_KEY) || "{}").updatedAt || 0; } catch (e2) {}
       const serverUpdatedAt = typeof s.updatedAt === "number" ? s.updatedAt : 0;
+      localStorage.setItem(SERVER_BASE_KEY, String(serverUpdatedAt));
       if (serverUpdatedAt >= localUpdatedAt) {
         localStorage.setItem(STATE_KEY, JSON.stringify({
           balance: s.balance,
@@ -67,6 +74,7 @@
 
   // ---- Push lokalnych zmian na serwer, gdy zalogowany ----
   let pushTimer = null;
+  let nativeSetItem = null; // ustawiane niżej, przy instalacji monkey-patcha; używane do zapisu pomijającego auto-push
   function schedulePush() {
     if (!me.loggedIn) return;
     clearTimeout(pushTimer);
@@ -86,6 +94,7 @@
       casesOpened: typeof state.casesOpened === "number" ? state.casesOpened : 0,
       dailyBonusAt: Number(localStorage.getItem(DAILY_KEY) || 0) || null,
       freeCaseAt: Number(localStorage.getItem(FREE_CASE_KEY) || 0) || null,
+      baseUpdatedAt: Number(localStorage.getItem(SERVER_BASE_KEY) || 0) || 0,
     };
     fetch("/api/state", {
       method: "PUT",
@@ -95,7 +104,35 @@
       keepalive: true,
     })
       .then((res) => {
-        if (!res.ok) console.error("[cs2sim] push /api/state nie powiódł się:", res.status, payload);
+        if (res.status === 409) {
+          // Serwer ma nowszy stan niż ta karta widziała (np. admin zmienił
+          // saldo) - ten push był oparty na nieaktualnych danych, więc został
+          // odrzucony. Zamiast go ponawiać (co by znów nadpisało admina),
+          // dociągamy świeży stan serwera i się nim zastępujemy.
+          return res.json().then((body) => {
+            const s = body && body.state;
+            if (!s) return;
+            const serverUpdatedAt = typeof s.updatedAt === "number" ? s.updatedAt : 0;
+            localStorage.setItem(SERVER_BASE_KEY, String(serverUpdatedAt));
+            const setItem = nativeSetItem || localStorage.setItem.bind(localStorage);
+            setItem(STATE_KEY, JSON.stringify({
+              balance: s.balance,
+              inventory: s.inventory,
+              invCounter: s.invCounter,
+              level: typeof s.level === "number" ? s.level : 0,
+              xp: typeof s.xp === "number" ? s.xp : 0,
+              bestPull: s.bestPull || null,
+              upgradeClicks: typeof s.upgradeClicks === "number" ? s.upgradeClicks : 0,
+              casesOpened: typeof s.casesOpened === "number" ? s.casesOpened : 0,
+              updatedAt: serverUpdatedAt,
+            }));
+            console.error("[cs2sim] push /api/state odrzucony (409) - dane były nieaktualne, zsynchronizowano z serwerem.");
+          });
+        }
+        if (!res.ok) { console.error("[cs2sim] push /api/state nie powiódł się:", res.status, payload); return; }
+        return res.json().then((body) => {
+          if (body && typeof body.updatedAt === "number") localStorage.setItem(SERVER_BASE_KEY, String(body.updatedAt));
+        });
       })
       .catch((e) => {
         console.error("[cs2sim] push /api/state - błąd sieci:", e);
@@ -153,7 +190,7 @@
   // wyłącznie na nim: saveState() na każdej stronie i funkcje powyżej wołają
   // schedulePush() jawnie. To tu zostaje tylko na wszelki wypadek.
   try {
-    const nativeSetItem = localStorage.setItem.bind(localStorage);
+    nativeSetItem = localStorage.setItem.bind(localStorage);
     localStorage.setItem = function (key, value) {
       nativeSetItem(key, value);
       if (key === STATE_KEY || key === DAILY_KEY || key === FREE_CASE_KEY) schedulePush();
