@@ -1221,6 +1221,7 @@ upgradeBtn.onclick = () => {
     if(won){
       invCounter++;
       inventory.push({ weapon:tgIt.weapon, skin:tgIt.skin, wear:tgIt.wear, price:tgIt.price, img:getSkinImage(tgIt), _id: invCounter });
+      window.SteamAuth.recordPull(tgIt);
       outcomeBanner.classList.add("show", "win");
       outcomeBanner.textContent = `Wygrana! Otrzymujesz ${tgIt.weapon} | ${tgIt.skin} (${tgIt.wear}) za ${fmt(tgIt.price)}`;
       log(`Ulepszenie: sukces (${chance.toFixed(2)}%) → ${tgIt.weapon} | ${tgIt.skin} (${tgIt.wear})`);
