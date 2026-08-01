@@ -731,6 +731,7 @@ function rollItem(){
 
 /* ---------------- state (persisted in localStorage, shared with index.html) ---------------- */
 function loadState(){
+  if(!(window.__STEAM_AUTH__ && window.__STEAM_AUTH__.loggedIn)) return {balance: 0, inventory: [], invCounter: 0, level: 0, xp: 0};
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
     if(!raw) return {balance: START_BALANCE, inventory: [], invCounter: 0, level: 0, xp: 0};

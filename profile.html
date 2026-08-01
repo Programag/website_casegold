@@ -257,6 +257,7 @@ function fmt(n){
   return n.toLocaleString("pl-PL", {minimumFractionDigits:2, maximumFractionDigits:2}) + " zł";
 }
 function loadLocalState(){
+  if(!(window.__STEAM_AUTH__ && window.__STEAM_AUTH__.loggedIn)) return {balance:0, inventory:[], invCounter:0, level:0, xp:0, bestPull:null, upgradeClicks:0, casesOpened:0};
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
     if(!raw) return {balance:50, inventory:[], invCounter:0, level:0, xp:0, bestPull:null, upgradeClicks:0, casesOpened:0};

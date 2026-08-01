@@ -1686,6 +1686,7 @@ function computeBurstStars(lobby){
 function isTeamsMode(lobby){ return lobby.teams === true; }
 function teamOfIdx(idx, totalPlayers){ return idx < totalPlayers / 2 ? 0 : 1; }
 function loadState(){
+  if(!(window.__STEAM_AUTH__ && window.__STEAM_AUTH__.loggedIn)) return {balance: 0, inventory: [], invCounter: 0, level: 0, xp: 0};
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
     if(!raw) return {balance: START_BALANCE, inventory: [], invCounter: 0, level: 0, xp: 0};
