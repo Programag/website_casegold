@@ -1101,6 +1101,12 @@
       </div>
       <div id="openLobbiesList"></div>
     </div>
+    <div class="panel open-lobbies-panel" id="runningLobbiesPanel" style="margin-top:16px;">
+      <div class="landing-head">
+        <div class="section-title" style="margin:0;">Bitwy w trakcie <span class="hint">już wystartowały — możesz je tylko oglądać</span></div>
+      </div>
+      <div id="runningLobbiesList"></div>
+    </div>
   </div>
 
   <!-- ===================== MOJE BITWY ===================== -->
@@ -1888,7 +1894,7 @@ function tryViewLobbyFromUrl(){
 socket.on("battle:lobbies", (list) => {
   lobbyCache = {};
   list.forEach(l => { lobbyCache[l.id] = l; });
-  if(!myLobbyId) renderOpenLobbies();
+  if(!myLobbyId){ renderOpenLobbies(); renderRunningLobbies(); }
 });
 socket.on("battle:lobby", (lobby) => {
   lobbyCache[lobby.id] = lobby;
@@ -2322,6 +2328,7 @@ const lobbySummaryBar = document.getElementById("lobbySummaryBar");
 const lobbySummaryTxt = document.getElementById("lobbySummaryTxt");
 const openLobbiesPanel = document.getElementById("openLobbiesPanel");
 const openLobbiesList = document.getElementById("openLobbiesList");
+const runningLobbiesList = document.getElementById("runningLobbiesList");
 const roundIndicatorEl = document.getElementById("roundIndicator");
 const caseSwiperEl = document.getElementById("caseSwiper");
 const caseSwiperTrackEl = document.getElementById("caseSwiperTrack");
@@ -2448,6 +2455,7 @@ function showLandingView(){
   myBattlesEl.style.display = "none";
   landingEl.style.display = "block";
   renderOpenLobbies();
+  renderRunningLobbies();
 }
 function showMyBattlesView(){
   arenaEl.style.display = "none";
@@ -2596,6 +2604,8 @@ playersGrid.addEventListener("click", (e) => {
 });
 // open-lobbies panel (setup screen) uses the same actions
 openLobbiesList.addEventListener("click", (e) => {
+  const watchBtn = e.target.closest("[data-watch]");
+  if(watchBtn){ viewLobbyById(watchBtn.dataset.watch, watchBtn); return; }
   const btn = e.target.closest(".slot-action");
   if(!btn) return;
   const idx = Number(btn.dataset.idx);
@@ -3352,18 +3362,18 @@ function renderMyBattles(){
     list.appendChild(card);
   });
 }
-document.getElementById("myBattlesList").addEventListener("click", (e) => {
-  const btn = e.target.closest("[data-watch]");
-  if(!btn) return;
-  const lobbyId = btn.dataset.watch;
-  btn.disabled = true;
-  const originalText = btn.textContent;
-  btn.textContent = "Wczytywanie…";
+/* Opens a lobby purely as a spectator (no seat taken, nothing paid) -
+   works for lobbies in any state: waiting room, running, or already
+   finished (rewatch). Shared by "Moje bitwy", "Otwarte bitwy" and
+   "Bitwy w trakcie" — every "Oglądaj" button on the page goes through this. */
+function viewLobbyById(lobbyId, btn){
+  if(btn){ btn.disabled = true; }
+  const originalText = btn ? btn.textContent : "";
+  if(btn) btn.textContent = "Wczytywanie…";
   socket.emit("battle:getLobby", { lobbyId }, (res) => {
     if(!res || !res.ok){
       log("Ta bitwa nie jest już dostępna do obejrzenia (wygasła).");
-      btn.disabled = false;
-      btn.textContent = originalText;
+      if(btn){ btn.disabled = false; btn.textContent = originalText; }
       return;
     }
     myLobbyId = res.lobby.id;
@@ -3372,6 +3382,11 @@ document.getElementById("myBattlesList").addEventListener("click", (e) => {
     updateBattleUrl(res.lobby.id);
     showLobbyView(res.lobby);
   });
+}
+document.getElementById("myBattlesList").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-watch]");
+  if(!btn) return;
+  viewLobbyById(btn.dataset.watch, btn);
 });
 
 function renderOpenLobbies(){
@@ -3394,8 +3409,11 @@ function renderOpenLobbies(){
     card.className = "open-lobby-card";
     card.innerHTML = `
       <div class="olc-head">
-        <div class="olc-title">Bitwa — ${lobby.rounds.length} rund, ${lobby.shared ? "Shared" : (lobby.mode === "standard" ? "Standard" : "Underdog")}${lobby.teams ? " 2v2" : ""}</div>
-        <div class="olc-meta">${filled}/${lobby.totalPlayers} graczy · wejście ${fmt(lobby.cost)}</div>
+        <div>
+          <div class="olc-title">Bitwa — ${lobby.rounds.length} rund, ${lobby.shared ? "Shared" : (lobby.mode === "standard" ? "Standard" : "Underdog")}${lobby.teams ? " 2v2" : ""}</div>
+          <div class="olc-meta">${filled}/${lobby.totalPlayers} graczy · wejście ${fmt(lobby.cost)}</div>
+        </div>
+        <button class="mini-btn" data-watch="${lobby.id}">👁 Oglądaj</button>
       </div>
       <div class="olc-grid"></div>
     `;
@@ -3414,6 +3432,44 @@ function renderOpenLobbies(){
     openLobbiesList.appendChild(card);
   });
 }
+
+function renderRunningLobbies(){
+  const lobbies = loadLobbies();
+  const running = Object.values(lobbies).filter(l => l.status === "running" && !l.private);
+  if(running.length === 0){
+    runningLobbiesList.innerHTML = `<div class="landing-empty">Żadna bitwa nie jest teraz w trakcie.</div>`;
+    return;
+  }
+  runningLobbiesList.innerHTML = "";
+  running.forEach(lobby => {
+    const card = document.createElement("div");
+    card.className = "open-lobby-card";
+    card.innerHTML = `
+      <div class="olc-head">
+        <div>
+          <div class="olc-title">Bitwa — ${lobby.rounds.length} rund, ${lobby.shared ? "Shared" : (lobby.mode === "standard" ? "Standard" : "Underdog")}${lobby.teams ? " 2v2" : ""}</div>
+          <div class="olc-meta">${lobby.slots.length} graczy · wejście ${fmt(lobby.cost)}</div>
+        </div>
+        <button class="mini-btn" data-watch="${lobby.id}">▶ Oglądaj</button>
+      </div>
+      <div class="olc-grid"></div>
+    `;
+    const grid = card.querySelector(".olc-grid");
+    lobby.slots.forEach(slot => {
+      const box = document.createElement("div");
+      box.className = "olc-slot";
+      const tag = slot.type === "bot" ? "BOT" : "GRACZ";
+      box.innerHTML = `<div class="nm">${slot.name}</div><div class="olc-meta">${tag}</div>`;
+      grid.appendChild(box);
+    });
+    runningLobbiesList.appendChild(card);
+  });
+}
+runningLobbiesList.addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-watch]");
+  if(!btn) return;
+  viewLobbyById(btn.dataset.watch, btn);
+});
 
 document.getElementById("newBattleBtn").onclick = () => {
   if(myLobbyId){

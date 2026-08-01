@@ -54,15 +54,18 @@ module.exports = function attachBattleLobby(io, { readUsers, redisGet, redisSet,
   const socketMeta = {}; // socket.id -> {lobbyId, tabId}
   const pendingFrees = {}; // `${lobbyId}:${tabId}` -> Timeout
 
+  // "lobby" = poczekalnia (widoczna z przyciskiem Dołącz), "running" = bitwa
+  // w toku (widoczna tylko do oglądania, bez wolnych miejsc) - obie trafiają
+  // do publicznej listy, żeby "w trakcie" na stronie battle miało co pokazać.
   function publicLobbies() {
-    return Object.values(lobbies).filter((l) => l.status === "lobby" && !l.private);
+    return Object.values(lobbies).filter((l) => (l.status === "lobby" || l.status === "running") && !l.private);
   }
   function broadcastList() {
     io.emit("battle:lobbies", publicLobbies());
   }
   function broadcastLobby(lobby) {
     io.to("lobby:" + lobby.id).emit("battle:lobby", lobby);
-    if (lobby.status === "lobby" && !lobby.private) broadcastList();
+    if ((lobby.status === "lobby" || lobby.status === "running") && !lobby.private) broadcastList();
   }
   function findSlotByTabId(lobby, tabId) {
     return lobby.slots.findIndex((s) => s.tabId === tabId);
@@ -224,6 +227,7 @@ module.exports = function attachBattleLobby(io, { readUsers, redisGet, redisSet,
       lobby.status = "finished";
       lobby.outcome = outcome || null;
       broadcastLobby(lobby);
+      broadcastList(); // usuń z publicznej listy "otwarte/w trakcie" - bitwa się skończyła
       persistFinishedLobby(lobby);
       setTimeout(() => {
         delete lobbies[lobbyId];
