@@ -173,6 +173,7 @@
     display:flex; align-items:center; justify-content:center; font-size:44px;
     position:relative; overflow:hidden;
   }
+  .free-card .fc-img img{max-width:70%; max-height:70%; object-fit:contain;}
   .free-card.locked .fc-img{filter:grayscale(1) brightness(.6);}
   .free-card .fc-lock{
     position:absolute; inset:0; display:none; align-items:center; justify-content:center; font-size:30px;
@@ -368,7 +369,7 @@ setInterval(renderDailyBonusBtn, 1000);
 
 /* ---------------- free / level-gated case cards ---------------- */
 const FREE_CASES = [
-  {id:"free", key:"cs2sim_darmowe_free_at", name:"Free Case", tag:"DARMOWA", icon:"📦", accent:"var(--good)", cooldownMs:3*60*60*1000},
+  {id:"free", key:"cs2sim_darmowe_free_at", name:"Free Case", tag:"DARMOWA", icon:"📦", img:"free_case_one.PNG", accent:"var(--good)", cooldownMs:3*60*60*1000},
   {id:"farm", key:"cs2sim_darmowe_farm_at", name:"Farm case", tag:"DARMOWA", icon:"📦", accent:"var(--r-gold)", cooldownMs:3*60*60*1000}
 ];
 const LEVEL_CASES = [
@@ -386,9 +387,12 @@ function cardNode(c, locked){
   card.className = "free-card" + (locked ? " locked" : "");
   card.style.setProperty("--card-accent", c.accent);
 
+  const imgHtml = c.img
+    ? `<img src="${c.img}" alt="${c.name}" onerror="this.replaceWith(document.createTextNode('${c.icon}'))">`
+    : c.icon;
   card.innerHTML = `
     <span class="fc-tag">${c.tag}</span>
-    <div class="fc-img">${c.icon}<div class="fc-lock">🔒</div></div>
+    <div class="fc-img">${imgHtml}<div class="fc-lock">🔒</div></div>
     <div class="fc-name">${c.name}</div>
     <div class="fc-status"></div>
   `;
