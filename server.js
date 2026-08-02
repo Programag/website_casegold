@@ -490,6 +490,11 @@ app.put("/api/state", async (req, res) => {
     // mechanizmem (mnożenie xp) - używane tylko jako wskazówka wewnątrz
     // ensureLevelWatermark, klient go już nie odczytuje ani nie wysyła.
     xpScaleMigratedV2: isBrandNewAccount ? true : !!(u.state && u.state.xpScaleMigratedV2),
+    // Musi przetrwać każdy zwykły zapis z gry - to jedyny sposób, w jaki
+    // KAŻDA przeglądarka gracza (nie tylko ta, z której akurat przyszedł ten
+    // konkretny push) dowiaduje się, że admin autorytatywnie nadpisał stan
+    // (patrz PUT /api/admin/users/:steamid i merge w steam-auth.js).
+    adminOverrideAt: (u.state && typeof u.state.adminOverrideAt === "number") ? u.state.adminOverrideAt : null,
     updatedAt: Date.now(),
   };
   try {
@@ -545,16 +550,28 @@ app.put("/api/admin/users/:steamid", requireAdmin, async (req, res) => {
   if (typeof body.balance === "number") u.state.balance = body.balance;
   if (typeof body.level === "number") {
     u.state.level = body.level;
-    // Ręczna korekta poziomu z panelu admina musi też podnieść wskaźnik
-    // wodny, inaczej effectiveLevel() po stronie klienta i tak pokazywałby
-    // stary (niższy) levelWatermark, ignorując tę zmianę.
-    u.state.levelWatermark = Math.max(typeof u.state.levelWatermark === "number" ? u.state.levelWatermark : 0, body.level);
+    // W przeciwieństwie do normalnej gry (gdzie levelWatermark rośnie
+    // WYŁĄCZNIE przez Math.max, żeby chronić przed przypadkowym/chwilowym
+    // zaniżeniem), ręczna edycja w panelu admina to świadoma, autorytatywna
+    // korekta - musi móc też OBNIŻYĆ poziom (np. po cofnięciu błędnie
+    // przyznanego EXP), więc ustawiamy wskaźnik wodny wprost, bez Math.max.
+    u.state.levelWatermark = body.level;
   }
   if (typeof body.xp === "number") u.state.xp = body.xp;
+  // Wartości wpisane ręcznie przez admina są z definicji już w aktualnej
+  // skali - kolejna automatyczna migracja x10 (ensureLevelWatermark) nie
+  // powinna ich już nigdy tykać.
+  u.state.xpScaleMigratedV2 = true;
   if (Array.isArray(body.claimedLevelRewards)) {
     u.state.claimedLevelRewards = body.claimedLevelRewards.filter((n) => typeof n === "number" && isFinite(n));
   }
-  u.state.updatedAt = Date.now();
+  // Znacznik "admin właśnie autorytatywnie nadpisał ten stan" - klient
+  // (steam-auth.js) używa go, żeby w pełni zaufać serwerowi przy następnej
+  // synchronizacji, z pominięciem zwykłej ochrony "świeższy/wyższy wygrywa"
+  // (ta ochrona jest słuszna przy normalnej grze, ale nie może blokować
+  // świadomej korekty admina).
+  u.state.adminOverrideAt = Date.now();
+  u.state.updatedAt = u.state.adminOverrideAt;
   try {
     await writeUsers(users);
     res.json({

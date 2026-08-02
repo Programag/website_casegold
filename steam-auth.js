@@ -20,6 +20,9 @@
   // stan w międzyczasie (np. ręczna edycja salda z panelu admina) i odrzucić
   // spóźniony, nieświadomy tego push zamiast go bezmyślnie nadpisać.
   const SERVER_BASE_KEY = "cs2sim_server_base_at";
+  // Ostatni adminOverrideAt, jaki ta konkretna przeglądarka już przyjęła -
+  // patrz sekcja "admin override" niżej.
+  const ADMIN_OVERRIDE_KEY = "cs2sim_admin_override_at";
 
   const STEAM_ICON_SVG = '<svg viewBox="0 0 24 24"><path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.03 4.524 4.524s-2.03 4.524-4.524 4.524h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.605.001 11.979.001zM7.54 18.21l-1.473-.61c.262.543.714.999 1.314 1.25 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.455-.397.957-1.497 1.41-2.454 1.012H7.54zm11.415-9.303c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.663 0 3.015-1.35 3.015-3.015zm-5.273-.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.253 0-2.265-1.014-2.265-2.265z"/></svg>';
   function steamIconBadge() { return `<span class="steam-icon-badge">${STEAM_ICON_SVG}</span>`; }
@@ -78,7 +81,36 @@
       const localXpMigrated = !!localState.xpScaleMigratedV2;
       const serverXpMigrated = !!s.xpScaleMigratedV2;
       const adoptServerXp = serverXpMigrated && !localXpMigrated;
-      if (serverUpdatedAt >= localUpdatedAt) {
+      // Ręczna korekta z panelu admina to świadome, autorytatywne działanie -
+      // musi wygrać z KAŻDĄ z powyższych ochron (świeżość, Math.max na
+      // wskaźniku poziomu, migracja skali xp), bo te istnieją tylko po to,
+      // żeby chronić przed PRZYPADKOWĄ utratą postępu przy normalnej grze, a
+      // nie po to, żeby blokować admina, który świadomie coś poprawia (np.
+      // obniża błędnie przyznany poziom/EXP). Serwer zgłasza to przez
+      // adminOverrideAt - jeśli jest nowszy niż to, co ta przeglądarka już
+      // widziała, w pełni ufamy całemu stanowi z serwera, bez żadnego Math.max.
+      const serverAdminOverrideAt = typeof s.adminOverrideAt === "number" ? s.adminOverrideAt : 0;
+      let localAdminOverrideAt = 0;
+      try { localAdminOverrideAt = Number(localStorage.getItem(ADMIN_OVERRIDE_KEY) || 0) || 0; } catch (e3) {}
+      const adminJustOverrode = serverAdminOverrideAt > localAdminOverrideAt;
+      if (adminJustOverrode) {
+        localStorage.setItem(ADMIN_OVERRIDE_KEY, String(serverAdminOverrideAt));
+        localStorage.setItem(STATE_KEY, JSON.stringify({
+          balance: s.balance,
+          inventory: s.inventory,
+          invCounter: s.invCounter,
+          level: typeof s.level === "number" ? s.level : 0,
+          xp: typeof s.xp === "number" ? s.xp : 0,
+          bestPull: s.bestPull || null,
+          upgradeClicks: typeof s.upgradeClicks === "number" ? s.upgradeClicks : 0,
+          casesOpened: typeof s.casesOpened === "number" ? s.casesOpened : 0,
+          claimedLevelRewards: Array.isArray(s.claimedLevelRewards) ? s.claimedLevelRewards : [],
+          battleHistory: Array.isArray(s.battleHistory) ? s.battleHistory : [],
+          levelWatermark: typeof s.levelWatermark === "number" ? s.levelWatermark : 0,
+          xpScaleMigratedV2: !!s.xpScaleMigratedV2,
+          updatedAt: serverUpdatedAt,
+        }));
+      } else if (serverUpdatedAt >= localUpdatedAt) {
         localStorage.setItem(STATE_KEY, JSON.stringify({
           balance: s.balance,
           inventory: s.inventory,
@@ -156,7 +188,22 @@
             const serverUpdatedAt = typeof s.updatedAt === "number" ? s.updatedAt : 0;
             localStorage.setItem(SERVER_BASE_KEY, String(serverUpdatedAt));
             let priorWatermark = 0;
-            try { priorWatermark = JSON.parse(localStorage.getItem(STATE_KEY) || "{}").levelWatermark || 0; } catch (e3) {}
+            let priorAdminOverrideAt = 0;
+            try {
+              const priorState = JSON.parse(localStorage.getItem(STATE_KEY) || "{}");
+              priorWatermark = priorState.levelWatermark || 0;
+            } catch (e3) {}
+            try { priorAdminOverrideAt = Number(localStorage.getItem(ADMIN_OVERRIDE_KEY) || 0) || 0; } catch (e4) {}
+            const serverAdminOverrideAt = typeof s.adminOverrideAt === "number" ? s.adminOverrideAt : 0;
+            // Ten 409 mógł wynikać właśnie z tego, że admin autorytatywnie
+            // nadpisał stan (patrz merge w fetchMeSync wyżej) - wtedy
+            // levelWatermark z serwera musi wygrać wprost, bez Math.max,
+            // inaczej ręczne OBNIŻENIE poziomu przez admina zostałoby tu po
+            // cichu zignorowane.
+            if (serverAdminOverrideAt > priorAdminOverrideAt) {
+              localStorage.setItem(ADMIN_OVERRIDE_KEY, String(serverAdminOverrideAt));
+            }
+            const trustServerWatermarkDirectly = serverAdminOverrideAt > priorAdminOverrideAt;
             const setItem = nativeSetItem || localStorage.setItem.bind(localStorage);
             setItem(STATE_KEY, JSON.stringify({
               balance: s.balance,
@@ -169,7 +216,9 @@
               casesOpened: typeof s.casesOpened === "number" ? s.casesOpened : 0,
               claimedLevelRewards: Array.isArray(s.claimedLevelRewards) ? s.claimedLevelRewards : [],
               battleHistory: Array.isArray(s.battleHistory) ? s.battleHistory : [],
-              levelWatermark: Math.max(priorWatermark, typeof s.levelWatermark === "number" ? s.levelWatermark : 0),
+              levelWatermark: trustServerWatermarkDirectly
+                ? (typeof s.levelWatermark === "number" ? s.levelWatermark : 0)
+                : Math.max(priorWatermark, typeof s.levelWatermark === "number" ? s.levelWatermark : 0),
               xpScaleMigratedV2: !!s.xpScaleMigratedV2,
               updatedAt: serverUpdatedAt,
             }));
