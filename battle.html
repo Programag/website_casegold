@@ -366,6 +366,12 @@
     font-family:'Inter',sans-serif; padding:4px 0; display:inline-flex; align-items:center; gap:4px;
   }
   .nb-back:hover{color:var(--text);}
+  .cancel-battle-btn{
+    background:var(--panel-2); border:1px solid var(--bad); color:var(--bad); font-size:12.5px; font-weight:700;
+    cursor:pointer; font-family:'Inter',sans-serif; padding:8px 14px; border-radius:8px;
+    display:inline-flex; align-items:center; gap:6px;
+  }
+  .cancel-battle-btn:hover{background:var(--bad); color:#1a0505;}
   .nb-title{
     font-family:'Oswald',sans-serif; font-weight:700; text-transform:uppercase; letter-spacing:1.5px;
     font-size:clamp(22px,3.2vw,32px); margin:2px 0 18px; display:flex; align-items:center; gap:10px;
@@ -1250,6 +1256,7 @@
   <div id="arena">
     <div class="arena-top">
       <button class="nb-back" id="newBattleBtn">‹ Powrót</button>
+      <button class="cancel-battle-btn" id="cancelBattleBtn" style="display:none;">🚫 Anuluj bitwę</button>
       <div class="arena-info-chips">
         <div class="arena-chip"><span class="ac-label">Tryb:</span> <span class="ac-value" id="modeTag"></span></div>
         <div class="arena-chip cost"><span class="ac-label">Koszt wejścia:</span> <span class="ac-value" id="arenaCostChip"></span></div>
@@ -2902,6 +2909,13 @@ function avatarHtml(slot){
 /* ---- render the players-grid for a lobby, in whichever state it's in ---- */
 function renderLobbyArena(lobby){
   const isHost = lobby.hostTabId === myTabId;
+  // Dopóki bitwa jest w poczekalni, host widzi "Anuluj bitwę" zamiast zwykłego
+  // "Powrót" - w tym stanie każde opuszczenie lobby i tak je kasuje po stronie
+  // serwera (patrz battle:leave), więc jeden jednoznaczny przycisk ze zwrotem
+  // pieniędzy jest lepszy niż dwa różne sposoby na to samo.
+  const showCancelBtn = isHost && lobby.status === "lobby";
+  document.getElementById("cancelBattleBtn").style.display = showCancelBtn ? "" : "none";
+  document.getElementById("newBattleBtn").style.display = showCancelBtn ? "none" : "";
   const MODE_LABELS = {
     standard: "STANDARD — najwyższa wartość wygrywa",
     underdog: "UNDERDOG — najniższa wartość wygrywa",
@@ -3937,6 +3951,29 @@ document.getElementById("newBattleBtn").onclick = () => {
     socket.emit("battle:leave", { lobbyId: myLobbyId, tabId: myTabId });
   }
   myLobbyId = null;
+  animatingLobbyId = null;
+  sessionStorage.removeItem("myLobbyId_v1");
+  updateBattleUrl(null);
+  selectedRounds = [];
+  renderSelectedRounds();
+  renderSummary();
+  showLandingView();
+};
+
+/* Tylko dla hosta, dopóki bitwa jest jeszcze w poczekalni (nikt jeszcze nie
+   grał) - w przeciwieństwie do zwykłego "Powrót" (który w tym stanie i tak
+   już kasuje lobby po stronie serwera, patrz battle:leave w battle-lobby.js,
+   tylko bez zwrotu pieniędzy), ten przycisk jest jawny i oddaje hostowi
+   wpłacone wejście. */
+document.getElementById("cancelBattleBtn").onclick = () => {
+  const lobby = getLobby(myLobbyId);
+  if(!lobby) return;
+  if(!confirm(`Na pewno chcesz anulować tę bitwę? Wpłacone wejście (${fmt(lobby.cost)}) zostanie zwrócone na Twoje saldo.`)) return;
+  socket.emit("battle:leave", { lobbyId: myLobbyId, tabId: myTabId });
+  creditShared(lobby.cost);
+  log(`Anulowano bitwę. Zwrócono wejście: ${fmt(lobby.cost)}.`);
+  myLobbyId = null;
+  myLobbyObj = null;
   animatingLobbyId = null;
   sessionStorage.removeItem("myLobbyId_v1");
   updateBattleUrl(null);
