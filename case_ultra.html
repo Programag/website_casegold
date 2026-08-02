@@ -482,6 +482,7 @@
     font-size:20px; color:var(--hazard); font-weight:700;
   }
   .result-card .odds{font-size:11px; color:var(--muted); margin-top:2px;}
+  .result-card .multi-note{font-size:11px; color:var(--hazard); margin-top:4px; font-weight:600;}
   .result-card .close-btn{
     margin-top:18px; width:100%;
     background:var(--panel-2); border:1px solid var(--line); color:var(--text);
@@ -638,6 +639,7 @@
     <div class="nm" id="resultSkin"></div>
     <div class="pr" id="resultPrice"></div>
     <div class="odds" id="resultOdds"></div>
+    <div class="multi-note" id="resultMultiNote"></div>
     <button type="button" class="close-btn" id="resultClose">Zamknij</button>
   </div>
 </div>
@@ -997,7 +999,7 @@ function spinTo(track, winnerIndex, fast){
   });
 }
 
-function flashResult(it){
+function flashResult(it, count){
   const flash = document.getElementById("resultFlash");
   const card = document.getElementById("resultCard");
   card.style.setProperty("--rarity", rarityColor(it));
@@ -1019,6 +1021,13 @@ function flashResult(it){
   document.getElementById("resultPrice").textContent = fmt(it.price);
   document.getElementById("resultOdds").textContent = `Szansa: ${jesterMode ? jesterChancePercent(ITEMS).toFixed(3) : it.chance}%`;
 
+  const multiNote = document.getElementById("resultMultiNote");
+  if(count > 1){
+    multiNote.textContent = "Najdroższy skin z wypadniętych";
+    multiNote.style.display = "block";
+  } else {
+    multiNote.style.display = "none";
+  }
   flash.classList.add("show");
 }
 
@@ -1052,7 +1061,7 @@ openBtn.onclick = () => {
   setTimeout(() => {
     const best = results.reduce((top, item) => item.price > top.price ? item : top, results[0]);
     playWinSound();
-    flashResult(best);
+    flashResult(best, count);
     if(count > 1){
       log(`Otwarto ${count} skrzynki za ${fmt(totalCost)}`);
     }
