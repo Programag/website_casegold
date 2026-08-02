@@ -134,6 +134,13 @@
     padding:9px 8px; border-radius:8px; cursor:pointer; font-size:11.5px; font-weight:600;
     font-family:'Inter',sans-serif; white-space:nowrap;
   }
+  @media (max-width:600px){
+    .lb-tabs{display:grid; grid-template-columns:1fr 1fr; gap:6px;}
+    .lb-tab{padding:9px 4px; font-size:10.5px;}
+  }
+  @media (max-width:340px){
+    .lb-tabs{grid-template-columns:1fr;}
+  }
   .lb-tab:hover{color:var(--text); border-color:var(--hazard);}
   .lb-tab.active{color:var(--hazard); border-color:var(--hazard); background:var(--hazard-dim);}
   .lb-note{
