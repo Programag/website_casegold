@@ -1793,8 +1793,9 @@ const s0 = loadState();
 let balance = s0.balance;
 let inventory = s0.inventory;
 let invCounter = s0.invCounter;
-let level = s0.level;
 let xp = s0.xp;
+// effectiveLevel(xp), nie surowe s0.level - patrz darmowe.html po wyjaśnienie.
+let level = window.SteamAuth.effectiveLevel(xp);
 /* 10 zł wygranych w bitwie = 1 EXP (formuła i progi poziomów są wspólne
    dla całej strony, patrz window.SteamAuth w steam-auth.js). */
 function awardBattleXp(amountWon){

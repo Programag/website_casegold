@@ -762,8 +762,9 @@ let balance = initial.balance;
 let inventory = initial.inventory;
 let spinning = false;
 let invCounter = initial.invCounter;
-let level = initial.level;
 let xp = initial.xp;
+// effectiveLevel(xp), nie surowe initial.level - patrz darmowe.html po wyjaśnienie.
+let level = window.SteamAuth.effectiveLevel(xp);
 let pendingResults = null;
 
 const balanceEl = document.getElementById("balance");

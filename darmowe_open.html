@@ -352,7 +352,8 @@ function saveState(state){
   try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({...state, ...window.SteamAuth.readPersistentExtras()})); window.SteamAuth.schedulePush(); }catch(e){}
 }
 let state = loadState();
-const PLAYER_LEVEL = state.level;
+// effectiveLevel(xp), nie surowe state.level - patrz darmowe.html po wyjaśnienie.
+const PLAYER_LEVEL = window.SteamAuth.effectiveLevel(state.xp);
 function renderBalance(){
   document.getElementById("balance").textContent = fmt(state.balance);
 }

@@ -344,7 +344,7 @@ function renderOwnProfile(u){
   document.getElementById("statJoined").textContent = joined
     ? joined.toLocaleDateString("pl-PL", {day:"numeric", month:"long", year:"numeric"})
     : "—";
-  document.getElementById("statLevel").textContent = String(s.level);
+  document.getElementById("statLevel").textContent = String(window.SteamAuth.effectiveLevel(s.xp));
   document.getElementById("statBalance").textContent = fmt(s.balance);
   renderBestPullCard(s.bestPull);
 }

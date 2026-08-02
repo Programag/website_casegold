@@ -348,7 +348,15 @@ app.get("/api/profile/:slug", async (req, res) => {
       avatar: u.avatar,
       profileUrl: u.profileUrl,
       createdAt: u.createdAt || null,
-      level: typeof st.level === "number" ? st.level : 0,
+      // Najwyższa ze znanych wartości (surowe level, levelWatermark, i świeże
+      // wyliczenie z xp) - publiczny profil nie powinien pokazywać niższego
+      // poziomu niż to, co gracz faktycznie już wywalczył, nawet jeśli jego
+      // przeglądarka jeszcze nie zdążyła zsynchronizować wskaźnika wodnego.
+      level: Math.max(
+        levelForXpServer(typeof st.xp === "number" ? st.xp : 0),
+        typeof st.levelWatermark === "number" ? st.levelWatermark : 0,
+        typeof st.level === "number" ? st.level : 0
+      ),
       bestPull: st.bestPull || null,
     },
   });

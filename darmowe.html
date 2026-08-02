@@ -321,8 +321,13 @@ function saveState(state){
 let state = loadState();
 /* Nowe konto (i każdy świeżo zalogowany przez Steam profil) startuje na
    poziomie 0 — poziom jest teraz częścią zapisywanego stanu (w chmurze
-   dla kont Steam), nie na sztywno wpisaną liczbą. */
-let PLAYER_LEVEL = state.level;
+   dla kont Steam), nie na sztywno wpisaną liczbą.
+   Liczone przez effectiveLevel(xp), NIE czytane wprost z state.level -
+   ten drugi to osobne, zapisywane pole, które aktualizuje się tylko przy
+   akcjach na innych stronach (np. otwarciu skrzynki) i potrafi zostać w
+   tyle za faktycznym (chronionym) poziomem, blokując tu odblokowane już
+   skrzynki za poziomy mimo poprawnego EXP. */
+let PLAYER_LEVEL = window.SteamAuth.effectiveLevel(state.xp);
 function renderBalance(){
   document.getElementById("balance").textContent = fmt(state.balance);
 }
