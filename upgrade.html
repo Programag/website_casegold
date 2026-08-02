@@ -348,7 +348,7 @@
     <a class="nav-link" href="/darmowe">Darmowe</a>
     <a class="nav-link" href="/battle">Case Battle</a>
     <a class="nav-link active" href="/upgrade">Upgrader</a>
-    <button class="nav-link" data-soon>Zadania</button>
+    <a class="nav-link" href="/zadania">Zadania</a>
     <a class="nav-link" href="/equipment">Ekwipunek</a>
   </div>
   <div class="nav-right">
@@ -1346,6 +1346,7 @@ upgradeBtn.onclick = () => {
   const winDeg = chance/100*360;
 
   window.SteamAuth.recordUpgradeClick();
+  window.SteamAuth.recordUpgradeSpend(inTotal);
   spinning = true;
   updateAll();
   outcomeBanner.classList.remove("show", "win", "lose");

@@ -631,6 +631,11 @@ app.put("/api/state", async (req, res) => {
         bestPull,
         upgradeClicks: typeof body.upgradeClicks === "number" ? body.upgradeClicks : (u.state && u.state.upgradeClicks) || 0,
         casesOpened: typeof body.casesOpened === "number" ? body.casesOpened : (u.state && u.state.casesOpened) || 0,
+        spentCases: typeof body.spentCases === "number" ? body.spentCases : (u.state && u.state.spentCases) || 0,
+        spentUpgrader: typeof body.spentUpgrader === "number" ? body.spentUpgrader : (u.state && u.state.spentUpgrader) || 0,
+        battlesPlayed: typeof body.battlesPlayed === "number" ? body.battlesPlayed : (u.state && u.state.battlesPlayed) || 0,
+        battlesWon: typeof body.battlesWon === "number" ? body.battlesWon : (u.state && u.state.battlesWon) || 0,
+        questClaims: body.questClaims && typeof body.questClaims === "object" ? body.questClaims : (u.state && u.state.questClaims) || {},
         claimedLevelRewards: Array.isArray(body.claimedLevelRewards) ? body.claimedLevelRewards : (u.state && u.state.claimedLevelRewards) || [],
         battleHistory: Array.isArray(body.battleHistory) ? body.battleHistory : (u.state && u.state.battleHistory) || [],
         // Poziom jako wskaźnik wodny (patrz ensureLevelWatermark) - rośnie

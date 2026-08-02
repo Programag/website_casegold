@@ -32,7 +32,7 @@
       ['a[href="/darmowe"]', t.free],
       ['a[href="/battle"]', t.battle],
       ['a[href="/upgrade"]', t.upgrader],
-      ['button[data-soon]', t.tasks],
+      ['a[href="/zadania"]', t.tasks],
       ['a[href="/equipment"]', t.inventory],
     ];
     map.forEach(([sel, label]) => {

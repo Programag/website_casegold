@@ -1065,7 +1065,7 @@
     <a class="nav-link" href="/darmowe">Darmowe</a>
     <a class="nav-link active" href="/battle">Case Battle</a>
     <a class="nav-link" href="/upgrade">Upgrader</a>
-    <button class="nav-link" data-soon>Zadania</button>
+    <a class="nav-link" href="/zadania">Zadania</a>
     <a class="nav-link" href="/equipment">Ekwipunek</a>
   </div>
   <div class="nav-right">
@@ -3530,6 +3530,7 @@ function finishConclusion(lobby, outcome, mySlotIdx){
       value: historyValue,
       item: historyItem ? { weapon: historyItem.weapon, skin: historyItem.skin, wear: historyItem.wear, price: historyItem.price } : null,
     });
+    window.SteamAuth.recordBattleResult(historyOutcome === "win");
   }
 
   // lobby lifecycle (telling the server this battle is over) stays host-only —

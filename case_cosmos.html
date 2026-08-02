@@ -550,7 +550,7 @@
     <a class="nav-link" href="/darmowe">Darmowe</a>
     <a class="nav-link" href="/battle">Case Battle</a>
     <a class="nav-link" href="/upgrade">Upgrader</a>
-    <button class="nav-link" data-soon>Zadania</button>
+    <a class="nav-link" href="/zadania">Zadania</a>
     <a class="nav-link" href="/equipment">Ekwipunek</a>
   </div>
   <div class="nav-right">
@@ -1040,6 +1040,7 @@ openBtn.onclick = () => {
   openBtn.disabled = true;
 
   balance -= totalCost;
+  window.SteamAuth.recordCaseSpend(totalCost);
   xp += totalCost * window.SteamAuth.xpPerZl;
   level = window.SteamAuth.effectiveLevel(xp);
   renderBalance();

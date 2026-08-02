@@ -104,6 +104,11 @@
           bestPull: s.bestPull || null,
           upgradeClicks: typeof s.upgradeClicks === "number" ? s.upgradeClicks : 0,
           casesOpened: typeof s.casesOpened === "number" ? s.casesOpened : 0,
+          spentCases: typeof s.spentCases === "number" ? s.spentCases : 0,
+          spentUpgrader: typeof s.spentUpgrader === "number" ? s.spentUpgrader : 0,
+          battlesPlayed: typeof s.battlesPlayed === "number" ? s.battlesPlayed : 0,
+          battlesWon: typeof s.battlesWon === "number" ? s.battlesWon : 0,
+          questClaims: s.questClaims && typeof s.questClaims === "object" ? s.questClaims : {},
           claimedLevelRewards: Array.isArray(s.claimedLevelRewards) ? s.claimedLevelRewards : [],
           battleHistory: Array.isArray(s.battleHistory) ? s.battleHistory : [],
           levelWatermark: typeof s.levelWatermark === "number" ? s.levelWatermark : 0,
@@ -120,6 +125,11 @@
           bestPull: s.bestPull || null,
           upgradeClicks: typeof s.upgradeClicks === "number" ? s.upgradeClicks : 0,
           casesOpened: typeof s.casesOpened === "number" ? s.casesOpened : 0,
+          spentCases: typeof s.spentCases === "number" ? s.spentCases : 0,
+          spentUpgrader: typeof s.spentUpgrader === "number" ? s.spentUpgrader : 0,
+          battlesPlayed: typeof s.battlesPlayed === "number" ? s.battlesPlayed : 0,
+          battlesWon: typeof s.battlesWon === "number" ? s.battlesWon : 0,
+          questClaims: s.questClaims && typeof s.questClaims === "object" ? s.questClaims : {},
           claimedLevelRewards: Array.isArray(s.claimedLevelRewards) ? s.claimedLevelRewards : [],
           battleHistory: Array.isArray(s.battleHistory) ? s.battleHistory : [],
           levelWatermark: mergedWatermark,
@@ -161,6 +171,11 @@
       bestPull: state.bestPull || null,
       upgradeClicks: typeof state.upgradeClicks === "number" ? state.upgradeClicks : 0,
       casesOpened: typeof state.casesOpened === "number" ? state.casesOpened : 0,
+      spentCases: typeof state.spentCases === "number" ? state.spentCases : 0,
+      spentUpgrader: typeof state.spentUpgrader === "number" ? state.spentUpgrader : 0,
+      battlesPlayed: typeof state.battlesPlayed === "number" ? state.battlesPlayed : 0,
+      battlesWon: typeof state.battlesWon === "number" ? state.battlesWon : 0,
+      questClaims: state.questClaims && typeof state.questClaims === "object" ? state.questClaims : {},
       claimedLevelRewards: Array.isArray(state.claimedLevelRewards) ? state.claimedLevelRewards : [],
       battleHistory: Array.isArray(state.battleHistory) ? state.battleHistory : [],
       levelWatermark: typeof state.levelWatermark === "number" ? state.levelWatermark : 0,
@@ -214,6 +229,11 @@
               bestPull: s.bestPull || null,
               upgradeClicks: typeof s.upgradeClicks === "number" ? s.upgradeClicks : 0,
               casesOpened: typeof s.casesOpened === "number" ? s.casesOpened : 0,
+              spentCases: typeof s.spentCases === "number" ? s.spentCases : 0,
+              spentUpgrader: typeof s.spentUpgrader === "number" ? s.spentUpgrader : 0,
+              battlesPlayed: typeof s.battlesPlayed === "number" ? s.battlesPlayed : 0,
+              battlesWon: typeof s.battlesWon === "number" ? s.battlesWon : 0,
+              questClaims: s.questClaims && typeof s.questClaims === "object" ? s.questClaims : {},
               claimedLevelRewards: Array.isArray(s.claimedLevelRewards) ? s.claimedLevelRewards : [],
               battleHistory: Array.isArray(s.battleHistory) ? s.battleHistory : [],
               levelWatermark: trustServerWatermarkDirectly
@@ -524,6 +544,16 @@
         bestPull: s.bestPull || null,
         upgradeClicks: typeof s.upgradeClicks === "number" ? s.upgradeClicks : 0,
         casesOpened: typeof s.casesOpened === "number" ? s.casesOpened : 0,
+        spentCases: typeof s.spentCases === "number" ? s.spentCases : 0,
+        spentUpgrader: typeof s.spentUpgrader === "number" ? s.spentUpgrader : 0,
+        battlesPlayed: typeof s.battlesPlayed === "number" ? s.battlesPlayed : 0,
+        battlesWon: typeof s.battlesWon === "number" ? s.battlesWon : 0,
+        // Zbiór claimedTiers per zadanie ("Zadania"/zadania.html) - patrz
+        // claimQuestTier() niżej. Musi przetrwać KAŻDY zapis stanu tak samo
+        // jak claimedLevelRewards, inaczej odebrana nagroda za zadanie
+        // "odblokowałaby się" z powrotem przy pierwszym saveState() na innej
+        // podstronie.
+        questClaims: s.questClaims && typeof s.questClaims === "object" ? s.questClaims : {},
         claimedLevelRewards: Array.isArray(s.claimedLevelRewards) ? s.claimedLevelRewards : [],
         battleHistory: Array.isArray(s.battleHistory) ? s.battleHistory : [],
         // Musi przetrwać KAŻDY zapis stanu z dowolnej podstrony (equipment,
@@ -538,7 +568,7 @@
         updatedAt: Date.now(),
       };
     } catch (e) {
-      return { bestPull: null, upgradeClicks: 0, casesOpened: 0, claimedLevelRewards: [], battleHistory: [], levelWatermark: 0, xpScaleMigratedV2: false, updatedAt: Date.now() };
+      return { bestPull: null, upgradeClicks: 0, casesOpened: 0, spentCases: 0, spentUpgrader: 0, battlesPlayed: 0, battlesWon: 0, questClaims: {}, claimedLevelRewards: [], battleHistory: [], levelWatermark: 0, xpScaleMigratedV2: false, updatedAt: Date.now() };
     }
   }
   // ---- Historia bitew Case Battle (do zakładki "Moje bitwy") ----
@@ -598,6 +628,47 @@
   }
   function recordUpgradeClick() { incrementCounter("upgradeClicks", 1); }
   function recordCasesOpened(n) { incrementCounter("casesOpened", typeof n === "number" ? n : 1); }
+  function recordCaseSpend(amount) { if(typeof amount === "number" && amount > 0) incrementCounter("spentCases", amount); }
+  function recordUpgradeSpend(amount) { if(typeof amount === "number" && amount > 0) incrementCounter("spentUpgrader", amount); }
+  function recordBattleResult(won) {
+    let state = {};
+    try { state = JSON.parse(localStorage.getItem(STATE_KEY) || "{}"); } catch (e) {}
+    state.battlesPlayed = (typeof state.battlesPlayed === "number" ? state.battlesPlayed : 0) + 1;
+    if (won) state.battlesWon = (typeof state.battlesWon === "number" ? state.battlesWon : 0) + 1;
+    state.updatedAt = Date.now();
+    try { localStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch (e) {}
+    schedulePush();
+  }
+
+  // ---- "Zadania" (zadania.html): odbiór nagród za poziomy zadań ----
+  // Nagrody to zawsze zł wprost na saldo (nie przedmiot, jak przy poziomach
+  // gracza), więc mechanizm jest bliższy claimDailyBonus() niż
+  // claimLevelReward(). questClaims[taskId] to liczba JUŻ odebranych poziomów
+  // danego zadania (0 = żaden) - poziomy trzeba odbierać po kolei, więc sam
+  // ten licznik jednoznacznie wyznacza, który poziom jest "następny".
+  function readQuestClaims() {
+    try {
+      const c = JSON.parse(localStorage.getItem(STATE_KEY) || "{}").questClaims;
+      return c && typeof c === "object" ? c : {};
+    } catch (e) {
+      return {};
+    }
+  }
+  function claimQuestTier(taskId, tierIndex, reward) {
+    if (!taskId || typeof tierIndex !== "number" || typeof reward !== "number") return false;
+    let s = {};
+    try { s = JSON.parse(localStorage.getItem(STATE_KEY) || "{}"); } catch (e) {}
+    const claims = s.questClaims && typeof s.questClaims === "object" ? { ...s.questClaims } : {};
+    const already = typeof claims[taskId] === "number" ? claims[taskId] : 0;
+    if (tierIndex !== already) return false; // tylko następny nieodebrany poziom, po kolei
+    claims[taskId] = already + 1;
+    s.questClaims = claims;
+    s.balance = (typeof s.balance === "number" ? s.balance : 0) + reward;
+    s.updatedAt = Date.now();
+    try { localStorage.setItem(STATE_KEY, JSON.stringify(s)); } catch (e) {}
+    schedulePush();
+    return true;
+  }
 
   // Monkey-patch jako dodatkowa siatka bezpieczeństwa - część przeglądarek
   // (zwłaszcza mobilny WebKit, czyli też "Chrome" na iPhonie) potrafi po
@@ -931,6 +1002,11 @@
     readPersistentExtras,
     recordUpgradeClick,
     recordCasesOpened,
+    recordCaseSpend,
+    recordUpgradeSpend,
+    recordBattleResult,
+    readQuestClaims,
+    claimQuestTier,
     schedulePush,
     xpPerZl: XP_PER_ZL,
     levelForXp,
