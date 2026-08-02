@@ -3096,6 +3096,10 @@ function joinSlot(lobbyId, idx){
   const existing = getLobby(lobbyId);
   if(!existing) return;
   if(existing.slots.some(s => s.tabId === myTabId)) return; // already seated somewhere
+  if(balance < existing.cost){
+    alert(`Za mało środków, żeby dołączyć do tej bitwy. Wejście kosztuje ${fmt(existing.cost)}, a Twoje saldo to ${fmt(balance)}.`);
+    return;
+  }
   const mySteamid = window.__STEAM_AUTH__.user.steamid;
   if(existing.slots.some(s => s.steamid === mySteamid)){
     alert("Jesteś już w tej bitwie (z innej karty/zakładki) - nie możesz zająć drugiego miejsca tym samym kontem.");
