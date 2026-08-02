@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <script src="steam-auth.js"></script>
+<script src="sound.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CASEGOLD // Ekwipunek</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -415,6 +416,7 @@ function sellItem(id){
     inventory.splice(idx, 1);
     renderBalance();
     renderInventory();
+    playSellSound();
     log(`Sprzedano: ${it.weapon} | ${it.skin} (${it.wear}) za ${fmt(price)}`);
   }catch(e){
     log(`Błąd sprzedaży: ${e.message}`);
@@ -523,6 +525,7 @@ function init(){
     inventory = inventory.filter(i => i.locked);
     renderBalance();
     renderInventory();
+    playSellSound();
     log(`Sprzedano wszystko za ${fmt(total)}` + (lockedCount > 0 ? ` (pominięto ${lockedCount} zablokowanych)` : ""));
   };
   document.getElementById("sortSelect").onchange = (e) => { sortMode = e.target.value; renderInventory(); };

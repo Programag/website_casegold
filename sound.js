@@ -65,3 +65,12 @@ function playWinSound(){
     playTone(f, start + idx*0.09, 0.28, {type:"triangle", gain:0.22});
   });
 }
+/* "Kasa" przy sprzedaży przedmiotu w ekwipunku - krótkie, metaliczne "cha-ching". */
+function playSellSound(){
+  if(!soundOn) return;
+  const ctx = getAudioCtx();
+  if(!ctx) return;
+  const start = ctx.currentTime + 0.02;
+  playTone(880, start, 0.09, {type:"square", gain:0.14});
+  playTone(1318.5, start + 0.06, 0.22, {type:"triangle", gain:0.18});
+}
