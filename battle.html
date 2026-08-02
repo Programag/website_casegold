@@ -1602,22 +1602,23 @@ const BATTLE_CASES = {
   }
 };
 
-/* Top 5 najdroższych możliwych trafień z KAŻDEJ skrzynki osobno (Dirt Case,
-   Iron Case, Gold Case, Ultra Case) — takie dropy dostają złotą, wirującą
-   gwiazdkę i specjalny dźwięk. Liczone per-skrzynka (nie jedna wspólna
-   pula), bo inaczej gigantyczne jackpoty z Iron Case (np. Glock Fade za
-   ~8500zł) zdominowałyby ranking i pozostałe skrzynki prawie nigdy by się
-   nie załapały. */
+/* Top 5 najdroższych możliwych trafień z KAŻDEJ skrzynki kategorii
+   "standardowe" osobno — takie dropy dostają złotą, wirującą gwiazdkę i
+   specjalny dźwięk. Liczone per-skrzynka (nie jedna wspólna pula), bo
+   inaczej gigantyczne jackpoty z Iron Case (np. Glock Fade za ~8500zł)
+   zdominowałyby ranking i pozostałe skrzynki prawie nigdy by się nie
+   załapały. Brane automatycznie z BATTLE_CASES po tag === "standardowe",
+   więc każda nowa skrzynka w tej kategorii dostaje tę funkcję od razu, bez
+   osobnego dopisywania jej tutaj. */
 function topPriceKeys(items, n){
   return items.slice().sort((a,b) => b.price - a.price).slice(0,n)
     .map(it => `${it.weapon}|${it.skin}|${it.wear}`);
 }
-const STANDARDOWE_TOP5 = new Set([
-  ...topPriceKeys(BATTLE_CASES.milspec.items, 5),
-  ...topPriceKeys(BATTLE_CASES.restricted.items, 5),
-  ...topPriceKeys(BATTLE_CASES.gold.items, 5),
-  ...topPriceKeys(BATTLE_CASES.ultra.items, 5),
-]);
+const STANDARDOWE_TOP5 = new Set(
+  Object.values(BATTLE_CASES)
+    .filter(c => c.tag === "standardowe")
+    .flatMap(c => topPriceKeys(c.items, 5))
+);
 function isTopStandardowePull(it){
   return STANDARDOWE_TOP5.has(`${it.weapon}|${it.skin}|${it.wear}`);
 }
