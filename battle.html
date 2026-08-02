@@ -3249,10 +3249,10 @@ function determineOutcome(lobby){
       // stars are tallied per player, then summed per team
       const teamStars = [0, 0];
       stars.forEach((s,i) => { teamStars[teamOfIdx(i, lobby.totalPlayers)] += s; });
-      const tie = teamStars[0] === teamStars[1];
-      const winnerTeam = tie ? null : (teamStars[0] > teamStars[1] ? 0 : 1);
-      const winnerIndices = tie ? [] : lobby.slots.map((s,i)=>i).filter(i => teamOfIdx(i, lobby.totalPlayers) === winnerTeam);
-      return { tie, winnerTeam, winnerIndices, winnerIdx: winnerIndices[0] ?? 0, stars };
+      const isTie = teamStars[0] === teamStars[1];
+      const winnerTeam = isTie ? seededIndex(lobby.id + ':' + lobby.mode + ':final', 2) : (teamStars[0] > teamStars[1] ? 0 : 1);
+      const winnerIndices = lobby.slots.map((s,i)=>i).filter(i => teamOfIdx(i, lobby.totalPlayers) === winnerTeam);
+      return { tie:false, winnerTeam, winnerIndices, winnerIdx: winnerIndices[0] ?? 0, stars, tieBreak: isTie, tiedCandidates: isTie ? [0,1] : null, tieBreakIsTeam: true };
     }
     const maxStars = Math.max(...stars);
     const candidates = stars.map((s,i)=>i).filter(i => stars[i] === maxStars);
@@ -3262,19 +3262,17 @@ function determineOutcome(lobby){
   if(isTeamsMode(lobby)){
     const teamTotals = [0, 0];
     lobby.results.forEach((r, i) => { teamTotals[teamOfIdx(i, lobby.totalPlayers)] += r.total; });
-    const tie = teamTotals[0] === teamTotals[1];
+    const isTie = teamTotals[0] === teamTotals[1];
     const teamABetter = lobby.mode === "standard" ? teamTotals[0] > teamTotals[1] : teamTotals[0] < teamTotals[1];
-    const winnerTeam = tie ? null : (teamABetter ? 0 : 1);
-    const winnerIndices = tie ? [] : lobby.slots.map((s,i)=>i).filter(i => teamOfIdx(i, lobby.totalPlayers) === winnerTeam);
-    return { tie, winnerTeam, winnerIndices, winnerIdx: winnerIndices[0] ?? 0 };
+    const winnerTeam = isTie ? seededIndex(lobby.id + ':' + lobby.mode, 2) : (teamABetter ? 0 : 1);
+    const winnerIndices = lobby.slots.map((s,i)=>i).filter(i => teamOfIdx(i, lobby.totalPlayers) === winnerTeam);
+    return { tie:false, winnerTeam, winnerIndices, winnerIdx: winnerIndices[0] ?? 0, tieBreak: isTie, tiedCandidates: isTie ? [0,1] : null, tieBreakIsTeam: true };
   }
-  let winnerIdx = 0, tie = false;
-  lobby.results.forEach((r, i) => {
-    const better = lobby.mode === "standard" ? r.total > lobby.results[winnerIdx].total : r.total < lobby.results[winnerIdx].total;
-    if(better){ winnerIdx = i; tie = false; }
-    else if(r.total === lobby.results[winnerIdx].total && i !== winnerIdx) tie = true;
-  });
-  return { winnerIdx, tie, winnerIndices: [winnerIdx] };
+  const totals = lobby.results.map(r => r.total);
+  const extreme = lobby.mode === "standard" ? Math.max(...totals) : Math.min(...totals);
+  const candidates = totals.map((t,i)=>i).filter(i => totals[i] === extreme);
+  const winnerIdx = candidates.length === 1 ? candidates[0] : candidates[seededIndex(lobby.id + ':' + lobby.mode, candidates.length)];
+  return { winnerIdx, tie:false, winnerIndices:[winnerIdx], tieBreak: candidates.length > 1, tiedCandidates: candidates.length > 1 ? candidates : null, tieBreakIsTeam: false };
 }
 
 function setResultBadge(idx, label, amount){
