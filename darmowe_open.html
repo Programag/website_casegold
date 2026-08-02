@@ -401,84 +401,85 @@ document.getElementById("dailyBonusBtn").onclick = () => {
 setInterval(renderDailyBonusBtn, 1000);
 
 /* ---------------- distinct item pool per tier ----------------
-   Each free/level case has its own set of real items (pulled from the same
-   pools as the paid cases) so higher tiers unlock genuinely better skins —
-   not the same 10 templates with a price multiplier slapped on.
-   Top-drop targets escalate ~1.5x tier over tier, from ~300 zł (Free Case)
-   up to ~2500 zł (Skrzynka Legendy) - each tier's internal price curve is
-   the same shape as before, just rescaled to hit its new top value. */
+   Each free/level case has its own set of real items, pulled from the same
+   pools already used by the paid cases across the site (case_gold.html,
+   case_ultra.html, case_neon.html, case_waste.html, general-skin-db.js…) —
+   real skin/wear combos at their real prices, not the same cheap templates
+   with a price multiplier slapped on. Higher tiers unlock genuinely better
+   (and pricier) skins, escalating from a top drop of ~300 zł in Free Case
+   up to ~2500 zł in Skrzynka Legendy. */
 const TIER_ITEMS = {
   free: [ // top ~300 zł
-    {weapon:"MP5-SD", skin:"Co-Processor", wear:"MW", price:143.75, chance:30},
-    {weapon:"P90", skin:"Grim", wear:"FT", price:175.00, chance:22},
-    {weapon:"Glock-18", skin:"Off World", wear:"FT", price:193.75, chance:18},
-    {weapon:"USP-S", skin:"Check Engine", wear:"FT", price:206.25, chance:12},
-    {weapon:"FAMAS", skin:"Survivor Z", wear:"FT", price:243.75, chance:8},
-    {weapon:"P250", skin:"Valence", wear:"FT", price:262.50, chance:5},
-    {weapon:"SSG 08", skin:"Abyss", wear:"FT", price:268.75, chance:3},
-    {weapon:"Desert Eagle", skin:"Urban Rubble", wear:"FT", price:287.50, chance:1.5},
-    {weapon:"MP7", skin:"Akoben", wear:"FT", price:293.75, chance:0.4},
-    {weapon:"P2000", skin:"Oceanic", wear:"MW", price:300.00, chance:0.1}
+    {weapon:"M4A1-S", skin:"Basilisk", wear:"MW", price:45.36, chance:30},
+    {weapon:"Five-SeveN", skin:"Case Hardened", wear:"FT", price:66.84, chance:22},
+    {weapon:"AK-47", skin:"Point Disarray", wear:"FT", price:90.21, chance:18},
+    {weapon:"AK-47", skin:"Frontside Misty", wear:"WW", price:115.75, chance:12},
+    {weapon:"FAMAS", skin:"Styx", wear:"MW", price:148.80, chance:8},
+    {weapon:"M4A1-S", skin:"Bright Water", wear:"FT", price:184.16, chance:5},
+    {weapon:"Desert Eagle", skin:"Printstream", wear:"FT", price:221.20, chance:3},
+    {weapon:"AWP", skin:"Wildfire", wear:"BS", price:264.03, chance:1.5},
+    {weapon:"Desert Eagle", skin:"Printstream", wear:"MW", price:282.47, chance:0.4},
+    {weapon:"CZ75-Auto", skin:"Emerald", wear:"FN", price:291.18, chance:0.1}
   ],
   lvl10: [ // top ~460 zł
-    {weapon:"Glock-18", skin:"Moonrise", wear:"FT", price:305.66, chance:30},
-    {weapon:"CZ75-Auto", skin:"Tacticat", wear:"FT", price:308.68, chance:22},
-    {weapon:"UMP-45", skin:"Exposure", wear:"FT", price:308.68, chance:18},
-    {weapon:"Glock-18", skin:"Bunsen Burner", wear:"FT", price:326.84, chance:12},
-    {weapon:"Galil AR", skin:"Rocket Pop", wear:"FT", price:378.29, chance:8},
-    {weapon:"Glock-18", skin:"Weasel", wear:"FT", price:399.47, chance:5},
-    {weapon:"CZ75-Auto", skin:"Pole Position", wear:"FT", price:408.55, chance:3},
-    {weapon:"Negev", skin:"Loudmouth", wear:"FT", price:441.09, chance:1.5},
-    {weapon:"SSG 08", skin:"Ghost Crusader", wear:"FT", price:456.97, chance:0.4},
-    {weapon:"Negev", skin:"Power Loader", wear:"WW", price:460.00, chance:0.1}
+    {weapon:"Five-SeveN", skin:"Case Hardened", wear:"FT", price:66.84, chance:30},
+    {weapon:"USP-S", skin:"Overgrowth", wear:"FT", price:101.48, chance:22},
+    {weapon:"Desert Eagle", skin:"Midnight Storm", wear:"BS", price:128.05, chance:18},
+    {weapon:"M4A4", skin:"Hellish", wear:"FT", price:182.66, chance:12},
+    {weapon:"USP-S", skin:"Printstream", wear:"FT", price:223.63, chance:8},
+    {weapon:"AWP", skin:"Printstream", wear:"FT", price:290.48, chance:5},
+    {weapon:"Dual Berettas", skin:"Emerald", wear:"FN", price:340.99, chance:3},
+    {weapon:"Five-SeveN", skin:"Fairy Tale", wear:"MW", price:384.21, chance:1.5},
+    {weapon:"Five-SeveN", skin:"Crimson Blossom", wear:"MW", price:433.52, chance:0.4},
+    {weapon:"AWP", skin:"Printstream", wear:"MW", price:469.42, chance:0.1}
   ],
   lvl20: [ // top ~700 zł
-    {weapon:"AWP", skin:"Pit Viper", wear:"MW", price:445.70, chance:30},
-    {weapon:"Glock-18", skin:"Moonrise", wear:"MW", price:478.52, chance:22},
-    {weapon:"SSG 08", skin:"Slashed", wear:"WW", price:503.13, chance:18},
-    {weapon:"P90", skin:"Elite Build", wear:"FT", price:530.47, chance:12},
-    {weapon:"P90", skin:"Chopper", wear:"MW", price:549.61, chance:8},
-    {weapon:"P250", skin:"Wingshot", wear:"FT", price:555.08, chance:5},
-    {weapon:"AK-47", skin:"Elite Build", wear:"FT", price:579.69, chance:3},
-    {weapon:"P250", skin:"Supernova", wear:"FT", price:658.98, chance:1.5},
-    {weapon:"AWP", skin:"Worm God", wear:"FT", price:697.27, chance:0.4},
-    {weapon:"Galil AR", skin:"Sandstorm", wear:"FT", price:700.00, chance:0.1}
+    {weapon:"AK-47", skin:"Point Disarray", wear:"WW", price:97.76, chance:30},
+    {weapon:"FAMAS", skin:"Styx", wear:"MW", price:148.80, chance:22},
+    {weapon:"M4A4", skin:"Temukau", wear:"FT", price:197.26, chance:18},
+    {weapon:"Desert Eagle", skin:"Printstream", wear:"MW", price:282.47, chance:12},
+    {weapon:"FAMAS", skin:"Waters of Nephthys", wear:"FT", price:365.38, chance:8},
+    {weapon:"AK-47", skin:"Neon Rider", wear:"MW", price:449.64, chance:5},
+    {weapon:"P2000", skin:"Fire Elemental", wear:"FT", price:482.16, chance:3},
+    {weapon:"MAC-10", skin:"Fade", wear:"FN", price:556.28, chance:1.5},
+    {weapon:"USP-S", skin:"Kill Confirmed", wear:"MW", price:635.63, chance:0.4},
+    {weapon:"M4A1-S", skin:"Master Piece", wear:"BS", price:731.22, chance:0.1}
   ],
   lvl30: [ // top ~1070 zł
-    {weapon:"AWP", skin:"Phobos", wear:"FT", price:538.09, chance:30},
-    {weapon:"AWP", skin:"Worm God", wear:"MW", price:618.50, chance:22},
-    {weapon:"Galil AR", skin:"Stone Cold", wear:"FT", price:622.62, chance:18},
-    {weapon:"CZ75-Auto", skin:"Tigris", wear:"MW", price:700.96, chance:12},
-    {weapon:"AK-47", skin:"Emerald Pinstripe", wear:"FT", price:733.95, chance:8},
-    {weapon:"USP-S", skin:"Guardian", wear:"MW", price:742.20, chance:5},
-    {weapon:"M4A1-S", skin:"Flashback", wear:"WW", price:812.29, chance:3},
-    {weapon:"M4A4", skin:"Evil Daimyo", wear:"FT", price:812.29, chance:1.5},
-    {weapon:"USP-S", skin:"Cyrex", wear:"FT", price:822.60, chance:0.4},
-    {weapon:"M4A4", skin:"Griffin", wear:"FT", price:1070.00, chance:0.1}
+    {weapon:"AWP", skin:"Pink DDPAT", wear:"FT", price:169.20, chance:30},
+    {weapon:"USP-S", skin:"Printstream", wear:"FT", price:223.63, chance:22},
+    {weapon:"M4A1-S", skin:"Dark Water", wear:"FT", price:326.68, chance:18},
+    {weapon:"Five-SeveN", skin:"Crimson Blossom", wear:"MW", price:433.52, chance:12},
+    {weapon:"MAC-10", skin:"Fade", wear:"FN", price:556.28, chance:8},
+    {weapon:"USP-S", skin:"Kill Confirmed", wear:"MW", price:635.63, chance:5},
+    {weapon:"MAG-7", skin:"Counter Terrace", wear:"MW", price:811.72, chance:3},
+    {weapon:"Gut Knife", skin:"Fade", wear:"FN", price:866.31, chance:1.5},
+    {weapon:"AWP", skin:"Containment Breach", wear:"FN", price:969.90, chance:0.4},
+    {weapon:"Gut Knife", skin:"Gamma Doppler Phase 1", wear:"FN", price:1035.33, chance:0.1}
   ],
   lvl40: [ // top ~1600 zł
-    {weapon:"USP-S", skin:"Cyrex", wear:"MW", price:446.96, chance:30},
-    {weapon:"M4A1-S", skin:"Blood Tiger", wear:"MW", price:493.08, chance:22},
-    {weapon:"Tec-9", skin:"Isaac", wear:"MW", price:518.24, chance:18},
-    {weapon:"USP-S", skin:"Guardian", wear:"FN", price:709.43, chance:12},
-    {weapon:"M4A1-S", skin:"Basilisk", wear:"FT", price:868.76, chance:8},
-    {weapon:"M4A1-S", skin:"Basilisk", wear:"MW", price:950.94, chance:5},
-    {weapon:"Desert Eagle", skin:"Crimson Web", wear:"FT", price:1189.10, chance:3},
-    {weapon:"Five-SeveN", skin:"Case Hardened", wear:"FT", price:1401.26, chance:1.5},
-    {weapon:"AK-47", skin:"Blue Laminate", wear:"FT", price:1591.61, chance:0.4},
-    {weapon:"MAC-10", skin:"Amber Fade", wear:"MW", price:1600.00, chance:0.1}
+    {weapon:"Desert Eagle", skin:"Printstream", wear:"FT", price:221.20, chance:30},
+    {weapon:"USP-S", skin:"Printstream", wear:"MW", price:375.24, chance:22},
+    {weapon:"Sawed-Off", skin:"The Kraken", wear:"MW", price:478.32, chance:18},
+    {weapon:"USP-S", skin:"Kill Confirmed", wear:"MW", price:635.63, chance:12},
+    {weapon:"Hand Wraps", skin:"CAUTION!", wear:"FT", price:828.66, chance:8},
+    {weapon:"AWP", skin:"Containment Breach", wear:"FN", price:969.90, chance:5},
+    {weapon:"M4A1-S", skin:"Printstream", wear:"FT", price:1167.67, chance:3},
+    {weapon:"Shadow Daggers", skin:"Gamma Doppler Emerald", wear:"FN", price:1393.67, chance:1.5},
+    {weapon:"Galil AR", skin:"Phoenix Blacklight", wear:"FN", price:1506.67, chance:0.4},
+    {weapon:"AWP", skin:"Printstream", wear:"FN", price:1534.91, chance:0.1}
   ],
   lvl50: [ // top ~2500 zł
-    {weapon:"AK-47", skin:"Point Disarray", wear:"FT", price:308.42, chance:30},
-    {weapon:"USP-S", skin:"Overgrowth", wear:"FT", price:346.95, chance:22},
-    {weapon:"AK-47", skin:"Orbit Mk01", wear:"FT", price:428.33, chance:18},
-    {weapon:"Desert Eagle", skin:"Midnight Storm", wear:"BS", price:437.80, chance:12},
-    {weapon:"AWP", skin:"Pink DDPAT", wear:"FT", price:578.49, chance:8},
-    {weapon:"M4A1-S", skin:"Bright Water", wear:"FT", price:629.63, chance:5},
-    {weapon:"Desert Eagle", skin:"Ocean Drive", wear:"WW", price:1305.49, chance:3},
-    {weapon:"Sawed-Off", skin:"The Kraken", wear:"MW", price:1635.35, chance:1.5},
-    {weapon:"MAC-10", skin:"Fade", wear:"FN", price:1901.89, chance:0.4},
-    {weapon:"M4A1-S", skin:"Master Piece", wear:"BS", price:2500.00, chance:0.1}
+    {weapon:"AWP", skin:"Green Energy", wear:"FN", price:376.97, chance:30},
+    {weapon:"MAC-10", skin:"Fade", wear:"FN", price:556.28, chance:22},
+    {weapon:"M4A1-S", skin:"Master Piece", wear:"BS", price:731.22, chance:18},
+    {weapon:"Gut Knife", skin:"Gamma Doppler Phase 1", wear:"FN", price:1035.33, chance:12},
+    {weapon:"Hand Wraps", skin:"Cobalt Skulls", wear:"WW", price:1204.41, chance:8},
+    {weapon:"AWP", skin:"Printstream", wear:"FN", price:1534.91, chance:5},
+    {weapon:"M4A1-S", skin:"Fade", wear:"FN", price:1787.29, chance:3},
+    {weapon:"AWP", skin:"Oni Taiji", wear:"MW", price:2193.58, chance:1.5},
+    {weapon:"M4A1-S", skin:"Icarus Fell", wear:"FN", price:2524.28, chance:0.4},
+    {weapon:"M4A4", skin:"Hellfire", wear:"FN", price:2608.39, chance:0.1}
   ]
 };
 function rarityColor(it){
