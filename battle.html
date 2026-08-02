@@ -1203,6 +1203,11 @@
           <input type="range" id="randomBudgetSlider" min="0" max="0" step="0.01" value="0">
           <div class="nb-random-budget-amount" id="randomBudgetAmount">0,00 zł</div>
         </div>
+        <div class="nb-random-budget-label" style="margin-top:14px;">Maks. liczba skrzynek</div>
+        <div class="nb-random-budget-row">
+          <input type="range" id="randomCountSlider" min="1" max="40" step="1" value="40">
+          <div class="nb-random-budget-amount" id="randomCountAmount">40</div>
+        </div>
         <div class="nb-random-budget-actions">
           <button class="nb-random-roll-btn" id="randomBudgetRollBtn" type="button">🎲 Losuj zestaw</button>
           <span class="nb-random-budget-hint" id="randomBudgetHint"></span>
@@ -2537,8 +2542,12 @@ const randomBudgetToggleBtn = document.getElementById("randomBudgetToggleBtn");
 const randomBudgetPanel = document.getElementById("randomBudgetPanel");
 const randomBudgetSlider = document.getElementById("randomBudgetSlider");
 const randomBudgetAmountEl = document.getElementById("randomBudgetAmount");
+const randomCountSlider = document.getElementById("randomCountSlider");
+const randomCountAmountEl = document.getElementById("randomCountAmount");
 const randomBudgetRollBtn = document.getElementById("randomBudgetRollBtn");
 const randomBudgetHintEl = document.getElementById("randomBudgetHint");
+randomCountSlider.max = String(MAX_ROUNDS);
+if(Number(randomCountSlider.value) > MAX_ROUNDS) randomCountSlider.value = String(MAX_ROUNDS);
 
 function randomizableCasePool(){
   return Object.values(BATTLE_CASES).slice().sort((a,b) => a.price - b.price);
@@ -2564,9 +2573,10 @@ function refreshRandomBudgetBounds(){
   randomBudgetAmountEl.textContent = fmt(Number(randomBudgetSlider.value));
   const canAfford = balance >= cheapest;
   randomBudgetSlider.disabled = !canAfford;
+  randomCountSlider.disabled = !canAfford;
   randomBudgetRollBtn.disabled = !canAfford;
   randomBudgetHintEl.textContent = canAfford
-    ? "Wylosuje losowy zestaw skrzynek o łącznej wartości jak najbliższej wybranemu budżetowi (max 40 rund) — zastąpi obecny wybór."
+    ? `Wylosuje losowy zestaw maks. ${randomCountSlider.value} skrzynek o łącznej wartości jak najbliższej wybranemu budżetowi — zastąpi obecny wybór.`
     : "Za mało środków na jakąkolwiek skrzynkę.";
 }
 randomBudgetToggleBtn.onclick = () => {
@@ -2578,12 +2588,17 @@ randomBudgetToggleBtn.onclick = () => {
 randomBudgetSlider.oninput = () => {
   randomBudgetAmountEl.textContent = fmt(Number(randomBudgetSlider.value));
 };
+randomCountSlider.oninput = () => {
+  randomCountAmountEl.textContent = randomCountSlider.value;
+  randomBudgetHintEl.textContent = `Wylosuje losowy zestaw maks. ${randomCountSlider.value} skrzynek o łącznej wartości jak najbliższej wybranemu budżetowi — zastąpi obecny wybór.`;
+};
 function rollRandomBudgetSet(){
   const pool = randomizableCasePool();
   if(pool.length === 0) return;
+  const maxCount = Math.min(MAX_ROUNDS, Math.max(1, Number(randomCountSlider.value) || MAX_ROUNDS));
   let remaining = Number(randomBudgetSlider.value);
   const picked = [];
-  while(picked.length < MAX_ROUNDS){
+  while(picked.length < maxCount){
     const affordable = pool.filter(c => c.price <= remaining);
     if(affordable.length === 0) break;
     const pick = affordable[Math.floor(Math.random() * affordable.length)];
@@ -2597,7 +2612,7 @@ function rollRandomBudgetSet(){
     log("Losowanie: budżet za mały na choćby jedną skrzynkę.");
   } else {
     const total = picked.reduce((s,k) => s + getCaseData(k).price, 0);
-    log(`Wylosowano zestaw ${picked.length} skrzynek za łącznie ${fmt(total)} (budżet: ${fmt(Number(randomBudgetSlider.value))}).`);
+    log(`Wylosowano zestaw ${picked.length} skrzynek za łącznie ${fmt(total)} (budżet: ${fmt(Number(randomBudgetSlider.value))}, maks. ${maxCount} skrzynek).`);
   }
 }
 randomBudgetRollBtn.onclick = rollRandomBudgetSet;
