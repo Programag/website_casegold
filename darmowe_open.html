@@ -630,14 +630,14 @@ openBtn.onclick = () => {
 
   setTimeout(() => {
     spinning = false;
-    state.balance += winner.price;
+    state.invCounter++;
+    state.inventory.push({ weapon: winner.weapon, skin: winner.skin, wear: winner.wear, price: winner.price, img: getSkinImage(winner), _id: state.invCounter });
     window.SteamAuth.recordPull(winner);
     window.SteamAuth.recordCasesOpened(1);
     localStorage.setItem(CASE.key, String(now));
-    renderBalance();
     saveState(state);
     playWinSound();
-    showToast(`Wypadło: ${winner.weapon} | ${winner.skin} (${winner.wear}) — +${fmt(winner.price)}!`);
+    showToast(`Wypadło: ${winner.weapon} | ${winner.skin} (${winner.wear}) — ${fmt(winner.price)}! Sprawdź ekwipunek.`);
     renderCountdown();
   }, duration + 150);
 };
