@@ -3124,11 +3124,20 @@ function spinMiniTo(track, winnerIndex){
 /* Fades every slot's current stage card out, archives it into that slot's
    history stack (newest on top), then clears the stage so only the current
    round's spin is shown up top while past pulls remain visible below. */
-function fadeOutStages(lobby, roundIdx){
+function fadeOutStages(lobby, roundIdx, token){
   const count = lobby.slots.length;
   return new Promise(resolve => {
     for(let i=0;i<count;i++) document.getElementById(`stage-${i}`).classList.add("stage-fading");
     setTimeout(() => {
+      // This 240ms delay is exactly the window where a stale chain (the
+      // viewer left and re-entered the same battle mid-round, see
+      // animationToken above) can still be "in flight" here when the fresh
+      // chain's fastForwardRounds() already archived this very round -
+      // without this check both would insert a history entry for it,
+      // duplicating only that one boundary round while every other round
+      // stays correct. Never resolving in that case is deliberate: it also
+      // stops the stale chain's .then(startSpin) from ever firing.
+      if(token !== undefined && token !== animationToken) return;
       for(let i=0;i<count;i++){
         const stage = document.getElementById(`stage-${i}`);
         const it = lobby.results[i].rounds[roundIdx];
@@ -3285,6 +3294,7 @@ function runLobbyRounds(lobby, roundIdx, opts){
   const pool = getCaseData(caseKey).items;
 
   const startSpin = () => {
+    if(opts && opts.token !== undefined && opts.token !== animationToken) return;
     playSpinSound(MINI_SPIN_MS);
     lobby.slots.forEach((s, i) => {
       const stage = document.getElementById(`stage-${i}`);
@@ -3353,7 +3363,7 @@ function runLobbyRounds(lobby, roundIdx, opts){
   };
 
   if(roundIdx === 0) startSpin();
-  else fadeOutStages(lobby, roundIdx - 1).then(startSpin);
+  else fadeOutStages(lobby, roundIdx - 1, opts && opts.token).then(startSpin);
 }
 
 /* "↻ Odtwórz od początku" on a finished battle — replays the exact same
