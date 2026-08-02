@@ -546,6 +546,9 @@
   // żyją tylko na serwerze (i wygasają), więc trzymamy tu tylko tyle, żeby
   // dało się pokazać listę i spróbować dociągnąć pełny replay po lobbyId.
   const BATTLE_HISTORY_MAX = 30;
+  function warsawDateString(epochMs) {
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Warsaw" }).format(new Date(epochMs));
+  }
   function readBattleHistory() {
     try {
       const arr = JSON.parse(localStorage.getItem(STATE_KEY) || "{}").battleHistory;
@@ -561,7 +564,14 @@
     const list = Array.isArray(s.battleHistory) ? s.battleHistory.slice() : [];
     const filtered = list.filter((e) => e.lobbyId !== entry.lobbyId);
     filtered.unshift({ ...entry, at: entry.at || Date.now() });
-    s.battleHistory = filtered.slice(0, BATTLE_HISTORY_MAX);
+    // Wpisy z dzisiaj nigdy nie są obcinane limitem - "niefart dnia" liczy
+    // dzisiejsze przegrane właśnie z tej tablicy, więc obcięcie starym
+    // limitem potrafiło wyrzucić dzisiejszą przegraną przy każdej kolejnej
+    // zagranej bitwie (także wygranej), fałszując licznik w topce.
+    const todayStr = warsawDateString(Date.now());
+    const todays = filtered.filter((e) => warsawDateString(e.at) === todayStr);
+    const older = filtered.filter((e) => warsawDateString(e.at) !== todayStr);
+    s.battleHistory = todays.concat(older.slice(0, Math.max(0, BATTLE_HISTORY_MAX - todays.length)));
     s.updatedAt = Date.now();
     try { localStorage.setItem(STATE_KEY, JSON.stringify(s)); } catch (e) {}
     schedulePush();
