@@ -1798,16 +1798,24 @@ const BATTLE_CASES = {
    więc każda nowa skrzynka w tej kategorii dostaje tę funkcję od razu, bez
    osobnego dopisywania jej tutaj. */
 function topPriceKeys(items, n){
-  return items.slice().sort((a,b) => b.price - a.price).slice(0,n)
-    .map(it => `${it.weapon}|${it.skin}|${it.wear}`);
+  return new Set(items.slice().sort((a,b) => b.price - a.price).slice(0,n)
+    .map(it => `${it.weapon}|${it.skin}|${it.wear}`));
 }
-const STANDARDOWE_TOP5 = new Set(
+// Mapa PER SKRZYNKA (nie jeden wspólny zbiór) - ten sam skin bywa w puli
+// kilku różnych skrzynek naraz z inną ceną względem reszty, więc np. nóż za
+// ~2800zł może być top 5 w jednej skrzynce, a w drugiej (same droższe noże)
+// jednym z tańszych trafień. Wspólny, spłaszczony zbiór kluczy fałszywie
+// oznaczał taki drop jako "rzadki" wszędzie tam, gdzie ten sam skin się
+// pojawiał, niezależnie od jego faktycznej pozycji w puli AKTUALNIE
+// otwieranej skrzynki - stąd zgłoszony błąd.
+const STANDARDOWE_TOP5_BY_CASE = new Map(
   Object.values(BATTLE_CASES)
     .filter(c => c.tag === "standardowe")
-    .flatMap(c => topPriceKeys(c.items, 5))
+    .map(c => [c.key, topPriceKeys(c.items, 5)])
 );
-function isTopStandardowePull(it){
-  return STANDARDOWE_TOP5.has(`${it.weapon}|${it.skin}|${it.wear}`);
+function isTopStandardowePull(it, caseKey){
+  const top5 = STANDARDOWE_TOP5_BY_CASE.get(baseCaseKey(caseKey));
+  return !!top5 && top5.has(`${it.weapon}|${it.skin}|${it.wear}`);
 }
 
 /* =========================================================================
@@ -3202,7 +3210,7 @@ function fadeOutStages(lobby, roundIdx, token){
           const priorMax = Math.max(0, ...lobby.results[i].rounds.slice(0, roundIdx).map(r => r.price));
           const isBest = it.price >= priorMax;
           const entry = document.createElement("div");
-          entry.className = "history-entry" + (isBest ? " best" : "") + (isTopStandardowePull(it) ? " top-standardowe" : "");
+          entry.className = "history-entry" + (isBest ? " best" : "") + (isTopStandardowePull(it, lobby.rounds[roundIdx]) ? " top-standardowe" : "");
           entry.style.setProperty("--rarity", rarityColor(it));
           entry.innerHTML = `
             <span class="h-wear-tag">${it.wear}</span>
@@ -3257,7 +3265,7 @@ function fastForwardRounds(lobby, uptoRoundIdxExclusive){
       if(!history) continue;
       const img = getSkinImage(it);
       const entry = document.createElement("div");
-      entry.className = "history-entry" + (isTopStandardowePull(it) ? " top-standardowe" : "");
+      entry.className = "history-entry" + (isTopStandardowePull(it, lobby.rounds[r]) ? " top-standardowe" : "");
       entry.style.setProperty("--rarity", rarityColor(it));
       entry.innerHTML = `
         <span class="h-wear-tag">${it.wear}</span>
@@ -3368,7 +3376,7 @@ function runLobbyRounds(lobby, roundIdx, opts){
         const stage = document.getElementById(`stage-${i}`);
         stage.classList.remove("spinning");
         stage.classList.add("reveal-stage");
-        const isRare = isTopStandardowePull(it);
+        const isRare = isTopStandardowePull(it, lobby.rounds[roundIdx]);
         stage.classList.toggle("top-pull-stage", isRare);
         if(isRare) anyRarePull = true;
         stage.style.setProperty("--rarity", rarityColor(it));
@@ -3770,7 +3778,7 @@ function renderInstantFinalState(lobby){
     const stage = document.getElementById(`stage-${i}`);
     stage.classList.add("reveal-stage");
     if(it){
-      stage.classList.toggle("top-pull-stage", isTopStandardowePull(it));
+      stage.classList.toggle("top-pull-stage", isTopStandardowePull(it, lobby.rounds[rounds.length - 1]));
       stage.style.setProperty("--rarity", rarityColor(it));
       const img = getSkinImage(it);
       stage.innerHTML = `
@@ -3788,7 +3796,7 @@ function renderInstantFinalState(lobby){
         const past = rounds[r];
         const img = getSkinImage(past);
         const entry = document.createElement("div");
-        entry.className = "history-entry" + (past.price === bestPrice ? " best" : "") + (isTopStandardowePull(past) ? " top-standardowe" : "");
+        entry.className = "history-entry" + (past.price === bestPrice ? " best" : "") + (isTopStandardowePull(past, lobby.rounds[r]) ? " top-standardowe" : "");
         entry.style.setProperty("--rarity", rarityColor(past));
         entry.innerHTML = `
           <span class="h-wear-tag">${past.wear}</span>
