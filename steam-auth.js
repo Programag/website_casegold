@@ -321,7 +321,7 @@
   }
 
   // ---- Nagrody za poziom: skin najbliższy 100 zł za poziom 1, każdy
-  // kolejny poziom o 10% droższy niż poprzedni (100 * 1.1^(L-1)). Dobór
+  // kolejny poziom o 5% droższy niż poprzedni (100 * 1.05^(L-1)). Dobór
   // konkretnego przedmiotu jest deterministyczny (zawsze ten sam skin z
   // GENERAL_SKIN_DB dla danego poziomu), więc nie trzeba go zapamiętywać -
   // wystarczy pamiętać, KTÓRE poziomy zostały odebrane. To musi być zbiór
@@ -330,7 +330,7 @@
   // a dopiero potem wrócić po 1-4; licznik "najwyższy odebrany" błędnie
   // uznałby wtedy 1-4 za odebrane, mimo że nigdy nie trafiły do ekwipunku.
   function levelRewardTargetPrice(level) {
-    return 100 * Math.pow(1.1, level - 1);
+    return 100 * Math.pow(1.05, level - 1);
   }
   function levelRewardItem(level) {
     if (typeof GENERAL_SKIN_DB === "undefined" || !Array.isArray(GENERAL_SKIN_DB) || level < 1) return null;
