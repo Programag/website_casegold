@@ -74,6 +74,7 @@ const SKIN_RARITY = {
   "Classic Knife|Fade": "var(--r-covert)", // Covert
   "Desert Eagle|Blaze": "var(--r-restricted)", // Restricted
   "Desert Eagle|Crimson Web": "var(--r-restricted)", // Restricted
+  "Desert Eagle|Emerald Jörmungandr": "var(--r-restricted)", // Restricted
   "Desert Eagle|Golden Koi": "var(--r-covert)", // Covert
   "Desert Eagle|Heirloom": "var(--r-restricted)", // Restricted
   "Desert Eagle|Midnight Storm": "var(--r-milspec)", // Industrial Grade
@@ -220,6 +221,7 @@ const SKIN_RARITY = {
   "P90|Astral Jörmungandr": "var(--r-restricted)", // Restricted
   "P90|Chopper": "var(--r-restricted)", // Restricted
   "P90|Elite Build": "var(--r-milspec)", // Mil-Spec Grade
+  "P90|Emerald Dragon": "var(--r-classified)", // Classified
   "P90|Facility Negative": "var(--r-milspec)", // Mil-Spec Grade
   "P90|Grim": "var(--r-milspec)", // Mil-Spec Grade
   "P90|ScaraB Rush": "var(--r-restricted)", // Restricted
@@ -242,6 +244,7 @@ const SKIN_RARITY = {
   "Shadow Daggers|Gamma Doppler Emerald": "var(--r-covert)", // Extraordinary
   "Skeleton Knife|Doppler Black Pearl": "var(--r-covert)", // Extraordinary
   "Skeleton Knife|Slaughter": "var(--r-covert)", // Covert
+  "Sport Gloves|Hedge Maze": "var(--r-covert)", // Extraordinary
   "Sport Gloves|Slingshot": "var(--r-covert)", // Extraordinary
   "Sport Gloves|Vice": "var(--r-covert)", // Extraordinary
   "Sport Gloves|Violet Beadwork": "var(--r-covert)", // Extraordinary

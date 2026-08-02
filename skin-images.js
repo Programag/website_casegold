@@ -77,6 +77,8 @@ const SKIN_IMAGES = {
   "CZ75-Auto|Victoria|WW": "https://cdn.g4skins.com/items/730_2/cz75-auto-victoria-(well-worn).png?v=4",
   "Desert Eagle|Blaze|FN": "https://cdn.g4skins.com/items/730_2/desert-eagle-blaze-(factory-new).png?v=4",
   "Desert Eagle|Crimson Web|FT": "https://cdn.g4skins.com/items/730_2/desert-eagle-crimson-web-(field-tested).png?v=4",
+  "Desert Eagle|Emerald Jörmungandr|FT": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL1m5fn8Sdk7v-RYqt_Lc-UHGKVz9F6ueZhW2fqzB51sGiGzNqrJXqWbAYmCpJ0RuYDshm_xNPmZuy07wDY3YwXni6okGoXuekvMmaE",
+  "Desert Eagle|Emerald Jörmungandr|MW": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL1m5fn8Sdk7v-RYqt_Lc-UHGKVz9F6ueZhW2fqzB51sGiGzNqrJXqWbAYmCpJ0RuYDshm_xNPmZuy07wDY3YwXni6okGoXuekvMmaE",
   "Desert Eagle|Golden Koi|FN": "https://cdn.g4skins.com/items/730_2/desert-eagle-golden-koi-(factory-new).png?v=4",
   "Desert Eagle|Heirloom|WW": "https://cdn.g4skins.com/items/730_2/desert-eagle-heirloom-(well-worn).png?v=4",
   "Desert Eagle|Midnight Storm|BS": "https://cdn.g4skins.com/items/730_2/desert-eagle-midnight-storm-(battle-scarred).png?v=4",
@@ -155,6 +157,7 @@ const SKIN_IMAGES = {
   "Karambit|Lore|FN": "https://cdn.g4skins.com/items/730_2/%E2%98%85-karambit-lore-(factory-new).png?v=4",
   "Karambit|Tiger Tooth|FN": "https://cdn.g4skins.com/items/730_2/%E2%98%85-karambit-tiger-tooth-(factory-new).png?v=4",
   "M249|Emerald Poison Dart|FN": "https://cdn.g4skins.com/items/730_2/m249-emerald-poison-dart-(factory-new).png?v=4",
+  "M249|Emerald Poison Dart|FT": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8zMK5wjFL0P_8PP1SJuKcCVif0-dxue9oQxa_nBovp3PRzNb8JX2VO1IpDsclRrEPtxXtxNSxYuuw4QHai9gWyCT2j3gYuHlt_a9cBlcR8wa2",
   "M249|System Lock|WW": "https://cdn.g4skins.com/items/730_2/m249-system-lock-(well-worn).png?v=4",
   "M4A1-S|Basilisk|FT": "https://cdn.g4skins.com/items/730_2/m4a1-s-basilisk-(field-tested).png?v=4",
   "M4A1-S|Basilisk|MW": "https://cdn.g4skins.com/items/730_2/m4a1-s-basilisk-(minimal-wear).png?v=4",
@@ -238,6 +241,7 @@ const SKIN_IMAGES = {
   "P90|Chopper|FT": "https://cdn.g4skins.com/items/730_2/p90-chopper-(field-tested).png?v=4",
   "P90|Chopper|MW": "https://cdn.g4skins.com/items/730_2/p90-chopper-(minimal-wear).png?v=4",
   "P90|Elite Build|FT": "https://cdn.g4skins.com/items/730_2/p90-elite-build-(field-tested).png?v=4",
+  "P90|Emerald Dragon|FT": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLhx8bf_jdk6-Cvb6tjH-DKXliS0-9gv95lRi67gVMm4m3Vzdmqci-SO1clX8Z1QeYO5xi5mtTuPu7l4FDc2o4TmH32jC1P8G81tLxM49od",
   "P90|Facility Negative|MW": "https://cdn.g4skins.com/items/730_2/p90-facility-negative-(minimal-wear).png?v=4",
   "P90|Grim|FT": "https://cdn.g4skins.com/items/730_2/p90-grim-(field-tested).png?v=4",
   "P90|ScaraB Rush|WW": "https://cdn.g4skins.com/items/730_2/p90-scarab-rush-(well-worn).png?v=4",
@@ -260,6 +264,10 @@ const SKIN_IMAGES = {
   "SSG 08|Slashed|WW": "https://cdn.g4skins.com/items/730_2/ssg-08-slashed-(well-worn).png?v=4",
   "Skeleton Knife|Doppler Black Pearl|FN": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1I5PeibbBiLs-SA1iSze91u_FsTju_qhAmoT-Jn4bjJC_4Ml93UtZuR7JYtEO-mtzjN-_gs1DXjN9MyHr92n4d7S89sL4AWaR2_vbSigzFZKp9v8c7W1qI3g",
   "Skeleton Knife|Slaughter|FN": "https://casesimulator.eu/skins/skeleton-knife-slaughter-factory-new.webp",
+  "Sport Gloves|Hedge Maze|BS": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Tk5UvzWCL2kpn2-DFk_OKherB0H_eBC2Ke_uJ_t-l9AX21whwi4Gndnov9JH_FblMlCJYjRbFZtkWww4HnNbjr7wWN39gUmH7gznQeohQBtY8",
+  "Sport Gloves|Hedge Maze|FT": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Tk5UvzWCL2kpn2-DFk_OKherB0H_eBC2Ke_uJ_t-l9AX21whwi4Gndnov9JH_FblMlCJYjRbFZtkWww4HnNbjr7wWN39gUmH7gznQeohQBtY8",
+  "Sport Gloves|Hedge Maze|MW": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Tk5UvzWCL2kpn2-DFk_OKherB0H_eBC2Ke_uJ_t-l9AX21whwi4Gndnov9JH_FblMlCJYjRbFZtkWww4HnNbjr7wWN39gUmH7gznQeohQBtY8",
+  "Sport Gloves|Hedge Maze|WW": "https://community.akamai.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Tk5UvzWCL2kpn2-DFk_OKherB0H_eBC2Ke_uJ_t-l9AX21whwi4Gndnov9JH_FblMlCJYjRbFZtkWww4HnNbjr7wWN39gUmH7gznQeohQBtY8",
   "Sport Gloves|Slingshot|MW": "https://casesimulator.eu/skins/sport-gloves-slingshot-minimal-wear.webp",
   "Sport Gloves|Vice|FN": "https://cdn.g4skins.com/items/730_2/%E2%98%85-sport-gloves-vice-(factory-new).png?v=4",
   "Sport Gloves|Violet Beadwork|FN": "https://cdn.g4skins.com/items/730_2/%E2%98%85-sport-gloves-violet-beadwork-(factory-new).png?v=4",
@@ -368,6 +376,7 @@ const CASE_IMAGES = {
   "Cosmos Case": "case_cosmos.PNG",
   "Flower Sticker": "sticker_flower.PNG",
   "Ice Sticker": "sticker_ice.PNG",
+  "Slime Case": "case_slime.PNG",
 };
 
 /* Zwraca link do obrazka danego przedmiotu na podstawie broni, skina i wear. */
