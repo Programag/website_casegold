@@ -108,6 +108,30 @@ async function writeUsers(users) {
 }
 
 // ---------------------------------------------------------------------------
+// readUsers()+writeUsers() to "przeczytaj CAŁY magazyn, zmień w pamięci,
+// zapisz CAŁY magazyn z powrotem" - bez żadnej izolacji między żądaniami.
+// Gdy dwa żądania, które modyfikują dane graczy (np. admin zmieniający komuś
+// saldo w panelu i ten sam gracz kończący akurat otwieranie skrzynki),
+// nakładają się w czasie, oba mogą przeczytać stan PRZED tym, jak
+// którekolwiek zdąży go zapisać - kto zapisze jako drugi, bezmyślnie
+// nadpisuje całym swoim (już nieaktualnym) stanem to, co właśnie zapisał
+// pierwszy. Klasyczny "lost update"; dokładnie objaw "zmieniam komuś saldo,
+// a jeśli w tej samej chwili coś otwiera, zmiana znika". Serializujemy więc
+// KAŻDĄ sekcję czytaj-zmień-zapisz przez jedną wspólną kolejkę promisów, więc
+// w danej chwili magazyn modyfikuje tylko jedno żądanie na raz - wystarczające
+// zabezpieczenie dla jednego procesu Node (tak działa ten serwis na Render).
+// ---------------------------------------------------------------------------
+let usersWriteQueue = Promise.resolve();
+function withUsersLock(fn) {
+  const run = usersWriteQueue.then(fn, fn);
+  usersWriteQueue = run.then(
+    () => {},
+    () => {}
+  );
+  return run;
+}
+
+// ---------------------------------------------------------------------------
 // Magazyn sesji logowania.
 //
 // express-session bez jawnie podanego `store` używa domyślnego MemoryStore,
@@ -280,20 +304,23 @@ passport.use(
     async (identifier, profile, done) => {
       try {
         const steamid = profile.id;
-        const users = await readUsers();
-        const existing = users[steamid];
-        users[steamid] = {
-          steamid,
-          displayName: profile.displayName,
-          avatar: (profile.photos && profile.photos[2] && profile.photos[2].value) ||
-            (profile.photos && profile.photos[0] && profile.photos[0].value) || null,
-          profileUrl: profile._json && profile._json.profileurl,
-          slug: existing && existing.slug ? existing.slug : assignSlug(users, steamid, profile.displayName),
-          state: existing ? existing.state : null,
-          createdAt: existing ? existing.createdAt : Date.now(),
-        };
-        await writeUsers(users);
-        done(null, users[steamid]);
+        const savedUser = await withUsersLock(async () => {
+          const users = await readUsers();
+          const existing = users[steamid];
+          users[steamid] = {
+            steamid,
+            displayName: profile.displayName,
+            avatar: (profile.photos && profile.photos[2] && profile.photos[2].value) ||
+              (profile.photos && profile.photos[0] && profile.photos[0].value) || null,
+            profileUrl: profile._json && profile._json.profileurl,
+            slug: existing && existing.slug ? existing.slug : assignSlug(users, steamid, profile.displayName),
+            state: existing ? existing.state : null,
+            createdAt: existing ? existing.createdAt : Date.now(),
+          };
+          await writeUsers(users);
+          return users[steamid];
+        });
+        done(null, savedUser);
       } catch (e) {
         done(e);
       }
@@ -417,93 +444,96 @@ app.get("/api/leaderboard", async (req, res) => {
 app.put("/api/state", async (req, res) => {
   if (!req.user) return res.status(401).json({ error: "not_logged_in" });
   const body = req.body || {};
-  let users;
+  let result;
   try {
-    users = await readUsers();
-  } catch (e) {
-    return res.status(503).json({ error: "storage_unavailable" });
-  }
-  const u = users[req.user.steamid];
-  if (!u) return res.status(404).json({ error: "no_such_user" });
+    // Cały odczyt-zmiana-zapis musi być zablokowany JEDNĄ wspólną kolejką
+    // (patrz withUsersLock) - inaczej ten push i np. równoległa edycja salda
+    // z panelu admina mogą oba przeczytać stan przed tym, jak którekolwiek
+    // zdąży go zapisać, i ten, kto zapisze jako drugi, zgubi zmiany pierwszego.
+    result = await withUsersLock(async () => {
+      const users = await readUsers();
+      const u = users[req.user.steamid];
+      if (!u) return { status: 404, body: { error: "no_such_user" } };
 
-  // Ochrona przed nadpisaniem ręcznej edycji z panelu admina (albo zapisu z
-  // innej karty/urządzenia) przez spóźniony, "nieświadomy" tego push z tej
-  // karty. Klient wysyła `baseUpdatedAt` - updatedAt serwera, jakie ostatnio
-  // faktycznie widział. Jeśli serwer ma już coś nowszego niż ta baza, to
-  // znaczy, że coś zmieniło stan w międzyczasie (np. admin) - odrzucamy ten
-  // zapis zamiast bezmyślnie go nadpisywać i zwracamy aktualny stan serwera,
-  // żeby klient mógł się na nowo zsynchronizować.
-  if (
-    u.state &&
-    typeof u.state.updatedAt === "number" &&
-    typeof body.baseUpdatedAt === "number" &&
-    u.state.updatedAt > body.baseUpdatedAt
-  ) {
-    return res.status(409).json({ error: "stale_write", state: u.state });
-  }
+      // Ochrona przed nadpisaniem ręcznej edycji z panelu admina (albo zapisu z
+      // innej karty/urządzenia) przez spóźniony, "nieświadomy" tego push z tej
+      // karty. Klient wysyła `baseUpdatedAt` - updatedAt serwera, jakie ostatnio
+      // faktycznie widział. Jeśli serwer ma już coś nowszego niż ta baza, to
+      // znaczy, że coś zmieniło stan w międzyczasie (np. admin) - odrzucamy ten
+      // zapis zamiast bezmyślnie go nadpisywać i zwracamy aktualny stan serwera,
+      // żeby klient mógł się na nowo zsynchronizować.
+      if (
+        u.state &&
+        typeof u.state.updatedAt === "number" &&
+        typeof body.baseUpdatedAt === "number" &&
+        u.state.updatedAt > body.baseUpdatedAt
+      ) {
+        return { status: 409, body: { error: "stale_write", state: u.state } };
+      }
 
-  const bestPull =
-    body.bestPull && typeof body.bestPull === "object" && typeof body.bestPull.price === "number"
-      ? {
-          weapon: String(body.bestPull.weapon || ""),
-          skin: String(body.bestPull.skin || ""),
-          wear: String(body.bestPull.wear || ""),
-          price: body.bestPull.price,
-          at: typeof body.bestPull.at === "number" ? body.bestPull.at : Date.now(),
-        }
-      : (u.state && u.state.bestPull) || null;
+      const bestPull =
+        body.bestPull && typeof body.bestPull === "object" && typeof body.bestPull.price === "number"
+          ? {
+              weapon: String(body.bestPull.weapon || ""),
+              skin: String(body.bestPull.skin || ""),
+              wear: String(body.bestPull.wear || ""),
+              price: body.bestPull.price,
+              at: typeof body.bestPull.at === "number" ? body.bestPull.at : Date.now(),
+            }
+          : (u.state && u.state.bestPull) || null;
 
-  // Zupełnie nowe konto (u.state === null) nigdy nie grało pod starym,
-  // nieprzeskalowanym wzorem - jego xp jest od razu w aktualnej skali, więc
-  // traktujemy je jako już zmigrowane, żeby ensureLevelWatermark nigdy go
-  // przypadkiem nie pomnożyło x10 przy jego DRUGIM kontakcie z serwerem.
-  const isBrandNewAccount = !u.state;
-  ensureLevelWatermark(u); // no-op tylko dla u.state === null; dla reszty patrz komentarz przy funkcji
-  // Jeśli powyższe dopiero co przeskalowało xp x10 (jednorazowa migracja
-  // starych kont), ten push mógł powstać z wartości SPRZED korekty (klient
-  // policzył go zanim zdążył zobaczyć poprawiony stan) - Math.max chroni
-  // przed przypadkowym nadpisaniem świeżo przeskalowanego xp starszą,
-  // 10x za niską liczbą z tego konkretnego zapisu.
-  const xpFloor = u.state && typeof u.state.xp === "number" ? u.state.xp : 0;
+      // Zupełnie nowe konto (u.state === null) nigdy nie grało pod starym,
+      // nieprzeskalowanym wzorem - jego xp jest od razu w aktualnej skali, więc
+      // traktujemy je jako już zmigrowane, żeby ensureLevelWatermark nigdy go
+      // przypadkiem nie pomnożyło x10 przy jego DRUGIM kontakcie z serwerem.
+      const isBrandNewAccount = !u.state;
+      ensureLevelWatermark(u); // no-op tylko dla u.state === null; dla reszty patrz komentarz przy funkcji
+      // Jeśli powyższe dopiero co przeskalowało xp x10 (jednorazowa migracja
+      // starych kont), ten push mógł powstać z wartości SPRZED korekty (klient
+      // policzył go zanim zdążył zobaczyć poprawiony stan) - Math.max chroni
+      // przed przypadkowym nadpisaniem świeżo przeskalowanego xp starszą,
+      // 10x za niską liczbą z tego konkretnego zapisu.
+      const xpFloor = u.state && typeof u.state.xp === "number" ? u.state.xp : 0;
 
-  u.state = {
-    balance: typeof body.balance === "number" ? body.balance : 0,
-    inventory: Array.isArray(body.inventory) ? body.inventory : [],
-    invCounter: typeof body.invCounter === "number" ? body.invCounter : 0,
-    level: typeof body.level === "number" ? body.level : 0,
-    xp: Math.max(typeof body.xp === "number" ? body.xp : 0, xpFloor),
-    dailyBonusAt: typeof body.dailyBonusAt === "number" ? body.dailyBonusAt : null,
-    dailyStreak: typeof body.dailyStreak === "number" ? body.dailyStreak : (u.state && u.state.dailyStreak) || 0,
-    freeCaseAt: typeof body.freeCaseAt === "number" ? body.freeCaseAt : null,
-    bestPull,
-    upgradeClicks: typeof body.upgradeClicks === "number" ? body.upgradeClicks : (u.state && u.state.upgradeClicks) || 0,
-    casesOpened: typeof body.casesOpened === "number" ? body.casesOpened : (u.state && u.state.casesOpened) || 0,
-    claimedLevelRewards: Array.isArray(body.claimedLevelRewards) ? body.claimedLevelRewards : (u.state && u.state.claimedLevelRewards) || [],
-    battleHistory: Array.isArray(body.battleHistory) ? body.battleHistory : (u.state && u.state.battleHistory) || [],
-    // Poziom jako wskaźnik wodny (patrz ensureLevelWatermark) - rośnie
-    // wyłącznie przez Math.max z tego, co przysłał klient, i tego, co już
-    // było zapisane. Nigdy nie może spaść, niezależnie od kolejności
-    // zapisów - odporne na wyścigi z definicji, bez potrzeby porównywania
-    // znaczników czasu jak przy pozostałych polach.
-    levelWatermark: Math.max(typeof body.levelWatermark === "number" ? body.levelWatermark : 0, (u.state && u.state.levelWatermark) || 0),
-    // Zachowane dla zgodności z ewentualnymi kontami zmigrowanymi starym
-    // mechanizmem (mnożenie xp) - używane tylko jako wskazówka wewnątrz
-    // ensureLevelWatermark, klient go już nie odczytuje ani nie wysyła.
-    xpScaleMigratedV2: isBrandNewAccount ? true : !!(u.state && u.state.xpScaleMigratedV2),
-    // Musi przetrwać każdy zwykły zapis z gry - to jedyny sposób, w jaki
-    // KAŻDA przeglądarka gracza (nie tylko ta, z której akurat przyszedł ten
-    // konkretny push) dowiaduje się, że admin autorytatywnie nadpisał stan
-    // (patrz PUT /api/admin/users/:steamid i merge w steam-auth.js).
-    adminOverrideAt: (u.state && typeof u.state.adminOverrideAt === "number") ? u.state.adminOverrideAt : null,
-    updatedAt: Date.now(),
-  };
-  try {
-    await writeUsers(users);
-    res.json({ ok: true, updatedAt: u.state.updatedAt });
+      u.state = {
+        balance: typeof body.balance === "number" ? body.balance : 0,
+        inventory: Array.isArray(body.inventory) ? body.inventory : [],
+        invCounter: typeof body.invCounter === "number" ? body.invCounter : 0,
+        level: typeof body.level === "number" ? body.level : 0,
+        xp: Math.max(typeof body.xp === "number" ? body.xp : 0, xpFloor),
+        dailyBonusAt: typeof body.dailyBonusAt === "number" ? body.dailyBonusAt : null,
+        dailyStreak: typeof body.dailyStreak === "number" ? body.dailyStreak : (u.state && u.state.dailyStreak) || 0,
+        freeCaseAt: typeof body.freeCaseAt === "number" ? body.freeCaseAt : null,
+        bestPull,
+        upgradeClicks: typeof body.upgradeClicks === "number" ? body.upgradeClicks : (u.state && u.state.upgradeClicks) || 0,
+        casesOpened: typeof body.casesOpened === "number" ? body.casesOpened : (u.state && u.state.casesOpened) || 0,
+        claimedLevelRewards: Array.isArray(body.claimedLevelRewards) ? body.claimedLevelRewards : (u.state && u.state.claimedLevelRewards) || [],
+        battleHistory: Array.isArray(body.battleHistory) ? body.battleHistory : (u.state && u.state.battleHistory) || [],
+        // Poziom jako wskaźnik wodny (patrz ensureLevelWatermark) - rośnie
+        // wyłącznie przez Math.max z tego, co przysłał klient, i tego, co już
+        // było zapisane. Nigdy nie może spaść, niezależnie od kolejności
+        // zapisów - odporne na wyścigi z definicji, bez potrzeby porównywania
+        // znaczników czasu jak przy pozostałych polach.
+        levelWatermark: Math.max(typeof body.levelWatermark === "number" ? body.levelWatermark : 0, (u.state && u.state.levelWatermark) || 0),
+        // Zachowane dla zgodności z ewentualnymi kontami zmigrowanymi starym
+        // mechanizmem (mnożenie xp) - używane tylko jako wskazówka wewnątrz
+        // ensureLevelWatermark, klient go już nie odczytuje ani nie wysyła.
+        xpScaleMigratedV2: isBrandNewAccount ? true : !!(u.state && u.state.xpScaleMigratedV2),
+        // Musi przetrwać każdy zwykły zapis z gry - to jedyny sposób, w jaki
+        // KAŻDA przeglądarka gracza (nie tylko ta, z której akurat przyszedł ten
+        // konkretny push) dowiaduje się, że admin autorytatywnie nadpisał stan
+        // (patrz PUT /api/admin/users/:steamid i merge w steam-auth.js).
+        adminOverrideAt: (u.state && typeof u.state.adminOverrideAt === "number") ? u.state.adminOverrideAt : null,
+        updatedAt: Date.now(),
+      };
+      await writeUsers(users);
+      return { status: 200, body: { ok: true, updatedAt: u.state.updatedAt } };
+    });
   } catch (e) {
     console.error(`PUT /api/state błąd zapisu dla ${req.user.steamid}:`, e.message);
-    res.status(503).json({ error: "storage_unavailable" });
+    return res.status(503).json({ error: "storage_unavailable" });
   }
+  res.status(result.status).json(result.body);
 });
 
 // ---- Admin: view/edit any player's name + balance ----
@@ -537,50 +567,57 @@ app.get("/api/admin/users", requireAdmin, async (req, res) => {
 });
 
 app.put("/api/admin/users/:steamid", requireAdmin, async (req, res) => {
-  let users;
+  const body = req.body || {};
+  let result;
   try {
-    users = await readUsers();
+    // Patrz komentarz przy PUT /api/state - ta sama blokada, bo inaczej ta
+    // edycja i np. równoległy push gracza (kończące się otwieranie skrzynki)
+    // mogą oba przeczytać stan przed tym, jak którekolwiek zdąży go zapisać,
+    // i ten, kto zapisze jako drugi, zgubi zmiany pierwszego - dokładnie
+    // objaw "zmieniam komuś saldo, a jeśli coś w tej chwili robi, znika".
+    result = await withUsersLock(async () => {
+      const users = await readUsers();
+      const u = users[req.params.steamid];
+      if (!u) return { status: 404, body: { error: "no_such_user" } };
+      if (!u.state) u.state = { balance: 0, inventory: [], invCounter: 0, level: 0, xp: 0 };
+      if (typeof body.balance === "number") u.state.balance = body.balance;
+      if (typeof body.level === "number") {
+        u.state.level = body.level;
+        // W przeciwieństwie do normalnej gry (gdzie levelWatermark rośnie
+        // WYŁĄCZNIE przez Math.max, żeby chronić przed przypadkowym/chwilowym
+        // zaniżeniem), ręczna edycja w panelu admina to świadoma, autorytatywna
+        // korekta - musi móc też OBNIŻYĆ poziom (np. po cofnięciu błędnie
+        // przyznanego EXP), więc ustawiamy wskaźnik wodny wprost, bez Math.max.
+        u.state.levelWatermark = body.level;
+      }
+      if (typeof body.xp === "number") u.state.xp = body.xp;
+      // Wartości wpisane ręcznie przez admina są z definicji już w aktualnej
+      // skali - kolejna automatyczna migracja x10 (ensureLevelWatermark) nie
+      // powinna ich już nigdy tykać.
+      u.state.xpScaleMigratedV2 = true;
+      if (Array.isArray(body.claimedLevelRewards)) {
+        u.state.claimedLevelRewards = body.claimedLevelRewards.filter((n) => typeof n === "number" && isFinite(n));
+      }
+      // Znacznik "admin właśnie autorytatywnie nadpisał ten stan" - klient
+      // (steam-auth.js) używa go, żeby w pełni zaufać serwerowi przy następnej
+      // synchronizacji, z pominięciem zwykłej ochrony "świeższy/wyższy wygrywa"
+      // (ta ochrona jest słuszna przy normalnej grze, ale nie może blokować
+      // świadomej korekty admina).
+      u.state.adminOverrideAt = Date.now();
+      u.state.updatedAt = u.state.adminOverrideAt;
+      await writeUsers(users);
+      return {
+        status: 200,
+        body: {
+          ok: true,
+          user: { steamid: u.steamid, displayName: u.displayName, balance: u.state.balance, level: u.state.level, xp: u.state.xp },
+        },
+      };
+    });
   } catch (e) {
     return res.status(503).json({ error: "storage_unavailable" });
   }
-  const u = users[req.params.steamid];
-  if (!u) return res.status(404).json({ error: "no_such_user" });
-  const body = req.body || {};
-  if (!u.state) u.state = { balance: 0, inventory: [], invCounter: 0, level: 0, xp: 0 };
-  if (typeof body.balance === "number") u.state.balance = body.balance;
-  if (typeof body.level === "number") {
-    u.state.level = body.level;
-    // W przeciwieństwie do normalnej gry (gdzie levelWatermark rośnie
-    // WYŁĄCZNIE przez Math.max, żeby chronić przed przypadkowym/chwilowym
-    // zaniżeniem), ręczna edycja w panelu admina to świadoma, autorytatywna
-    // korekta - musi móc też OBNIŻYĆ poziom (np. po cofnięciu błędnie
-    // przyznanego EXP), więc ustawiamy wskaźnik wodny wprost, bez Math.max.
-    u.state.levelWatermark = body.level;
-  }
-  if (typeof body.xp === "number") u.state.xp = body.xp;
-  // Wartości wpisane ręcznie przez admina są z definicji już w aktualnej
-  // skali - kolejna automatyczna migracja x10 (ensureLevelWatermark) nie
-  // powinna ich już nigdy tykać.
-  u.state.xpScaleMigratedV2 = true;
-  if (Array.isArray(body.claimedLevelRewards)) {
-    u.state.claimedLevelRewards = body.claimedLevelRewards.filter((n) => typeof n === "number" && isFinite(n));
-  }
-  // Znacznik "admin właśnie autorytatywnie nadpisał ten stan" - klient
-  // (steam-auth.js) używa go, żeby w pełni zaufać serwerowi przy następnej
-  // synchronizacji, z pominięciem zwykłej ochrony "świeższy/wyższy wygrywa"
-  // (ta ochrona jest słuszna przy normalnej grze, ale nie może blokować
-  // świadomej korekty admina).
-  u.state.adminOverrideAt = Date.now();
-  u.state.updatedAt = u.state.adminOverrideAt;
-  try {
-    await writeUsers(users);
-    res.json({
-      ok: true,
-      user: { steamid: u.steamid, displayName: u.displayName, balance: u.state.balance, level: u.state.level, xp: u.state.xp },
-    });
-  } catch (e) {
-    res.status(503).json({ error: "storage_unavailable" });
-  }
+  res.status(result.status).json(result.body);
 });
 
 // ---- Publiczna podstrona profilu, np. /profile/aleksio ----
