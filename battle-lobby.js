@@ -150,6 +150,10 @@ module.exports = function attachBattleLobby(io, { readUsers, redisGet, redisSet,
       if (!lobby || lobby.status !== "lobby") return ack({ ok: false, reason: "not_found" });
       if (!lobby.slots[idx] || lobby.slots[idx].type !== "empty") return ack({ ok: false, reason: "taken" });
       if (lobby.slots.some((s) => s.tabId === tabId)) return ack({ ok: false, reason: "already_in" });
+      // Osobny tabId (nowa karta/zakładka) nie znaczy osobny gracz - bez tego
+      // to samo konto Steam mogło zająć 2+ miejsc w swojej własnej bitwie,
+      // grając samo przeciwko sobie (gwarantowana wygrana / podział puli).
+      if (user && lobby.slots.some((s) => s.steamid === user.steamid)) return ack({ ok: false, reason: "already_seated" });
       const playerName = user ? user.displayName : String(name || "Gracz").slice(0, 18);
       lobby.slots[idx] = { type: "player", name: playerName, tabId: String(tabId || ""), steamid: user ? user.steamid : null, avatar: user ? user.avatar : null };
       lobby.stakedTotal = (lobby.stakedTotal || lobby.cost) + lobby.cost;

@@ -2647,12 +2647,22 @@ function joinSlot(lobbyId, idx){
   const existing = getLobby(lobbyId);
   if(!existing) return;
   if(existing.slots.some(s => s.tabId === myTabId)) return; // already seated somewhere
+  const mySteamid = window.__STEAM_AUTH__.user.steamid;
+  if(existing.slots.some(s => s.steamid === mySteamid)){
+    alert("Jesteś już w tej bitwie (z innej karty/zakładki) - nie możesz zająć drugiego miejsca tym samym kontem.");
+    return;
+  }
   let name = window.__STEAM_AUTH__.user.displayName;
   name = String(name).trim().slice(0, 18) || "Gracz";
 
   socket.emit("battle:join", { lobbyId, idx, tabId: myTabId, name }, (res) => {
     if(!res || !res.ok){
       if(res && res.reason === "not_logged_in"){ window.SteamAuth.requireLogin(); return; }
+      if(res && res.reason === "already_seated"){
+        alert("Jesteś już w tej bitwie (z innej karty/zakładki) - nie możesz zająć drugiego miejsca tym samym kontem.");
+        renderOpenLobbies();
+        return;
+      }
       alert("To miejsce zostało już zajęte.");
       renderOpenLobbies();
       return;
