@@ -269,6 +269,29 @@ const SKIN_RARITY = {
   "Sticker|Wildcard (Gold) | Shanghai 2024": "var(--r-covert)", // Extraordinary
   "Sticker|Zeusception (Holo)": "var(--r-restricted)", // Remarkable
   "Sticker|rox (Holo) | Antwerp 2022": "var(--r-classified)", // Exotic
+  "Sticker|Titan (Holo) | Katowice 2015": "var(--r-restricted)", // Remarkable
+  "Sticker|Natus Vincere (Holo) | Katowice 2015": "var(--r-restricted)", // Remarkable
+  "Sticker|Flipsid3 Tactics (Holo) | Katowice 2015": "var(--r-restricted)", // Remarkable
+  "Sticker|LGB eSports (Holo) | Katowice 2015": "var(--r-restricted)", // Remarkable
+  "Sticker|Keyd Stars (Holo) | Katowice 2015": "var(--r-restricted)", // Remarkable
+  "Sticker|Counter Logic Gaming (Holo) | Katowice 2015": "var(--r-restricted)", // Remarkable
+  "Sticker|Cloud9 G2A (Holo) | Katowice 2015": "var(--r-restricted)", // Remarkable
+  "Sticker|Virtus.pro (Holo) | Katowice 2015": "var(--r-restricted)", // Remarkable
+  "Sticker|3DMAX (Holo) | Katowice 2015": "var(--r-restricted)", // Remarkable
+  "Sticker|Fnatic (Holo) | Katowice 2015": "var(--r-restricted)", // Remarkable
+  "Sticker|Ninjas in Pyjamas (Holo) | Katowice 2015": "var(--r-restricted)", // Remarkable
+  "Sticker|LGB eSports | Katowice 2015": "var(--r-milspec)", // High Grade
+  "Sticker|3DMAX | Katowice 2015": "var(--r-milspec)", // High Grade
+  "Sticker|Titan | Katowice 2015": "var(--r-milspec)", // High Grade
+  "Sticker|HellRaisers | Katowice 2015": "var(--r-milspec)", // High Grade
+  "Sticker|Flipsid3 Tactics | Katowice 2015": "var(--r-milspec)", // High Grade
+  "Sticker|Cloud9 G2A | Katowice 2015": "var(--r-milspec)", // High Grade
+  "Sticker|Keyd Stars | Katowice 2015": "var(--r-milspec)", // High Grade
+  "Sticker|Counter Logic Gaming | Katowice 2015": "var(--r-milspec)", // High Grade
+  "Sticker|Natus Vincere | Katowice 2015": "var(--r-milspec)", // High Grade
+  "Sticker|Fnatic | Katowice 2015": "var(--r-milspec)", // High Grade
+  "Sticker|Virtus.pro | Katowice 2015": "var(--r-milspec)", // High Grade
+  "Sticker|Ninjas in Pyjamas | Katowice 2015": "var(--r-milspec)", // High Grade
   "Stiletto Knife|Doppler Black Pearl": "var(--r-covert)", // Extraordinary
   "Survival Knife|Doppler Black Pearl": "var(--r-covert)", // Extraordinary
   "Survival Knife|Tiger Tooth": "var(--r-covert)", // Covert
