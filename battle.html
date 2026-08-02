@@ -219,6 +219,13 @@
     font-size:11.5px; color:var(--muted); font-family:'JetBrains Mono',monospace;
     padding:4px 2px;
   }
+  .case-picker-heading{
+    grid-column:1/-1;
+    font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:1.5px;
+    font-size:14px; font-weight:600; margin:0; padding-top:4px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .case-picker-heading:not(:first-child){margin-top:8px;}
   .case-pick{
     background:var(--panel-2);
     border:1px solid var(--line);
@@ -1225,6 +1232,22 @@
 <script src="general-skin-db.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 <script>
+/* Ikonki/etykiety kategorii do grupowania skrzynek w panelu wyboru - te
+   same klucze co CATEGORIES w index.html, żeby nazewnictwo było spójne. */
+const CASE_CATEGORIES = {
+  "standardowe": { ic: "✨", label: "Standardowe" },
+  "wysokie-ryzyko": { ic: "⭐", label: "Wysokie ryzyko" },
+  "z-bronia": { ic: "🔫", label: "Z bronią" },
+  "all-in": { ic: "🔥", label: "All In" },
+  "naklejki": { ic: "🏷️", label: "Naklejki" },
+  "gem": { ic: "💎", label: "GEM CASES" },
+  "cs2": { ic: "🎯", label: "CS2 Cases" },
+  "collections": { ic: "📚", label: "CS2 Collections" },
+  "5050": { ic: "%", label: "50/50" },
+  "social": { ic: "🔗", label: "Social" },
+  "armory": { ic: "⭕", label: "Armory" },
+};
+
 /* =========================================================================
    DANE SKRZYNEK — te same pule przedmiotów co case_simulator.html
    i case_restricted.html (skopiowane, bo każdy plik skrzynki trzyma
@@ -1236,6 +1259,7 @@ const BATTLE_CASES = {
     name: "Dirt Case",
     price: 1.60,
     accent: "var(--r-milspec)",
+    tag: "standardowe",
     items: [
       {weapon:"MP5-SD", skin:"Co-Processor", wear:"MW", price:0.92, start:1, end:26015},
       {weapon:"P90", skin:"Facility Negative", wear:"MW", price:1.40, start:26016, end:39655},
@@ -1300,6 +1324,7 @@ const BATTLE_CASES = {
     name: "Iron Case",
     price: 9.60,
     accent: "var(--r-restricted)",
+    tag: "standardowe",
     items: [
       {weapon:"UMP-45", skin:"Arctic Wolf", wear:"FT", price:2.16, start:1, end:8195},
       {weapon:"M4A1-S", skin:"Nitro", wear:"FT", price:2.16, start:8196, end:16173},
@@ -1355,6 +1380,7 @@ const BATTLE_CASES = {
     name: "Gold Case",
     price: 20.30,
     accent: "var(--r-gold)",
+    tag: "standardowe",
     items: [
       {weapon:"Karambit", skin:"Tiger Tooth", wear:"FN", price:5366.53, start:1, end:10},
       {weapon:"Hand Wraps", skin:"Cobalt Skulls", wear:"WW", price:1204.41, start:11, end:20},
@@ -1387,6 +1413,7 @@ const BATTLE_CASES = {
     name: "Ultra Case",
     price: 228.10,
     accent: "var(--r-gold)",
+    tag: "standardowe",
     items: [
       {weapon:"M4A4", skin:"Howl", wear:"FN", price:37641.28, start:1, end:10},
       {weapon:"Talon Knife", skin:"Doppler Ruby", wear:"FN", price:17062.91, start:11, end:30},
@@ -1410,6 +1437,7 @@ const BATTLE_CASES = {
     name: "Neon Case",
     price: 196.70,
     accent: "var(--r-gold)",
+    tag: "standardowe",
     items: [
       {weapon:"Sport Gloves", skin:"Vice", wear:"FN", price:41515.62, start:1, end:20},
       {weapon:"Butterfly Knife", skin:"Fade", wear:"FN", price:12849.79, start:21, end:80},
@@ -1436,6 +1464,7 @@ const BATTLE_CASES = {
     name: "Snow Case",
     price: 71.80,
     accent: "var(--r-covert)",
+    tag: "all-in",
     noJester: true, // "All In" case — variance IS the point, no equal-odds variant
     items: [
       {weapon:"M4A1-S", skin:"Printstream", wear:"MW", price:1694.96, start:1, end:1000},
@@ -1455,6 +1484,7 @@ const BATTLE_CASES = {
     name: "Waste Case",
     price: 1921.90,
     accent: "var(--r-gold)",
+    tag: "standardowe",
     items: [
       {weapon:"Butterfly Knife", skin:"Gamma Doppler Emerald", wear:"FN", price:47266.68, start:1, end:100},
       {weapon:"Karambit", skin:"Gamma Doppler Emerald", wear:"FN", price:45380.13, start:101, end:300},
@@ -1479,6 +1509,7 @@ const BATTLE_CASES = {
     name: "Jungle Case",
     price: 22.00,
     accent: "var(--r-classified)",
+    tag: "standardowe",
     items: [
       {weapon:"AK-47", skin:"Wild Lotus", wear:"BS", price:22285.72, start:1, end:1},
       {weapon:"MP9", skin:"Wild Lily", wear:"FN", price:16893.98, start:2, end:3},
@@ -1508,6 +1539,7 @@ const BATTLE_CASES = {
     name: "Diamond Case",
     price: 108.00,
     accent: "var(--r-gold)",
+    tag: "standardowe",
     items: [
       {weapon:"AWP", skin:"Dragon Lore", wear:"FN", price:68893.35, start:1, end:10},
       {weapon:"AK-47", skin:"Gold Arabesque", wear:"FN", price:15175.81, start:11, end:20},
@@ -2035,29 +2067,49 @@ let visibility = "public";    // "public" | "private"
 let jesterPickerMode = false;
 const casePickerGrid = document.getElementById("casePickerGrid");
 const jesterPickerToggle = document.getElementById("jesterPickerToggle");
+/* Skrzynki są zawsze grupowane po kategorii (nagłówek nad każdą grupą) i
+   posortowane w każdej grupie od najtańszej do najdroższej, tak samo jak
+   na stronie głównej. */
 function renderCasePickerGrid(){
   casePickerGrid.innerHTML = "";
+  const byTag = {};
   Object.values(BATTLE_CASES).forEach(c => {
     const disabledForJester = jesterPickerMode && c.noJester;
     if(disabledForJester) return; // "All In" cases keep their real odds — no Jester variant
-    const displayPrice = jesterPickerMode ? getCaseData(c.key + JESTER_SUFFIX).price : c.price;
-    const el = document.createElement("div");
-    el.className = "case-pick";
-    el.style.setProperty("--case-accent", c.accent);
-    const img = getCaseImage(c.name);
-    el.innerHTML = `
-      <div class="thumb">${img ? `<img src="${img}" alt="${c.name}" onerror="this.parentElement.innerHTML='<div class=&quot;fallback&quot;>${c.name.toUpperCase()}</div>'">` : `<div class="fallback">${c.name.toUpperCase()}</div>`}</div>
-      <div class="nm">${c.name}${jesterPickerMode ? '<span class="jester-badge">JESTER</span>' : ''}</div>
-      <div class="pr">${fmt(displayPrice)}</div>
-      <div class="add-hint">+ dodaj rundę</div>
-    `;
-    el.onclick = () => {
-      if(selectedRounds.length >= MAX_ROUNDS) return;
-      selectedRounds.push(jesterPickerMode ? c.key + JESTER_SUFFIX : c.key);
-      renderSelectedRounds();
-      renderSummary();
-    };
-    casePickerGrid.appendChild(el);
+    (byTag[c.tag || "standardowe"] = byTag[c.tag || "standardowe"] || []).push(c);
+  });
+
+  Object.keys(CASE_CATEGORIES).forEach(tag => {
+    const group = byTag[tag];
+    if(!group || group.length === 0) return;
+    group.sort((a,b) => a.price - b.price);
+
+    const heading = document.createElement("div");
+    heading.className = "case-picker-heading";
+    const cat = CASE_CATEGORIES[tag];
+    heading.innerHTML = `<span>${cat.ic}</span><span>${cat.label}</span>`;
+    casePickerGrid.appendChild(heading);
+
+    group.forEach(c => {
+      const displayPrice = jesterPickerMode ? getCaseData(c.key + JESTER_SUFFIX).price : c.price;
+      const el = document.createElement("div");
+      el.className = "case-pick";
+      el.style.setProperty("--case-accent", c.accent);
+      const img = getCaseImage(c.name);
+      el.innerHTML = `
+        <div class="thumb">${img ? `<img src="${img}" alt="${c.name}" onerror="this.parentElement.innerHTML='<div class=&quot;fallback&quot;>${c.name.toUpperCase()}</div>'">` : `<div class="fallback">${c.name.toUpperCase()}</div>`}</div>
+        <div class="nm">${c.name}${jesterPickerMode ? '<span class="jester-badge">JESTER</span>' : ''}</div>
+        <div class="pr">${fmt(displayPrice)}</div>
+        <div class="add-hint">+ dodaj rundę</div>
+      `;
+      el.onclick = () => {
+        if(selectedRounds.length >= MAX_ROUNDS) return;
+        selectedRounds.push(jesterPickerMode ? c.key + JESTER_SUFFIX : c.key);
+        renderSelectedRounds();
+        renderSummary();
+      };
+      casePickerGrid.appendChild(el);
+    });
   });
   if(jesterPickerMode && Object.values(BATTLE_CASES).some(c => c.noJester)){
     const note = document.createElement("div");

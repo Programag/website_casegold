@@ -295,6 +295,16 @@
     gap:16px;
     margin-bottom:10px;
   }
+  .cases-section-heading{
+    grid-column:1 / -1;
+    font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:1.5px;
+    font-size:15px; font-weight:600; margin:0; padding-top:6px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .cases-section-heading:not(:first-child){margin-top:10px;}
+  @media (max-width:640px){
+    .cases-section-heading{grid-column:1 / -1;}
+  }
   .case-card{
     background:var(--panel);
     border:1px solid var(--line);
@@ -440,7 +450,6 @@
     </div>
   </div>
 
-  <div class="section-title" id="sectionLabel">✨ Skrzynki standardowe</div>
   <div class="cases-grid" id="casesGrid"></div>
   <div class="empty-msg hidden" id="emptyMsg">Brak skrzynek w tej kategorii — wkrótce dostępne.</div>
 
@@ -712,7 +721,42 @@ budgetToggle.onclick = () => {
 /* ---- case grid ---- */
 const grid = document.getElementById("casesGrid");
 const emptyMsg = document.getElementById("emptyMsg");
-const sectionLabel = document.getElementById("sectionLabel");
+function caseCardNode(c){
+  const card = document.createElement("a");
+  card.className = "case-card";
+  card.href = c.file;
+  card.style.setProperty("--case-accent", c.accent);
+
+  const imgWrap = document.createElement("div");
+  imgWrap.className = "case-img";
+  if(c.img){
+    const img = document.createElement("img");
+    img.src = c.img;
+    img.alt = c.name;
+    img.onerror = () => { imgWrap.innerHTML = `<div class="fallback">${c.name.toUpperCase()}</div>`; };
+    imgWrap.appendChild(img);
+  } else {
+    imgWrap.innerHTML = `<div class="fallback">${c.name.toUpperCase()}</div>`;
+  }
+  card.appendChild(imgWrap);
+
+  const rest = document.createElement("div");
+  rest.style.display = "contents";
+  rest.innerHTML = `
+    <div class="case-name">${c.name}</div>
+    <div class="case-desc">${c.desc}</div>
+    <div class="case-row">
+      <div class="case-price-tag">${fmt(c.price)}</div>
+      <span class="open-btn">Otwórz</span>
+    </div>
+  `;
+  card.appendChild(rest);
+  return card;
+}
+/* Skrzynki są zawsze grupowane po kategorii (nagłówek nad każdą grupą) i
+   posortowane w każdej grupie od najtańszej do najdroższej - niezależnie od
+   kolejności w tablicy CASES, żeby dodanie nowej skrzynki nigdy nie
+   wymagało ręcznego wstawiania jej we właściwe miejsce. */
 function renderGrid(){
   grid.innerHTML = "";
   let list = CASES.slice();
@@ -720,48 +764,27 @@ function renderGrid(){
   if(filters.search) list = list.filter(c => c.name.toLowerCase().includes(filters.search));
   if(filters.budgetOnly) list = list.filter(c => c.price <= state.balance);
 
-  sectionLabel.textContent = filters.category
-    ? `${CATEGORIES.find(c=>c.key===filters.category).ic} ${I18N[currentLang].categories[filters.category]}`
-    : I18N[currentLang].sectionDefault;
-
   if(list.length === 0){
     emptyMsg.classList.remove("hidden");
     return;
   }
   emptyMsg.classList.add("hidden");
 
-  list.forEach(c => {
-    const card = document.createElement("a");
-    card.className = "case-card";
-    card.href = c.file;
-    card.style.setProperty("--case-accent", c.accent);
+  const byTag = {};
+  list.forEach(c => { (byTag[c.tag] = byTag[c.tag] || []).push(c); });
 
-    const imgWrap = document.createElement("div");
-    imgWrap.className = "case-img";
-    if(c.img){
-      const img = document.createElement("img");
-      img.src = c.img;
-      img.alt = c.name;
-      img.onerror = () => { imgWrap.innerHTML = `<div class="fallback">${c.name.toUpperCase()}</div>`; };
-      imgWrap.appendChild(img);
-    } else {
-      imgWrap.innerHTML = `<div class="fallback">${c.name.toUpperCase()}</div>`;
-    }
-    card.appendChild(imgWrap);
+  CATEGORIES.forEach(cat => {
+    const group = byTag[cat.key];
+    if(!group || group.length === 0) return;
+    group.sort((a,b) => a.price - b.price);
 
-    const rest = document.createElement("div");
-    rest.style.display = "contents";
-    rest.innerHTML = `
-      <div class="case-name">${c.name}</div>
-      <div class="case-desc">${c.desc}</div>
-      <div class="case-row">
-        <div class="case-price-tag">${fmt(c.price)}</div>
-        <span class="open-btn">Otwórz</span>
-      </div>
-    `;
-    card.appendChild(rest);
+    const heading = document.createElement("div");
+    heading.className = "cases-section-heading";
+    const label = I18N[currentLang].categories[cat.key] || cat.label;
+    heading.innerHTML = `<span>${cat.ic}</span><span>${label}</span>`;
+    grid.appendChild(heading);
 
-    grid.appendChild(card);
+    group.forEach(c => grid.appendChild(caseCardNode(c)));
   });
 }
 
@@ -788,7 +811,6 @@ const I18N = {
     searchPlaceholder:"Wyszukaj skrzynkę po nazwie...",
     budgetToggle:"📁 W twoim budżecie",
     pbEyebrow:"Oficjalne", pbTitle:"Skrzynki",
-    sectionDefault:"✨ Skrzynki standardowe",
     emptyMsg:"Brak skrzynek w tej kategorii — wkrótce dostępne.",
     footerTxt:"Symulacja edukacyjna / rozrywkowa — fikcyjna waluta, brak realnych transakcji.",
     categories: CATEGORIES.reduce((o,c)=>(o[c.key]=c.label, o), {}),
@@ -804,7 +826,6 @@ const I18N = {
     searchPlaceholder:"Search for a case by name...",
     budgetToggle:"📁 Within your budget",
     pbEyebrow:"Official", pbTitle:"Cases",
-    sectionDefault:"✨ Standard cases",
     emptyMsg:"No cases in this category yet — coming soon.",
     footerTxt:"Educational / entertainment simulation — fictional currency, no real transactions.",
     categories: CATEGORY_LABELS_EN,
