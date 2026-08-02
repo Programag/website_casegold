@@ -322,6 +322,7 @@ const CASE_IMAGES = {
   "Sand Case": "case_sand.PNG",
   "Poland Case": "case_poland.PNG",
   "Cosmos Case": "case_cosmos.PNG",
+  "Flower Sticker": "sticker_flower.PNG",
 };
 
 /* Zwraca link do obrazka danego przedmiotu na podstawie broni, skina i wear. */
