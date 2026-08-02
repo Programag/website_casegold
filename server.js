@@ -108,6 +108,34 @@ async function writeUsers(users) {
 }
 
 // ---------------------------------------------------------------------------
+// Drobne dane serwisowe niezwiązane z żadnym konkretnym graczem (na razie:
+// data ostatniej wypłaty "Niefartu dnia" - patrz niżej). Ten sam magazyn co
+// konta graczy (Redis albo lokalny plik), osobny klucz/plik.
+// ---------------------------------------------------------------------------
+const META_FILE = path.join(DATA_DIR, "meta.json");
+const REDIS_META_KEY = "cs2sim:meta";
+
+async function readMeta() {
+  if (USE_REDIS) {
+    const raw = await redisCommand(["GET", REDIS_META_KEY]);
+    return raw ? JSON.parse(raw) : {};
+  }
+  try {
+    return JSON.parse(fs.readFileSync(META_FILE, "utf8"));
+  } catch (e) {
+    return {};
+  }
+}
+async function writeMeta(meta) {
+  if (USE_REDIS) {
+    await redisCommand(["SET", REDIS_META_KEY, JSON.stringify(meta)]);
+    return;
+  }
+  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  fs.writeFileSync(META_FILE, JSON.stringify(meta, null, 2));
+}
+
+// ---------------------------------------------------------------------------
 // readUsers()+writeUsers() to "przeczytaj CAŁY magazyn, zmień w pamięci,
 // zapisz CAŁY magazyn z powrotem" - bez żadnej izolacji między żądaniami.
 // Gdy dwa żądania, które modyfikują dane graczy (np. admin zmieniający komuś
@@ -130,6 +158,99 @@ function withUsersLock(fn) {
   );
   return run;
 }
+
+// ---------------------------------------------------------------------------
+// "Niefart dnia" - dzienny ranking najwięcej przegranych bitew Case Battle.
+// Widoczna topka (GET /api/leaderboard, sekcja "niefart") pokazuje TOP 20
+// wg liczby przegranych bitew Case Battle DZISIAJ (czasu polskiego, wg
+// battleHistory - ten sam, lekki dziennik co zakładka "Moje bitwy", max 30
+// ostatnich wpisów na gracza). Tuż po północy górna POŁOWA tej listy (10
+// z 20) dostaje automatycznie 5000 zł do salda za dzień, który się właśnie
+// skończył - patrz checkNiefartPayout niżej.
+// ---------------------------------------------------------------------------
+const NIEFART_REWARD = 5000;
+const NIEFART_TOP_SHOWN = 20;
+const NIEFART_TOP_REWARDED = 10;
+
+function warsawDateString(epochMs) {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Warsaw" }).format(new Date(epochMs));
+}
+
+function countLossesOnDate(u, dateStr) {
+  const history = u.state && Array.isArray(u.state.battleHistory) ? u.state.battleHistory : [];
+  return history.filter((e) => e && e.outcome === "loss" && typeof e.at === "number" && warsawDateString(e.at) === dateStr).length;
+}
+
+// Zwraca top NIEFART_TOP_SHOWN graczy wg liczby przegranych bitew w danym
+// dniu (tylko ci z co najmniej jedną przegraną - "0 przegranych" nie ma co
+// robić w topce niefartu).
+function niefartRankingForDate(users, dateStr) {
+  return Object.values(users)
+    .filter((u) => u.slug)
+    .map((u) => ({ steamid: u.steamid, slug: u.slug, displayName: u.displayName, avatar: u.avatar, value: countLossesOnDate(u, dateStr) }))
+    .filter((row) => row.value > 0)
+    .sort((a, b) => b.value - a.value)
+    .slice(0, NIEFART_TOP_SHOWN);
+}
+
+// Sprawdza (wywoływane co minutę, patrz setInterval przy starcie serwera),
+// czy minęła już północ czasu polskiego od ostatniej wypłaty, i jeśli tak,
+// nagradza górną połowę (10 z 20) niefartu ZA DZIEŃ, KTÓRY SIĘ WŁAŚNIE
+// SKOŃCZYŁ. Idempotentne dzięki trwale zapisanej dacie ostatniej wypłaty
+// (meta.niefartLastPayoutDate) - bezpieczne, gdy interwał odpali się kilka
+// razy tuż po północy albo po restarcie serwera. Pierwsze uruchomienie po
+// wdrożeniu tego mechanizmu celowo NIE wypłaca niczego za dzień, w którym
+// serwer właśnie wystartował (za mało/nieznane dane) - czeka na najbliższą
+// prawdziwą północ.
+let niefartCheckRunning = false;
+async function checkNiefartPayout() {
+  if (niefartCheckRunning) return;
+  niefartCheckRunning = true;
+  try {
+    const meta = await readMeta();
+    if (!meta.niefartLastPayoutDate) {
+      meta.niefartLastPayoutDate = warsawDateString(Date.now());
+      await writeMeta(meta);
+      return;
+    }
+    const yesterdayStr = warsawDateString(Date.now() - 24 * 60 * 60 * 1000);
+    if (meta.niefartLastPayoutDate === yesterdayStr) return; // już wypłacone za wczoraj
+
+    let winners = [];
+    await withUsersLock(async () => {
+      const users = await readUsers();
+      winners = niefartRankingForDate(users, yesterdayStr).slice(0, NIEFART_TOP_REWARDED);
+      if (winners.length === 0) return;
+      winners.forEach((w) => {
+        const u = users[w.steamid];
+        if (!u || !u.state) return;
+        u.state.balance = (typeof u.state.balance === "number" ? u.state.balance : 0) + NIEFART_REWARD;
+        // Autorytatywna, serwerowa zmiana salda - klient musi ją przyjąć
+        // bezwarunkowo przy najbliższej synchronizacji, tak samo jak przy
+        // ręcznej edycji z panelu admina (patrz PUT /api/admin/users/:steamid
+        // i merge w steam-auth.js) - inaczej lokalny cache przeglądarki
+        // (prawie zawsze "świeższy" niż serwer) po cichu nadpisałby tę
+        // nagrodę z powrotem przy pierwszym zwykłym zapisie stanu gracza.
+        u.state.adminOverrideAt = Date.now();
+        u.state.updatedAt = u.state.adminOverrideAt;
+      });
+      await writeUsers(users);
+    });
+
+    meta.niefartLastPayoutDate = yesterdayStr;
+    meta.niefartLastWinners = winners.map((w) => ({ slug: w.slug, displayName: w.displayName, avatar: w.avatar, losses: w.value }));
+    await writeMeta(meta);
+    if (winners.length) {
+      console.log(`Niefart dnia (${yesterdayStr}): nagrodzono ${winners.length} graczy kwotą ${NIEFART_REWARD} zł każdy.`);
+    }
+  } catch (e) {
+    console.error("Błąd wypłaty niefartu dnia:", e.message);
+  } finally {
+    niefartCheckRunning = false;
+  }
+}
+setInterval(checkNiefartPayout, 60 * 1000);
+checkNiefartPayout(); // sprawdź też od razu przy starcie serwera, na wypadek gdyby północ minęła, gdy serwer nie działał
 
 // ---------------------------------------------------------------------------
 // Magazyn sesji logowania.
@@ -438,6 +559,9 @@ app.get("/api/leaderboard", async (req, res) => {
     balance: top("balance"),
     upgrades: top("upgradeClicks"),
     cases: top("casesOpened"),
+    // Ranking "na żywo" za DZISIAJ (w toku) - patrz checkNiefartPayout dla
+    // faktycznej, jednorazowej wypłaty za dzień, który się skończył.
+    niefart: niefartRankingForDate(users, warsawDateString(Date.now())),
   });
 });
 

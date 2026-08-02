@@ -1,5 +1,6 @@
 node_modules/
 .env
 data/users.json
+data/meta.json
 .claude/
 server.log

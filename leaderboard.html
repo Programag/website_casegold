@@ -136,6 +136,13 @@
   }
   .lb-tab:hover{color:var(--text); border-color:var(--hazard);}
   .lb-tab.active{color:var(--hazard); border-color:var(--hazard); background:var(--hazard-dim);}
+  .lb-note{
+    background:var(--panel-2); border:1px solid var(--line); border-radius:8px;
+    padding:10px 12px; font-size:12px; color:var(--muted); margin-bottom:14px; display:none;
+  }
+  .lb-note.show{display:block;}
+  .lb-note strong{color:var(--hazard);}
+  .lb-row.rewarded .lb-rank{color:var(--good);}
   .lb-list{display:flex; flex-direction:column; gap:6px;}
   .lb-row{
     display:flex; align-items:center; gap:10px; padding:8px 10px;
@@ -203,7 +210,9 @@
       <button class="lb-tab active" data-lb-tab="balance">💰 Saldo</button>
       <button class="lb-tab" data-lb-tab="upgrades">🎡 Upgrade'y</button>
       <button class="lb-tab" data-lb-tab="cases">📦 Skrzynki</button>
+      <button class="lb-tab" data-lb-tab="niefart">😭 Niefart dnia</button>
     </div>
+    <div class="lb-note" id="lbNiefartNote">Najwięcej przegranych bitew Case Battle <strong>dzisiaj</strong>. Tuż po północy górna <strong>10</strong> z tych <strong>20</strong> miejsc dostaje automatycznie <strong>5000 zł</strong> do salda za dzień, który się właśnie skończył.</div>
     <div class="lb-list" id="leaderboardList"></div>
   </div>
 
@@ -271,7 +280,13 @@ const LB_TABS = {
   balance: { key: "balance", fmtValue: (v) => fmt(v) },
   upgrades: { key: "upgrades", fmtValue: (v) => String(v) },
   cases: { key: "cases", fmtValue: (v) => String(v) },
+  niefart: { key: "niefart", fmtValue: (v) => `${v} przegr.` },
 };
+// Ile górnych miejsc danej zakładki faktycznie dostaje nagrodę (na razie
+// tylko "niefart dnia" - top 10 z widocznych 20, patrz checkNiefartPayout
+// po stronie serwera) - podświetlane w topce jako wyróżnione.
+const LB_REWARDED_TOP = { niefart: 10 };
+const lbNiefartNote = document.getElementById("lbNiefartNote");
 const leaderboardList = document.getElementById("leaderboardList");
 let leaderboardData = null;
 let leaderboardTab = "balance";
@@ -280,6 +295,7 @@ document.querySelectorAll(".lb-tab").forEach(tab => {
   tab.onclick = () => {
     leaderboardTab = tab.dataset.lbTab;
     document.querySelectorAll(".lb-tab").forEach(t => t.classList.toggle("active", t === tab));
+    lbNiefartNote.classList.toggle("show", leaderboardTab === "niefart");
     renderLeaderboard();
   };
 });
@@ -302,8 +318,12 @@ function renderLeaderboard(){
   leaderboardList.innerHTML = "";
   for(let i = 0; i < LB_MAX_ROWS; i++){
     const entry = rows[i];
+    const rewardedTop = LB_REWARDED_TOP[leaderboardTab] || 0;
     const row = document.createElement(entry ? "a" : "div");
-    row.className = "lb-row" + (entry ? "" : " empty") + (i < 3 && entry ? ` rank-${i+1}` : "");
+    row.className = "lb-row" + (entry ? "" : " empty") + (i < 3 && entry ? ` rank-${i+1}` : "") + (entry && i < rewardedTop ? " rewarded" : "");
+    if(entry && i < rewardedTop){
+      row.title = "Dostanie 5000 zł po północy za dzisiejsze przegrane bitwy";
+    }
     if(entry){
       row.href = `/profile/${encodeURIComponent(entry.slug || "")}`;
     }
