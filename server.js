@@ -205,11 +205,29 @@ function levelForXpServer(totalXp) {
 // swój pierwszy zapis stanu zawsze liczbowy (patrz PUT /api/state), więc
 // nigdy tędy nie przechodzą - nie ma ryzyka podbicia poziomu komuś, kto
 // nigdy nie grał pod starym wzorem.
+//
+// WAŻNE: przeskalowanie xp (x10 dla kont sprzed zmiany progu) to ODDZIELNY,
+// niezależnie zaszczepiany krok - NIE wolno go chować za tym samym warunkiem
+// co levelWatermark. Konta, które dostały watermark PRZED dodaniem tej
+// korekty (czyli już mają liczbowy levelWatermark, ale ich xp nigdy nie
+// zostało realnie przeskalowane), inaczej nigdy by tędy nie przeszły -
+// watermark poprawnie pokazywałby odzyskany poziom, ale KAŻDE kolejne
+// zdobyte EXP liczyłoby się względem xp, które nigdy nie dogoni progu tego
+// poziomu - pasek postępu zamrożony na 0% na zawsze, mimo że gracz
+// faktycznie zdobywa EXP (dokładnie objaw "nie da się zyskać exp"). Migracja
+// jest idempotentna dzięki fladze xpScaleMigratedV2, więc bezpiecznie
+// uruchamia się automatycznie raz na konto, tak jak wcześniej ręczny
+// przycisk admina robił to na żądanie.
 function ensureLevelWatermark(u) {
-  if (!u.state || typeof u.state.levelWatermark === "number") return;
+  if (!u.state) return;
+  if (!u.state.xpScaleMigratedV2) {
+    const rawXp = typeof u.state.xp === "number" ? u.state.xp : 0;
+    u.state.xp = rawXp * 10;
+    u.state.xpScaleMigratedV2 = true;
+  }
+  if (typeof u.state.levelWatermark === "number") return;
   const xp = typeof u.state.xp === "number" ? u.state.xp : 0;
-  const alreadyScaled = !!u.state.xpScaleMigratedV2;
-  const recoveredLevel = levelForXpServer(alreadyScaled ? xp : xp * 10);
+  const recoveredLevel = levelForXpServer(xp);
   const storedLevel = typeof u.state.level === "number" ? u.state.level : 0;
   u.state.levelWatermark = Math.max(storedLevel, recoveredLevel, 0);
 }
@@ -435,14 +453,25 @@ app.put("/api/state", async (req, res) => {
         }
       : (u.state && u.state.bestPull) || null;
 
-  ensureLevelWatermark(u); // no-op jeśli już zaszczepiony albo konto jest zupełnie nowe (u.state === null)
+  // Zupełnie nowe konto (u.state === null) nigdy nie grało pod starym,
+  // nieprzeskalowanym wzorem - jego xp jest od razu w aktualnej skali, więc
+  // traktujemy je jako już zmigrowane, żeby ensureLevelWatermark nigdy go
+  // przypadkiem nie pomnożyło x10 przy jego DRUGIM kontakcie z serwerem.
+  const isBrandNewAccount = !u.state;
+  ensureLevelWatermark(u); // no-op tylko dla u.state === null; dla reszty patrz komentarz przy funkcji
+  // Jeśli powyższe dopiero co przeskalowało xp x10 (jednorazowa migracja
+  // starych kont), ten push mógł powstać z wartości SPRZED korekty (klient
+  // policzył go zanim zdążył zobaczyć poprawiony stan) - Math.max chroni
+  // przed przypadkowym nadpisaniem świeżo przeskalowanego xp starszą,
+  // 10x za niską liczbą z tego konkretnego zapisu.
+  const xpFloor = u.state && typeof u.state.xp === "number" ? u.state.xp : 0;
 
   u.state = {
     balance: typeof body.balance === "number" ? body.balance : 0,
     inventory: Array.isArray(body.inventory) ? body.inventory : [],
     invCounter: typeof body.invCounter === "number" ? body.invCounter : 0,
     level: typeof body.level === "number" ? body.level : 0,
-    xp: typeof body.xp === "number" ? body.xp : 0,
+    xp: Math.max(typeof body.xp === "number" ? body.xp : 0, xpFloor),
     dailyBonusAt: typeof body.dailyBonusAt === "number" ? body.dailyBonusAt : null,
     dailyStreak: typeof body.dailyStreak === "number" ? body.dailyStreak : (u.state && u.state.dailyStreak) || 0,
     freeCaseAt: typeof body.freeCaseAt === "number" ? body.freeCaseAt : null,
@@ -460,7 +489,7 @@ app.put("/api/state", async (req, res) => {
     // Zachowane dla zgodności z ewentualnymi kontami zmigrowanymi starym
     // mechanizmem (mnożenie xp) - używane tylko jako wskazówka wewnątrz
     // ensureLevelWatermark, klient go już nie odczytuje ani nie wysyła.
-    xpScaleMigratedV2: !!(u.state && u.state.xpScaleMigratedV2),
+    xpScaleMigratedV2: isBrandNewAccount ? true : !!(u.state && u.state.xpScaleMigratedV2),
     updatedAt: Date.now(),
   };
   try {
