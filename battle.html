@@ -3431,7 +3431,7 @@ function renderOpenLobbies(){
         box.innerHTML = `<div class="nm">Puste miejsce</div><button class="mini-btn slot-action" data-action="join" data-idx="${idx}" data-lobby="${lobby.id}">▶ Dołącz</button>`;
       } else {
         const tag = slot.type === "bot" ? "BOT" : "GRACZ";
-        box.innerHTML = `<div class="nm">${slot.name}</div><div class="olc-meta">${tag}</div>`;
+        box.innerHTML = `${avatarHtml(slot)}<div class="nm">${slot.name}</div><div class="olc-meta">${tag}</div>`;
       }
       grid.appendChild(box);
     });
@@ -3465,7 +3465,7 @@ function renderRunningLobbies(){
       const box = document.createElement("div");
       box.className = "olc-slot";
       const tag = slot.type === "bot" ? "BOT" : "GRACZ";
-      box.innerHTML = `<div class="nm">${slot.name}</div><div class="olc-meta">${tag}</div>`;
+      box.innerHTML = `${avatarHtml(slot)}<div class="nm">${slot.name}</div><div class="olc-meta">${tag}</div>`;
       grid.appendChild(box);
     });
     runningLobbiesList.appendChild(card);
