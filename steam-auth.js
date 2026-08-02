@@ -56,17 +56,17 @@
       try { localState = JSON.parse(localStorage.getItem(STATE_KEY) || "{}"); localUpdatedAt = localState.updatedAt || 0; } catch (e2) {}
       const serverUpdatedAt = typeof s.updatedAt === "number" ? s.updatedAt : 0;
       localStorage.setItem(SERVER_BASE_KEY, String(serverUpdatedAt));
-      // Jednorazowa migracja XP*10 (patrz /api/admin/migrate-xp-scale) ustawia
-      // xpScaleMigratedV2 na serwerze i odświeża updatedAt w tej samej chwili,
-      // w której gracz mógł akurat mieć otwartą kartę z NOWSZYM lokalnym
-      // updatedAt (np. właśnie coś otworzył) - wtedy zwykłe porównanie
-      // "serverUpdatedAt >= localUpdatedAt" przegrywa i migracja nigdy nie
-      // dociera do przeglądarki, mimo że serwer ją poprawnie zapisał. Przejście
-      // false -> true tej flagi musi więc wymusić przyjęcie serwera, niezależnie
-      // od tego porównania - inaczej admin może kliknąć "Napraw poziomy" ile
-      // razy chce, a i tak nic się nie zmieni na ekranie tego gracza.
-      const serverJustMigrated = !!s.xpScaleMigratedV2 && !localState.xpScaleMigratedV2;
-      if (serverUpdatedAt >= localUpdatedAt || serverJustMigrated) {
+      // levelWatermark rośnie WYŁĄCZNIE przez Math.max, więc scalanie klient
+      // <-> serwer jest odporne na wyścigi z definicji - w przeciwieństwie do
+      // reszty stanu (balance/inventory/...), gdzie "świeższy wygrywa" jest
+      // słuszną ochroną przed nadpisaniem, dla poziomu liczy się tylko to,
+      // żeby nigdy nie spadł, niezależnie od tego, które zapisanie wygra
+      // poniższe porównanie znaczników czasu.
+      const mergedWatermark = Math.max(
+        typeof localState.levelWatermark === "number" ? localState.levelWatermark : 0,
+        typeof s.levelWatermark === "number" ? s.levelWatermark : 0
+      );
+      if (serverUpdatedAt >= localUpdatedAt) {
         localStorage.setItem(STATE_KEY, JSON.stringify({
           balance: s.balance,
           inventory: s.inventory,
@@ -78,9 +78,12 @@
           casesOpened: typeof s.casesOpened === "number" ? s.casesOpened : 0,
           claimedLevelRewards: Array.isArray(s.claimedLevelRewards) ? s.claimedLevelRewards : [],
           battleHistory: Array.isArray(s.battleHistory) ? s.battleHistory : [],
-          xpScaleMigratedV2: !!s.xpScaleMigratedV2,
+          levelWatermark: mergedWatermark,
           updatedAt: serverUpdatedAt,
         }));
+      } else if (mergedWatermark > (localState.levelWatermark || 0)) {
+        localState.levelWatermark = mergedWatermark;
+        localStorage.setItem(STATE_KEY, JSON.stringify(localState));
       }
       if (s.dailyBonusAt) localStorage.setItem(DAILY_KEY, String(s.dailyBonusAt));
       if (typeof s.dailyStreak === "number") localStorage.setItem(DAILY_STREAK_KEY, String(s.dailyStreak));
@@ -110,6 +113,7 @@
       casesOpened: typeof state.casesOpened === "number" ? state.casesOpened : 0,
       claimedLevelRewards: Array.isArray(state.claimedLevelRewards) ? state.claimedLevelRewards : [],
       battleHistory: Array.isArray(state.battleHistory) ? state.battleHistory : [],
+      levelWatermark: typeof state.levelWatermark === "number" ? state.levelWatermark : 0,
       dailyBonusAt: Number(localStorage.getItem(DAILY_KEY) || 0) || null,
       dailyStreak: Number(localStorage.getItem(DAILY_STREAK_KEY) || 0) || 0,
       freeCaseAt: Number(localStorage.getItem(FREE_CASE_KEY) || 0) || null,
@@ -133,6 +137,8 @@
             if (!s) return;
             const serverUpdatedAt = typeof s.updatedAt === "number" ? s.updatedAt : 0;
             localStorage.setItem(SERVER_BASE_KEY, String(serverUpdatedAt));
+            let priorWatermark = 0;
+            try { priorWatermark = JSON.parse(localStorage.getItem(STATE_KEY) || "{}").levelWatermark || 0; } catch (e3) {}
             const setItem = nativeSetItem || localStorage.setItem.bind(localStorage);
             setItem(STATE_KEY, JSON.stringify({
               balance: s.balance,
@@ -145,7 +151,7 @@
               casesOpened: typeof s.casesOpened === "number" ? s.casesOpened : 0,
               claimedLevelRewards: Array.isArray(s.claimedLevelRewards) ? s.claimedLevelRewards : [],
               battleHistory: Array.isArray(s.battleHistory) ? s.battleHistory : [],
-              xpScaleMigratedV2: !!s.xpScaleMigratedV2,
+              levelWatermark: Math.max(priorWatermark, typeof s.levelWatermark === "number" ? s.levelWatermark : 0),
               updatedAt: serverUpdatedAt,
             }));
             console.error("[cs2sim] push /api/state odrzucony (409) - dane były nieaktualne, zsynchronizowano z serwerem.");
@@ -181,14 +187,49 @@
   function xpForLevel(level) {
     return 1000 * (Math.pow(1.1, level) - 1);
   }
+  // ---- Poziom jako "wskaźnik wodny" (levelWatermark) - nigdy nie spada ----
+  // xp jest jedynym prawdziwym źródłem danych, ale poziom WYŚWIETLANY (i
+  // używany do odbioru nagród) opiera się na levelWatermark, nie na surowym
+  // levelForXp(xp) - bo każda przyszła zmiana wzoru poziomów (albo błąd)
+  // mogłaby chwilowo zaniżyć wyliczenie z xp, mimo że gracz nic nie stracił.
+  // effectiveLevel() bierze wyższą z dwóch wartości i, jeśli świeże wyliczenie
+  // z xp przebiło dotychczasowy wskaźnik, od razu go podbija i zapisuje -
+  // czysty Math.max(), więc odporne na wyścigi bez żadnych specjalnych
+  // przypadków przy synchronizacji z serwerem (patrz PUT /api/state).
+  function readLevelWatermark() {
+    try {
+      const w = JSON.parse(localStorage.getItem(STATE_KEY) || "{}").levelWatermark;
+      return typeof w === "number" ? w : 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+  function effectiveLevel(totalXp) {
+    const computed = levelForXp(totalXp);
+    const watermark = readLevelWatermark();
+    if (computed > watermark) {
+      try {
+        const s = JSON.parse(localStorage.getItem(STATE_KEY) || "{}");
+        s.levelWatermark = computed;
+        localStorage.setItem(STATE_KEY, JSON.stringify(s));
+        schedulePush();
+      } catch (e) {}
+      return computed;
+    }
+    return watermark;
+  }
   function xpProgress(totalXp) {
     const xp = typeof totalXp === "number" && totalXp > 0 ? totalXp : 0;
-    const level = levelForXp(xp);
+    const level = effectiveLevel(xp);
     const base = xpForLevel(level);
     const next = xpForLevel(level + 1);
-    const into = xp - base;
+    // Gdy levelWatermark chroni gracza przed chwilowo zaniżonym wyliczeniem,
+    // "base" dla tego poziomu może wypaść WYŻEJ niż jego prawdziwe xp -
+    // dopóki xp go nie dogoni, pokazujemy po prostu "0% do następnego
+    // poziomu" zamiast ujemnego postępu.
+    const into = Math.max(0, xp - base);
     const needed = next - base;
-    return { level, xp, into, needed, percent: needed > 0 ? Math.min(100, (into / needed) * 100) : 100 };
+    return { level, xp, into, needed, percent: needed > 0 ? Math.min(100, Math.max(0, (into / needed) * 100)) : 100 };
   }
 
   // ---- Nagrody za poziom: skin najbliższy 100 zł za poziom 1, każdy
@@ -227,7 +268,7 @@
   // Refuses to double-claim or to claim a level not yet reached; any level
   // up to the player's current one can be claimed independently/out of order.
   function claimLevelReward(level) {
-    const currentLevel = levelForXp((() => {
+    const currentLevel = effectiveLevel((() => {
       try { return JSON.parse(localStorage.getItem(STATE_KEY) || "{}").xp || 0; } catch (e) { return 0; }
     })());
     if (level < 1 || level > currentLevel) return null;
@@ -418,15 +459,13 @@
         claimedLevelRewards: Array.isArray(s.claimedLevelRewards) ? s.claimedLevelRewards : [],
         battleHistory: Array.isArray(s.battleHistory) ? s.battleHistory : [],
         // Musi przetrwać KAŻDY zapis stanu z dowolnej podstrony (equipment,
-        // index, battle...), inaczej znika przy pierwszej akcji gracza po
-        // migracji XP*10 i wymusza jej ponowne "odkrycie" (patrz
-        // serverJustMigrated wyżej) przy każdym kolejnym odświeżeniu strony -
-        // co nadpisywałoby lokalny postęp zrobiony między odświeżeniami.
-        xpScaleMigratedV2: !!s.xpScaleMigratedV2,
+        // index, battle...), inaczej wskaźnik poziomu cofałby się do 0 przy
+        // pierwszym zwykłym zapisie po tym, jak effectiveLevel() go podbije.
+        levelWatermark: typeof s.levelWatermark === "number" ? s.levelWatermark : 0,
         updatedAt: Date.now(),
       };
     } catch (e) {
-      return { bestPull: null, upgradeClicks: 0, casesOpened: 0, claimedLevelRewards: [], battleHistory: [], xpScaleMigratedV2: false, updatedAt: Date.now() };
+      return { bestPull: null, upgradeClicks: 0, casesOpened: 0, claimedLevelRewards: [], battleHistory: [], levelWatermark: 0, updatedAt: Date.now() };
     }
   }
   // ---- Historia bitew Case Battle (do zakładki "Moje bitwy") ----
@@ -814,6 +853,8 @@
     levelForXp,
     xpForLevel,
     xpProgress,
+    effectiveLevel,
+    readLevelWatermark,
     refreshLevelBadge,
     levelRewardTargetPrice,
     levelRewardItem,

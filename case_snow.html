@@ -995,7 +995,7 @@ openBtn.onclick = () => {
 
   balance -= totalCost;
   xp += totalCost * window.SteamAuth.xpPerZl;
-  level = window.SteamAuth.levelForXp(xp);
+  level = window.SteamAuth.effectiveLevel(xp);
   renderBalance();
   window.SteamAuth.refreshLevelBadge();
 

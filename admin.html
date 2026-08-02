@@ -64,13 +64,6 @@
   .top-row{display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:10px;}
   .back-link{color:var(--muted); text-decoration:none; font-size:13px;}
   .back-link:hover{color:var(--hazard);}
-  .tools-box{
-    background:var(--panel); border:1px solid var(--line); border-radius:12px;
-    padding:18px 20px; margin-bottom:20px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
-  }
-  .tools-box p{margin:0; font-size:13px; color:var(--muted); max-width:640px;}
-  .tools-box .save-btn{white-space:nowrap;}
-  #migrateStatus{font-size:12.5px; margin-left:10px;}
 </style>
 </head>
 <body>
@@ -170,36 +163,6 @@ async function init(){
   }
   const data = await loadUsers();
   content.innerHTML = "";
-  const toolsBox = document.createElement("div");
-  toolsBox.className = "tools-box";
-  toolsBox.innerHTML = `
-    <p>Jednorazowa naprawa: próg 1. poziomu podniesiono z 10 na 100 EXP, przez co wszystkim graczom obniżył się WYŚWIETLANY poziom (samo EXP jest bezpieczne, nic nie zniknęło). Kliknięcie mnoży zapisane EXP każdego gracza razy 10, co przywraca dokładnie taki poziom jak przed zmianą. Bezpieczne kliknąć więcej niż raz — już zmigrowani gracze są pomijani.</p>
-    <div><button id="migrateBtn" class="save-btn">Napraw poziomy graczy</button><span id="migrateStatus"></span></div>
-  `;
-  content.appendChild(toolsBox);
-  document.getElementById("migrateBtn").onclick = async () => {
-    if(!confirm("Na pewno uruchomić jednorazową migrację EXP (x10) dla wszystkich graczy?")) return;
-    const btn = document.getElementById("migrateBtn");
-    const status = document.getElementById("migrateStatus");
-    btn.disabled = true;
-    status.textContent = "Migruję…";
-    status.style.color = "var(--muted)";
-    try{
-      const res = await fetch("/api/admin/migrate-xp-scale", { method: "POST", credentials: "same-origin" });
-      const body = await res.json();
-      if(res.ok){
-        status.textContent = `Gotowe — zmigrowano ${body.migrated} z ${body.total} kont ✓`;
-        status.style.color = "var(--good)";
-      } else {
-        status.textContent = "Błąd migracji";
-        status.style.color = "var(--bad)";
-      }
-    }catch(e){
-      status.textContent = "Błąd sieci";
-      status.style.color = "var(--bad)";
-    }
-    btn.disabled = false;
-  };
   if(!data || !Array.isArray(data.users) || data.users.length === 0){
     const empty = document.createElement("div");
     empty.className = "state-box";

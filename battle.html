@@ -1675,9 +1675,9 @@ function awardBattleXp(amountWon){
   reloadSharedState();
   const gained = amountWon * window.SteamAuth.xpPerZl;
   if(!(gained > 0)) return;
-  const oldLevel = window.SteamAuth.levelForXp(xp);
+  const oldLevel = window.SteamAuth.effectiveLevel(xp);
   xp += gained;
-  level = window.SteamAuth.levelForXp(xp);
+  level = window.SteamAuth.effectiveLevel(xp);
   saveState();
   window.SteamAuth.refreshLevelBadge();
   const leveledUp = level > oldLevel;

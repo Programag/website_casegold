@@ -174,6 +174,47 @@ function publicUser(u) {
 }
 
 // ---------------------------------------------------------------------------
+// Poziom gracza jako "wskaźnik wodny" (levelWatermark) - nigdy nie może
+// spaść. xp jest jedynym prawdziwym źródłem danych, ale każda przyszła
+// zmiana wzoru poziomów (albo błąd) mogłaby chwilowo obniżyć poziom
+// wyliczony z xp - levelWatermark pamięta najwyższy poziom, jaki gracz
+// kiedykolwiek legalnie osiągnął, i to on (nie surowe wyliczenie z xp) jest
+// pokazywany/używany do odbioru nagród. Rośnie wyłącznie przez Math.max,
+// więc scalanie klient<->serwer jest odporne na wyścigi z definicji - w
+// przeciwieństwie do poprzedniego mechanizmu (mutacja xp + porównanie
+// znaczników czasu), który dało się łatwo "przegapić" przy złym timingu.
+function xpForLevelServer(level) {
+  return 1000 * (Math.pow(1.1, level) - 1);
+}
+function levelForXpServer(totalXp) {
+  const xp = typeof totalXp === "number" && totalXp > 0 ? totalXp : 0;
+  const EPS = 1e-9;
+  let level = Math.floor(Math.log(xp / 1000 + 1) / Math.log(1.1) + EPS);
+  while (xpForLevelServer(level + 1) - EPS <= xp) level++;
+  while (level > 0 && xpForLevelServer(level) - EPS > xp) level--;
+  return level;
+}
+// Jednorazowe (per konto), w pełni automatyczne zaszczepienie levelWatermark
+// dla kont istniejących PRZED wprowadzeniem tego mechanizmu - w tym kont
+// dotkniętych wcześniejszym podniesieniem progu 1. poziomu z 10 na 100 EXP.
+// Brak liczbowego pola levelWatermark = konto jeszcze nigdy go nie miało,
+// więc liczymy je raz z tego, co już wiemy (zapisany level i - na wypadek,
+// gdyby próg poziomu kiedyś jeszcze wzrósł 10x - xp*10 jako dolna granica).
+// Każdy kolejny zapis (PUT /api/state) już zawsze wpisuje liczbę, więc to
+// się nigdy nie uruchamia drugi raz dla tego samego konta. Nowe konta mają
+// swój pierwszy zapis stanu zawsze liczbowy (patrz PUT /api/state), więc
+// nigdy tędy nie przechodzą - nie ma ryzyka podbicia poziomu komuś, kto
+// nigdy nie grał pod starym wzorem.
+function ensureLevelWatermark(u) {
+  if (!u.state || typeof u.state.levelWatermark === "number") return;
+  const xp = typeof u.state.xp === "number" ? u.state.xp : 0;
+  const alreadyScaled = !!u.state.xpScaleMigratedV2;
+  const recoveredLevel = levelForXpServer(alreadyScaled ? xp : xp * 10);
+  const storedLevel = typeof u.state.level === "number" ? u.state.level : 0;
+  u.state.levelWatermark = Math.max(storedLevel, recoveredLevel, 0);
+}
+
+// ---------------------------------------------------------------------------
 // Publiczne "slugi" profili (np. /profile/aleksio). Przypisywany raz przy
 // pierwszym logowaniu i trzymany na stałe, nawet jeśli gracz zmieni nazwę
 // wyświetlaną w Steam - żeby udostępniony link nigdy się nie zepsuł.
@@ -284,6 +325,7 @@ app.post("/auth/logout", (req, res) => {
 app.get("/api/me", (req, res) => {
   if (!req.user) return res.json({ loggedIn: false });
   const isAdmin = !!ADMIN_STEAMID && req.user.steamid === ADMIN_STEAMID;
+  ensureLevelWatermark(req.user); // tania, deterministyczna operacja w pamięci - trwały zapis i tak nastąpi przy najbliższym PUT /api/state
   res.json({ loggedIn: true, user: publicUser(req.user), isAdmin });
 });
 
@@ -385,6 +427,8 @@ app.put("/api/state", async (req, res) => {
         }
       : (u.state && u.state.bestPull) || null;
 
+  ensureLevelWatermark(u); // no-op jeśli już zaszczepiony albo konto jest zupełnie nowe (u.state === null)
+
   u.state = {
     balance: typeof body.balance === "number" ? body.balance : 0,
     inventory: Array.isArray(body.inventory) ? body.inventory : [],
@@ -399,9 +443,15 @@ app.put("/api/state", async (req, res) => {
     casesOpened: typeof body.casesOpened === "number" ? body.casesOpened : (u.state && u.state.casesOpened) || 0,
     claimedLevelRewards: Array.isArray(body.claimedLevelRewards) ? body.claimedLevelRewards : (u.state && u.state.claimedLevelRewards) || [],
     battleHistory: Array.isArray(body.battleHistory) ? body.battleHistory : (u.state && u.state.battleHistory) || [],
-    // Serwerowa flaga migracji (nieustawiana przez klienta) - musi przetrwać
-    // każdy zapis stanu z klienta, inaczej kolejny push nadpisuje ją na
-    // false i migracja XP*10 uruchamia się ponownie przy każdym odświeżeniu.
+    // Poziom jako wskaźnik wodny (patrz ensureLevelWatermark) - rośnie
+    // wyłącznie przez Math.max z tego, co przysłał klient, i tego, co już
+    // było zapisane. Nigdy nie może spaść, niezależnie od kolejności
+    // zapisów - odporne na wyścigi z definicji, bez potrzeby porównywania
+    // znaczników czasu jak przy pozostałych polach.
+    levelWatermark: Math.max(typeof body.levelWatermark === "number" ? body.levelWatermark : 0, (u.state && u.state.levelWatermark) || 0),
+    // Zachowane dla zgodności z ewentualnymi kontami zmigrowanymi starym
+    // mechanizmem (mnożenie xp) - używane tylko jako wskazówka wewnątrz
+    // ensureLevelWatermark, klient go już nie odczytuje ani nie wysyła.
     xpScaleMigratedV2: !!(u.state && u.state.xpScaleMigratedV2),
     updatedAt: Date.now(),
   };
@@ -456,7 +506,13 @@ app.put("/api/admin/users/:steamid", requireAdmin, async (req, res) => {
   const body = req.body || {};
   if (!u.state) u.state = { balance: 0, inventory: [], invCounter: 0, level: 0, xp: 0 };
   if (typeof body.balance === "number") u.state.balance = body.balance;
-  if (typeof body.level === "number") u.state.level = body.level;
+  if (typeof body.level === "number") {
+    u.state.level = body.level;
+    // Ręczna korekta poziomu z panelu admina musi też podnieść wskaźnik
+    // wodny, inaczej effectiveLevel() po stronie klienta i tak pokazywałby
+    // stary (niższy) levelWatermark, ignorując tę zmianę.
+    u.state.levelWatermark = Math.max(typeof u.state.levelWatermark === "number" ? u.state.levelWatermark : 0, body.level);
+  }
   if (typeof body.xp === "number") u.state.xp = body.xp;
   if (Array.isArray(body.claimedLevelRewards)) {
     u.state.claimedLevelRewards = body.claimedLevelRewards.filter((n) => typeof n === "number" && isFinite(n));
@@ -468,38 +524,6 @@ app.put("/api/admin/users/:steamid", requireAdmin, async (req, res) => {
       ok: true,
       user: { steamid: u.steamid, displayName: u.displayName, balance: u.state.balance, level: u.state.level, xp: u.state.xp },
     });
-  } catch (e) {
-    res.status(503).json({ error: "storage_unavailable" });
-  }
-});
-
-// ---- Jednorazowa migracja: próg 1. poziomu podniesiono z 10 na 100 EXP
-// (10x), więc każdy dotychczasowy gracz nagle "spadał" na niższy poziom
-// mimo niezmienionego XP - nowy wzór to dokładnie stary pomnożony przez 10,
-// więc przemnożenie zapisanego XP każdego gracza przez 10 przywraca im
-// dokładnie ten sam poziom co przed zmianą wzoru, bez żadnych przybliżeń.
-// Zabezpieczone flagą per-gracz (xpScaleMigratedV2), więc powtórne
-// uruchomienie nic już nie zmieni - bezpiecznie kliknąć więcej niż raz.
-app.post("/api/admin/migrate-xp-scale", requireAdmin, async (req, res) => {
-  let users;
-  try {
-    users = await readUsers();
-  } catch (e) {
-    return res.status(503).json({ error: "storage_unavailable" });
-  }
-  let migrated = 0;
-  for (const steamid of Object.keys(users)) {
-    const u = users[steamid];
-    if (!u.state || u.state.xpScaleMigratedV2) continue;
-    const oldXp = typeof u.state.xp === "number" ? u.state.xp : 0;
-    u.state.xp = oldXp * 10;
-    u.state.xpScaleMigratedV2 = true;
-    u.state.updatedAt = Date.now();
-    migrated++;
-  }
-  try {
-    await writeUsers(users);
-    res.json({ ok: true, migrated, total: Object.keys(users).length });
   } catch (e) {
     res.status(503).json({ error: "storage_unavailable" });
   }
