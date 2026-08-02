@@ -66,6 +66,18 @@
         typeof localState.levelWatermark === "number" ? localState.levelWatermark : 0,
         typeof s.levelWatermark === "number" ? s.levelWatermark : 0
       );
+      // Jednorazowa migracja skali xp (x10, patrz ensureLevelWatermark w
+      // server.js) MUSI się przyjąć niezależnie od tego, kto jest "świeższy" -
+      // localState.updatedAt jest ustawiany na Date.now() przy KAŻDYM lokalnym
+      // zapisie (patrz readPersistentExtras niżej), więc w praktyce niemal
+      // zawsze wygrywa z serwerowym znacznikiem. Bez tej gałęzi serwer mógłby
+      // poprawnie przeskalować i trwale zapisać xp, a ta konkretna przeglądarka
+      // nigdy by tej korekty nie odebrała - grałaby dalej na starej, 10x za
+      // niskiej bazie, więc pasek postępu zostałby zamrożony na zawsze mimo
+      // dalszego zdobywania EXP (dokładnie objaw "0 EXP, nic się nie zmienia").
+      const localXpMigrated = !!localState.xpScaleMigratedV2;
+      const serverXpMigrated = !!s.xpScaleMigratedV2;
+      const adoptServerXp = serverXpMigrated && !localXpMigrated;
       if (serverUpdatedAt >= localUpdatedAt) {
         localStorage.setItem(STATE_KEY, JSON.stringify({
           balance: s.balance,
@@ -79,8 +91,14 @@
           claimedLevelRewards: Array.isArray(s.claimedLevelRewards) ? s.claimedLevelRewards : [],
           battleHistory: Array.isArray(s.battleHistory) ? s.battleHistory : [],
           levelWatermark: mergedWatermark,
+          xpScaleMigratedV2: serverXpMigrated || localXpMigrated,
           updatedAt: serverUpdatedAt,
         }));
+      } else if (adoptServerXp) {
+        localState.xp = typeof s.xp === "number" ? s.xp : localState.xp;
+        localState.xpScaleMigratedV2 = true;
+        localState.levelWatermark = mergedWatermark;
+        localStorage.setItem(STATE_KEY, JSON.stringify(localState));
       } else if (mergedWatermark > (localState.levelWatermark || 0)) {
         localState.levelWatermark = mergedWatermark;
         localStorage.setItem(STATE_KEY, JSON.stringify(localState));
@@ -152,6 +170,7 @@
               claimedLevelRewards: Array.isArray(s.claimedLevelRewards) ? s.claimedLevelRewards : [],
               battleHistory: Array.isArray(s.battleHistory) ? s.battleHistory : [],
               levelWatermark: Math.max(priorWatermark, typeof s.levelWatermark === "number" ? s.levelWatermark : 0),
+              xpScaleMigratedV2: !!s.xpScaleMigratedV2,
               updatedAt: serverUpdatedAt,
             }));
             console.error("[cs2sim] push /api/state odrzucony (409) - dane były nieaktualne, zsynchronizowano z serwerem.");
@@ -462,10 +481,15 @@
         // index, battle...), inaczej wskaźnik poziomu cofałby się do 0 przy
         // pierwszym zwykłym zapisie po tym, jak effectiveLevel() go podbije.
         levelWatermark: typeof s.levelWatermark === "number" ? s.levelWatermark : 0,
+        // Musi też przetrwać KAŻDY zwykły zapis - inaczej wracałoby do false
+        // przy pierwszym saveState() po synchronizacji migracji xp*10, i ta
+        // migracja próbowałaby (nieszkodliwie, ale niepotrzebnie) "adoptować"
+        // xp z serwera ponownie przy każdym kolejnym /api/me tej przeglądarki.
+        xpScaleMigratedV2: !!s.xpScaleMigratedV2,
         updatedAt: Date.now(),
       };
     } catch (e) {
-      return { bestPull: null, upgradeClicks: 0, casesOpened: 0, claimedLevelRewards: [], battleHistory: [], levelWatermark: 0, updatedAt: Date.now() };
+      return { bestPull: null, upgradeClicks: 0, casesOpened: 0, claimedLevelRewards: [], battleHistory: [], levelWatermark: 0, xpScaleMigratedV2: false, updatedAt: Date.now() };
     }
   }
   // ---- Historia bitew Case Battle (do zakładki "Moje bitwy") ----
