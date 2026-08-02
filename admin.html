@@ -156,7 +156,7 @@ function userRow(u){
     setTimeout(() => { status.textContent = ""; }, 2500);
   };
   resetBtn.onclick = async () => {
-    if(!confirm(`Zresetować odebrane poziomy WSZYSTKICH zadań dla ${u.displayName || u.steamid}? Dotychczasowy postęp (np. liczba otwartych skrzynek) zostaje bez zmian - gracz będzie mógł od razu odebrać ponownie te nagrody, do których próg już osiągnął.`)) return;
+    if(!confirm(`Zresetować WSZYSTKIE zadania dla ${u.displayName || u.steamid}? To kasuje odebrane poziomy ORAZ postęp w ich licznikach (otwarte skrzynki, wydane kwoty, bitwy...) - gracz zaczyna zdobywać je całkowicie od nowa. Już wypłacone saldo z wcześniej odebranych nagród NIE jest cofane.`)) return;
     resetBtn.disabled = true;
     status.textContent = "";
     try{

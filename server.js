@@ -727,13 +727,22 @@ app.put("/api/admin/users/:steamid", requireAdmin, async (req, res) => {
       if (Array.isArray(body.claimedLevelRewards)) {
         u.state.claimedLevelRewards = body.claimedLevelRewards.filter((n) => typeof n === "number" && isFinite(n));
       }
-      // Resetuje TYLKO odebrane poziomy zadań (questClaims), nie liczniki
-      // aktywności (spentCases, battlesPlayed...) - te są współdzielone gdzie
-      // trzeba (casesOpened/upgradeClicks w topce) albo liczone na żywo
-      // (wartość ekwipunku), więc czyszczenie ich tutaj byłoby dużo szerszą,
-      // nieproszoną operacją niż "zresetuj zadania".
+      // Prawdziwy reset zadań: czyści zarówno odebrane poziomy (questClaims),
+      // jak i liczniki, z których liczy się ich postęp - inaczej gracz z
+      // progresem już przekraczającym próg mógłby natychmiast odebrać
+      // wszystko ponownie zamiast zdobywać to od nowa. casesOpened i
+      // upgradeClicks są też używane w topce ("Skrzynki"/"Upgrade'y") - reset
+      // zadań świadomie cofa tam ich pozycję, bo to te same liczniki.
+      // Wartość ekwipunku (zadanie "Kolekcjoner") liczy się na żywo z
+      // aktualnego stanu, więc nie ma tu osobnego licznika do wyzerowania.
       if (body.resetQuests === true) {
         u.state.questClaims = {};
+        u.state.casesOpened = 0;
+        u.state.spentCases = 0;
+        u.state.spentUpgrader = 0;
+        u.state.battlesPlayed = 0;
+        u.state.battlesWon = 0;
+        u.state.upgradeClicks = 0;
       }
       // Znacznik "admin właśnie autorytatywnie nadpisał ten stan" - klient
       // (steam-auth.js) używa go, żeby w pełni zaufać serwerowi przy następnej
