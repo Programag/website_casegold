@@ -43,12 +43,82 @@ async function steamUserFromSocket(socket, readUsers) {
 const BATTLE_SNAPSHOT_PREFIX = "cs2sim:battle:";
 const BATTLE_SNAPSHOT_TTL_SECONDS = 7 * 24 * 60 * 60;
 
-module.exports = function attachBattleLobby(io, { readUsers, redisGet, redisSet, useRedis }) {
+// ---------------------------------------------------------------------------
+// "Codzienne najlepsze bitwy" - TOP 20 zakończonych bitew z danego dnia
+// (czasu polskiego), wg tego, jak mocno JEDEN gracz (nie bot, nie host-bez-
+// -przeciwnika) pomnożył swój koszt wejścia w tej bitwie. Liczone raz, w
+// chwili zakończenia bitwy (battle:finish) z już gotowego `results` - serwer
+// i tak zna wszystko potrzebne w tym momencie, więc nie trzeba nic doliczać
+// później ani skanować historii graczy. Trzymane w pamięci procesu (klucz =
+// data) i, jeśli jest Redis, dodatkowo tam - żeby przetrwało redeploy w
+// trakcie dnia, tak samo jak migawki pojedynczych bitew wyżej.
+// ---------------------------------------------------------------------------
+const DAILY_TOP_PREFIX = "cs2sim:dailytop:";
+const DAILY_TOP_TTL_SECONDS = 3 * 24 * 60 * 60;
+const DAILY_TOP_STORE_MAX = 100; // trzymaj zapas ponad pokazywane 20, gdyby kiedyś było widać więcej
+const DAILY_TOP_SHOWN = 20;
+
+module.exports = function attachBattleLobby(io, { readUsers, redisGet, redisSet, useRedis, warsawDateString }) {
   function persistFinishedLobby(lobby) {
     if (!useRedis) return;
     redisSet(BATTLE_SNAPSHOT_PREFIX + lobby.id, lobby, BATTLE_SNAPSHOT_TTL_SECONDS).catch((e) => {
       console.error(`Nie udało się zapisać migawki bitwy ${lobby.id} w Redisie:`, e.message);
     });
+  }
+  const dailyTopCache = {}; // dateStr -> posortowana, ucięta tablica wpisów
+  async function getDailyTopList(dateStr) {
+    if (dailyTopCache[dateStr]) return dailyTopCache[dateStr];
+    let list = [];
+    if (useRedis) {
+      try {
+        const stored = await redisGet(DAILY_TOP_PREFIX + dateStr);
+        if (Array.isArray(stored)) list = stored;
+      } catch (e) {
+        console.error(`Nie udało się odczytać dziennej topki bitew (${dateStr}) z Redisa:`, e.message);
+      }
+    }
+    dailyTopCache[dateStr] = list;
+    return list;
+  }
+  // Wśród miejsc "host"/"player" (czyli realni gracze, nie boty i nie puste
+  // miejsca) znajduje tego, kto najbardziej pomnożył koszt wejścia - to on
+  // reprezentuje tę bitwę w codziennej topce.
+  function bestNonBotResult(lobby) {
+    let best = null;
+    lobby.slots.forEach((slot, i) => {
+      if (slot.type !== "host" && slot.type !== "player") return;
+      const res = lobby.results && lobby.results[i];
+      if (!res || typeof res.total !== "number" || !lobby.cost) return;
+      const multiplier = res.total / lobby.cost;
+      if (!best || multiplier > best.multiplier) {
+        best = { multiplier, winAmount: res.total, playerName: slot.name, playerAvatar: slot.avatar || null };
+      }
+    });
+    return best;
+  }
+  async function recordDailyTopBattle(lobby) {
+    const best = bestNonBotResult(lobby);
+    if (!best || !(best.winAmount > 0)) return;
+    const finishedAt = lobby.finishedAt || Date.now();
+    const dateStr = warsawDateString(finishedAt);
+    const list = await getDailyTopList(dateStr);
+    list.push({
+      lobbyId: lobby.id,
+      cost: lobby.cost,
+      rounds: lobby.rounds,
+      totalPlayers: lobby.totalPlayers,
+      teams: !!lobby.teams,
+      finishedAt,
+      ...best,
+    });
+    list.sort((a, b) => b.multiplier - a.multiplier);
+    if (list.length > DAILY_TOP_STORE_MAX) list.length = DAILY_TOP_STORE_MAX;
+    dailyTopCache[dateStr] = list;
+    if (useRedis) {
+      redisSet(DAILY_TOP_PREFIX + dateStr, list, DAILY_TOP_TTL_SECONDS).catch((e) => {
+        console.error(`Nie udało się zapisać dziennej topki bitew (${dateStr}) w Redisie:`, e.message);
+      });
+    }
   }
   const lobbies = {}; // id -> lobby
   const socketMeta = {}; // socket.id -> {lobbyId, tabId}
@@ -230,12 +300,26 @@ module.exports = function attachBattleLobby(io, { readUsers, redisGet, redisSet,
       if (!lobby || lobby.hostTabId !== tabId) return;
       lobby.status = "finished";
       lobby.outcome = outcome || null;
+      lobby.finishedAt = Date.now();
       broadcastLobby(lobby);
       broadcastList(); // usuń z publicznej listy "otwarte/w trakcie" - bitwa się skończyła
       persistFinishedLobby(lobby);
+      recordDailyTopBattle(lobby).catch((e) => {
+        console.error(`Nie udało się zapisać bitwy ${lobby.id} do codziennej topki:`, e.message);
+      });
       setTimeout(() => {
         delete lobbies[lobbyId];
       }, FINISHED_LOBBY_TTL_MS);
+    });
+
+    // "Codzienne najlepsze bitwy" - TOP 20 na DZIŚ (czasu polskiego), zawsze
+    // liczone na żywo z bieżącej daty w chwili zapytania, bez parametrów -
+    // zakładka pokazuje wyłącznie dzisiejszy dzień.
+    socket.on("battle:dailyTop", async (payload, ack) => {
+      ack = typeof ack === "function" ? ack : () => {};
+      const dateStr = warsawDateString(Date.now());
+      const list = await getDailyTopList(dateStr);
+      ack({ ok: true, date: dateStr, entries: list.slice(0, DAILY_TOP_SHOWN) });
     });
 
     socket.on("battle:leave", (payload) => {

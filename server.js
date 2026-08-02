@@ -793,7 +793,7 @@ app.use(
 const httpServer = http.createServer(app);
 const io = new SocketIOServer(httpServer);
 io.engine.use(sessionMiddleware); // lets battle-lobby.js read socket.request.session
-attachBattleLobby(io, { readUsers, redisGet, redisSet, useRedis: USE_REDIS });
+attachBattleLobby(io, { readUsers, redisGet, redisSet, useRedis: USE_REDIS, warsawDateString });
 
 httpServer.listen(PORT, () => {
   console.log(`CS2SIM działa: ${SITE_URL} (port ${PORT})`);

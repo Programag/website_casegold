@@ -995,6 +995,34 @@
   .my-battle-card .mbc-outcome.tie{color:var(--muted);}
   .my-battle-card .mbc-outcome small{display:block; color:var(--muted); font-weight:400; font-size:10px;}
 
+  .dt-row{
+    background:var(--panel-2); border:1px solid var(--line); border-radius:12px; padding:12px 16px; margin-bottom:10px;
+    display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  }
+  .dt-rank{
+    width:38px; height:38px; border-radius:10px; flex:none;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'JetBrains Mono',monospace; font-weight:700; font-size:13px; color:var(--muted);
+    background:var(--panel); border:1px solid var(--line);
+  }
+  .dt-rank.top-1{background:rgba(255,215,0,.12); border-color:var(--r-gold); color:var(--r-gold); font-size:18px;}
+  .dt-rank.top-2{background:rgba(200,204,214,.1); border-color:#c8ccd6; color:#c8ccd6; font-size:18px;}
+  .dt-rank.top-3{background:rgba(205,138,77,.12); border-color:#cd8a4d; color:#cd8a4d; font-size:18px;}
+  .dt-icons{display:flex; gap:6px; flex-wrap:wrap; flex:1; min-width:120px;}
+  .dt-icon{
+    position:relative; width:40px; height:40px; border-radius:8px; background:var(--panel); border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center; overflow:hidden; flex:none;
+  }
+  .dt-icon img{max-width:80%; max-height:80%; object-fit:contain;}
+  .dt-icon .fb{font-family:'JetBrains Mono',monospace; font-size:7px; color:var(--muted); text-align:center; padding:0 2px;}
+  .dt-icon .dt-icon-count{
+    position:absolute; bottom:1px; right:2px; font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700;
+    color:var(--text); background:rgba(0,0,0,.6); padding:0 3px; border-radius:3px; line-height:1.5;
+  }
+  .dt-right{display:flex; flex-direction:column; align-items:flex-end; gap:2px; flex:none;}
+  .dt-amount{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:14px; color:var(--good);}
+  .dt-mult{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:12.5px; color:var(--hazard);}
+
   /* ---- spinning reel (per-round, per-player) ---- */
   .mini-reel-outer{position:relative; width:100%; height:100%; overflow:hidden;}
   .mini-reel-outer::before, .mini-reel-outer::after{
@@ -1147,6 +1175,7 @@
       <div class="landing-head">
         <div class="section-title" style="margin:0;">Otwarte bitwy <span class="hint">utworzone w innym oknie na tym urządzeniu — dołącz do pustego miejsca</span></div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="new-battle-btn" id="dailyTopBtn">🏆 Codzienne najlepsze bitwy</button>
           <button class="new-battle-btn" id="myBattlesBtn">🕘 Moje bitwy</button>
           <button class="new-battle-btn" id="landingNewBattleBtn">Stwórz własną bitwę</button>
         </div>
@@ -1167,6 +1196,16 @@
     <div class="nb-title"><span class="nb-icon">🕘</span> Moje bitwy</div>
     <div class="panel">
       <div id="myBattlesList"></div>
+    </div>
+  </div>
+
+  <!-- ===================== CODZIENNE NAJLEPSZE BITWY ===================== -->
+  <div id="dailyTop" style="display:none;">
+    <div class="nb-topbar"><button class="nb-back" id="dailyTopBackBtn">‹ Powrót do listy bitew</button></div>
+    <div class="nb-title"><span class="nb-icon">🏆</span> Codzienne najlepsze bitwy</div>
+    <div class="panel">
+      <div class="section-title" style="margin-bottom:14px;">TOP 20 dzisiaj <span class="hint">gracz (nie bot), który najbardziej pomnożył koszt wejścia w wygranej bitwie</span></div>
+      <div id="dailyTopList"></div>
     </div>
   </div>
 
@@ -2707,6 +2746,7 @@ const setupEl = document.getElementById("setup");
 const arenaEl = document.getElementById("arena");
 const landingEl = document.getElementById("landing");
 const myBattlesEl = document.getElementById("myBattles");
+const dailyTopEl = document.getElementById("dailyTop");
 const playersGrid = document.getElementById("playersGrid");
 const teamTotalsShell = document.getElementById("teamTotalsShell");
 const arenaOutcome = document.getElementById("arenaOutcome");
@@ -2901,6 +2941,7 @@ function showLobbyView(lobby){
   landingEl.style.display = "none";
   setupEl.style.display = "none";
   myBattlesEl.style.display = "none";
+  dailyTopEl.style.display = "none";
   arenaEl.style.display = "block";
   renderLobbyArena(lobby);
 }
@@ -2908,6 +2949,7 @@ function showSetupView(){
   landingEl.style.display = "none";
   arenaEl.style.display = "none";
   myBattlesEl.style.display = "none";
+  dailyTopEl.style.display = "none";
   setupEl.style.display = "block";
   refreshRandomBudgetBounds();
 }
@@ -2915,6 +2957,7 @@ function showLandingView(){
   arenaEl.style.display = "none";
   setupEl.style.display = "none";
   myBattlesEl.style.display = "none";
+  dailyTopEl.style.display = "none";
   landingEl.style.display = "block";
   renderOpenLobbies();
   renderRunningLobbies();
@@ -2923,8 +2966,17 @@ function showMyBattlesView(){
   arenaEl.style.display = "none";
   setupEl.style.display = "none";
   landingEl.style.display = "none";
+  dailyTopEl.style.display = "none";
   myBattlesEl.style.display = "block";
   renderMyBattles();
+}
+function showDailyTopView(){
+  arenaEl.style.display = "none";
+  setupEl.style.display = "none";
+  landingEl.style.display = "none";
+  myBattlesEl.style.display = "none";
+  dailyTopEl.style.display = "block";
+  renderDailyTop();
 }
 
 /* ---- small avatar next to a player's name, so it's easy to spot yourself/opponents ---- */
@@ -3896,6 +3948,68 @@ document.getElementById("myBattlesList").addEventListener("click", (e) => {
   viewLobbyById(btn.dataset.watch, btn);
 });
 
+/* ---- "Codzienne najlepsze bitwy" — TOP 20 na dziś, wg tego jak mocno
+   pojedynczy gracz (nie bot) pomnożył koszt wejścia w wygranej bitwie.
+   Liczone serwerowo (patrz battle:dailyTop w battle-lobby.js), więc każdy
+   widzi tę samą listę niezależnie od tego, kto i kiedy w danej bitwie brał
+   udział. ---- */
+function groupRoundsForIcons(rounds){
+  const order = [];
+  const counts = new Map();
+  (rounds || []).forEach(caseKey => {
+    if(!counts.has(caseKey)){ counts.set(caseKey, 0); order.push(caseKey); }
+    counts.set(caseKey, counts.get(caseKey) + 1);
+  });
+  return order.map(caseKey => ({ caseKey, count: counts.get(caseKey) }));
+}
+function dtIconHtml(caseKey, count){
+  if(!BATTLE_CASES[baseCaseKey(caseKey)]) return `<div class="dt-icon"><div class="fb">?</div></div>`;
+  const c = getCaseData(caseKey);
+  const img = getCaseImage(c.baseName || c.name);
+  const label = (c.baseName || c.name).toUpperCase();
+  return `
+    <div class="dt-icon" title="${c.name}">
+      ${img ? `<img src="${img}" alt="${c.name}" onerror="this.parentElement.innerHTML='<div class=&quot;fb&quot;>${label}</div>'">` : `<div class="fb">${label}</div>`}
+      ${count > 1 ? `<span class="dt-icon-count">×${count}</span>` : ""}
+    </div>
+  `;
+}
+function renderDailyTop(){
+  const list = document.getElementById("dailyTopList");
+  list.innerHTML = `<div class="landing-empty">Wczytywanie…</div>`;
+  socket.emit("battle:dailyTop", {}, (res) => {
+    if(!res || !res.ok || !res.entries || res.entries.length === 0){
+      list.innerHTML = `<div class="landing-empty">Żadna bitwa nie skończyła się jeszcze dzisiaj wygraną. Wróć tu po pierwszej!</div>`;
+      return;
+    }
+    list.innerHTML = "";
+    res.entries.forEach((entry, i) => {
+      const rank = i + 1;
+      const row = document.createElement("div");
+      row.className = "dt-row";
+      const rankHtml = rank <= 3
+        ? `<div class="dt-rank top-${rank}">${["🥇","🥈","🥉"][rank-1]}</div>`
+        : `<div class="dt-rank">#${rank}</div>`;
+      const iconsHtml = groupRoundsForIcons(entry.rounds).map(g => dtIconHtml(g.caseKey, g.count)).join("");
+      row.innerHTML = `
+        ${rankHtml}
+        <div class="dt-icons">${iconsHtml}</div>
+        <div class="dt-right">
+          <div class="dt-amount">${fmt(entry.winAmount)}</div>
+          <div class="dt-mult">${entry.multiplier.toFixed(2)}×</div>
+        </div>
+        <button class="mini-btn" data-watch="${entry.lobbyId}">👁 Oglądaj</button>
+      `;
+      list.appendChild(row);
+    });
+  });
+}
+document.getElementById("dailyTopList").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-watch]");
+  if(!btn) return;
+  viewLobbyById(btn.dataset.watch, btn);
+});
+
 function renderOpenLobbies(){
   const lobbies = loadLobbies();
   const joinable = Object.values(lobbies).filter(l =>
@@ -4035,6 +4149,14 @@ document.getElementById("myBattlesBtn").onclick = () => {
 };
 
 document.getElementById("myBattlesBackBtn").onclick = () => {
+  showLandingView();
+};
+
+document.getElementById("dailyTopBtn").onclick = () => {
+  showDailyTopView();
+};
+
+document.getElementById("dailyTopBackBtn").onclick = () => {
   showLandingView();
 };
 
