@@ -70,6 +70,34 @@
   .top-row{display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:10px;}
   .back-link{color:var(--muted); text-decoration:none; font-size:13px;}
   .back-link:hover{color:var(--hazard);}
+
+  /* ---------------- mobile: table -> stacked cards ---------------- */
+  @media (max-width:700px){
+    .wrap{padding:20px 12px 50px;}
+    table{display:block; border:none; background:none; border-radius:0;}
+    thead{display:none;}
+    tbody{display:block;}
+    tbody tr{
+      display:block; background:var(--panel); border:1px solid var(--line); border-radius:12px;
+      padding:14px; margin-bottom:12px;
+    }
+    tbody tr:last-child{margin-bottom:0;}
+    tbody td{display:block; border-bottom:1px solid var(--line); padding:10px 0;}
+    tbody td:first-child{padding-top:0;}
+    tbody td:last-child{border-bottom:none; padding-bottom:0;}
+    tbody td:not(:first-child):not(:last-child){
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+    }
+    tbody td:not(:first-child):not(:last-child)::before{
+      content:attr(data-label); color:var(--muted); font-size:11px;
+      text-transform:uppercase; letter-spacing:.5px; flex:none;
+    }
+    input.edit-num{width:130px;}
+    input.edit-text{width:150px; max-width:60%;}
+    td:last-child{display:flex; flex-wrap:wrap; align-items:center; gap:8px;}
+    .save-btn, .reset-quests-btn{margin-left:0; flex:1 1 auto; text-align:center;}
+    .row-status{margin-left:0; flex-basis:100%;}
+  }
 </style>
 </head>
 <body>
@@ -114,11 +142,11 @@ function userRow(u){
         </div>
       </div>
     </td>
-    <td><input class="edit-num" data-field="balance" type="number" step="0.01" value="${Number(u.balance || 0).toFixed(2)}"></td>
-    <td><input class="edit-num" data-field="level" type="number" step="1" value="${Number(u.level || 0)}"></td>
-    <td><input class="edit-num" data-field="xp" type="number" step="1" value="${Number(u.xp || 0)}"></td>
-    <td>${u.invCount ?? 0}</td>
-    <td><input class="edit-text" data-field="claimedLevelRewards" type="text" placeholder="np. 1,2,3" value="${(Array.isArray(u.claimedLevelRewards) ? u.claimedLevelRewards : []).join(',')}"></td>
+    <td data-label="Saldo"><input class="edit-num" data-field="balance" type="number" step="0.01" value="${Number(u.balance || 0).toFixed(2)}"></td>
+    <td data-label="Poziom"><input class="edit-num" data-field="level" type="number" step="1" value="${Number(u.level || 0)}"></td>
+    <td data-label="EXP"><input class="edit-num" data-field="xp" type="number" step="1" value="${Number(u.xp || 0)}"></td>
+    <td data-label="Przedmioty">${u.invCount ?? 0}</td>
+    <td data-label="Nagrody (poziomy)"><input class="edit-text" data-field="claimedLevelRewards" type="text" placeholder="np. 1,2,3" value="${(Array.isArray(u.claimedLevelRewards) ? u.claimedLevelRewards : []).join(',')}"></td>
     <td>
       <button class="save-btn">Zapisz</button>
       <button class="reset-quests-btn">Resetuj zadania</button>
