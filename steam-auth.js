@@ -52,10 +52,21 @@
       // tylko wtedy, gdy jego updatedAt jest rzeczywiście świeższy niż to,
       // co mamy już lokalnie.
       let localUpdatedAt = 0;
-      try { localUpdatedAt = JSON.parse(localStorage.getItem(STATE_KEY) || "{}").updatedAt || 0; } catch (e2) {}
+      let localState = {};
+      try { localState = JSON.parse(localStorage.getItem(STATE_KEY) || "{}"); localUpdatedAt = localState.updatedAt || 0; } catch (e2) {}
       const serverUpdatedAt = typeof s.updatedAt === "number" ? s.updatedAt : 0;
       localStorage.setItem(SERVER_BASE_KEY, String(serverUpdatedAt));
-      if (serverUpdatedAt >= localUpdatedAt) {
+      // Jednorazowa migracja XP*10 (patrz /api/admin/migrate-xp-scale) ustawia
+      // xpScaleMigratedV2 na serwerze i odświeża updatedAt w tej samej chwili,
+      // w której gracz mógł akurat mieć otwartą kartę z NOWSZYM lokalnym
+      // updatedAt (np. właśnie coś otworzył) - wtedy zwykłe porównanie
+      // "serverUpdatedAt >= localUpdatedAt" przegrywa i migracja nigdy nie
+      // dociera do przeglądarki, mimo że serwer ją poprawnie zapisał. Przejście
+      // false -> true tej flagi musi więc wymusić przyjęcie serwera, niezależnie
+      // od tego porównania - inaczej admin może kliknąć "Napraw poziomy" ile
+      // razy chce, a i tak nic się nie zmieni na ekranie tego gracza.
+      const serverJustMigrated = !!s.xpScaleMigratedV2 && !localState.xpScaleMigratedV2;
+      if (serverUpdatedAt >= localUpdatedAt || serverJustMigrated) {
         localStorage.setItem(STATE_KEY, JSON.stringify({
           balance: s.balance,
           inventory: s.inventory,
@@ -67,6 +78,7 @@
           casesOpened: typeof s.casesOpened === "number" ? s.casesOpened : 0,
           claimedLevelRewards: Array.isArray(s.claimedLevelRewards) ? s.claimedLevelRewards : [],
           battleHistory: Array.isArray(s.battleHistory) ? s.battleHistory : [],
+          xpScaleMigratedV2: !!s.xpScaleMigratedV2,
           updatedAt: serverUpdatedAt,
         }));
       }
@@ -133,6 +145,7 @@
               casesOpened: typeof s.casesOpened === "number" ? s.casesOpened : 0,
               claimedLevelRewards: Array.isArray(s.claimedLevelRewards) ? s.claimedLevelRewards : [],
               battleHistory: Array.isArray(s.battleHistory) ? s.battleHistory : [],
+              xpScaleMigratedV2: !!s.xpScaleMigratedV2,
               updatedAt: serverUpdatedAt,
             }));
             console.error("[cs2sim] push /api/state odrzucony (409) - dane były nieaktualne, zsynchronizowano z serwerem.");
@@ -404,10 +417,16 @@
         casesOpened: typeof s.casesOpened === "number" ? s.casesOpened : 0,
         claimedLevelRewards: Array.isArray(s.claimedLevelRewards) ? s.claimedLevelRewards : [],
         battleHistory: Array.isArray(s.battleHistory) ? s.battleHistory : [],
+        // Musi przetrwać KAŻDY zapis stanu z dowolnej podstrony (equipment,
+        // index, battle...), inaczej znika przy pierwszej akcji gracza po
+        // migracji XP*10 i wymusza jej ponowne "odkrycie" (patrz
+        // serverJustMigrated wyżej) przy każdym kolejnym odświeżeniu strony -
+        // co nadpisywałoby lokalny postęp zrobiony między odświeżeniami.
+        xpScaleMigratedV2: !!s.xpScaleMigratedV2,
         updatedAt: Date.now(),
       };
     } catch (e) {
-      return { bestPull: null, upgradeClicks: 0, casesOpened: 0, claimedLevelRewards: [], battleHistory: [], updatedAt: Date.now() };
+      return { bestPull: null, upgradeClicks: 0, casesOpened: 0, claimedLevelRewards: [], battleHistory: [], xpScaleMigratedV2: false, updatedAt: Date.now() };
     }
   }
   // ---- Historia bitew Case Battle (do zakładki "Moje bitwy") ----
