@@ -2559,7 +2559,12 @@ randomCountSlider.max = String(MAX_ROUNDS);
 if(Number(randomCountSlider.value) > MAX_ROUNDS) randomCountSlider.value = String(MAX_ROUNDS);
 
 function randomizableCasePool(){
-  return Object.values(BATTLE_CASES).slice().sort((a,b) => a.price - b.price);
+  const pool = [];
+  Object.values(BATTLE_CASES).forEach(c => {
+    pool.push(getCaseData(c.key));
+    if(!c.noJester) pool.push(getCaseData(c.key + JESTER_SUFFIX)); // "All In" cases have no Jester variant
+  });
+  return pool.sort((a,b) => a.price - b.price);
 }
 function cheapestCasePrice(){
   const pool = randomizableCasePool();
@@ -2585,7 +2590,7 @@ function refreshRandomBudgetBounds(){
   randomCountSlider.disabled = !canAfford;
   randomBudgetRollBtn.disabled = !canAfford;
   randomBudgetHintEl.textContent = canAfford
-    ? `Wylosuje losowy zestaw maks. ${randomCountSlider.value} skrzynek o łącznej wartości jak najbliższej wybranemu budżetowi — zastąpi obecny wybór.`
+    ? `Wylosuje losowy zestaw maks. ${randomCountSlider.value} skrzynek (zwykłych i w trybie Jester) o łącznej wartości jak najbliższej wybranemu budżetowi — zastąpi obecny wybór.`
     : "Za mało środków na jakąkolwiek skrzynkę.";
 }
 randomBudgetToggleBtn.onclick = () => {
@@ -2599,7 +2604,7 @@ randomBudgetSlider.oninput = () => {
 };
 randomCountSlider.oninput = () => {
   randomCountAmountEl.textContent = randomCountSlider.value;
-  randomBudgetHintEl.textContent = `Wylosuje losowy zestaw maks. ${randomCountSlider.value} skrzynek o łącznej wartości jak najbliższej wybranemu budżetowi — zastąpi obecny wybór.`;
+  randomBudgetHintEl.textContent = `Wylosuje losowy zestaw maks. ${randomCountSlider.value} skrzynek (zwykłych i w trybie Jester) o łącznej wartości jak najbliższej wybranemu budżetowi — zastąpi obecny wybór.`;
 };
 function rollRandomBudgetSet(){
   const pool = randomizableCasePool();
