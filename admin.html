@@ -59,6 +59,12 @@
   }
   .save-btn:hover{opacity:.9;}
   .save-btn:disabled{opacity:.5; cursor:not-allowed;}
+  .reset-quests-btn{
+    background:var(--panel-2); color:var(--bad); border:1px solid var(--bad); border-radius:7px; padding:7px 14px;
+    font-weight:700; font-size:12.5px; cursor:pointer; margin-left:6px;
+  }
+  .reset-quests-btn:hover{background:var(--bad); color:#1a0505;}
+  .reset-quests-btn:disabled{opacity:.5; cursor:not-allowed;}
   .row-status{font-size:11px; color:var(--good); margin-left:8px;}
   .empty{padding:30px; text-align:center; color:var(--muted);}
   .top-row{display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:10px;}
@@ -115,10 +121,12 @@ function userRow(u){
     <td><input class="edit-text" data-field="claimedLevelRewards" type="text" placeholder="np. 1,2,3" value="${(Array.isArray(u.claimedLevelRewards) ? u.claimedLevelRewards : []).join(',')}"></td>
     <td>
       <button class="save-btn">Zapisz</button>
+      <button class="reset-quests-btn">Resetuj zadania</button>
       <span class="row-status"></span>
     </td>
   `;
   const btn = tr.querySelector(".save-btn");
+  const resetBtn = tr.querySelector(".reset-quests-btn");
   const status = tr.querySelector(".row-status");
   btn.onclick = async () => {
     btn.disabled = true;
@@ -145,6 +153,26 @@ function userRow(u){
       status.style.color = "var(--bad)";
     }
     btn.disabled = false;
+    setTimeout(() => { status.textContent = ""; }, 2500);
+  };
+  resetBtn.onclick = async () => {
+    if(!confirm(`Zresetować odebrane poziomy WSZYSTKICH zadań dla ${u.displayName || u.steamid}? Dotychczasowy postęp (np. liczba otwartych skrzynek) zostaje bez zmian - gracz będzie mógł od razu odebrać ponownie te nagrody, do których próg już osiągnął.`)) return;
+    resetBtn.disabled = true;
+    status.textContent = "";
+    try{
+      const res = await fetch(`/api/admin/users/${encodeURIComponent(u.steamid)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ resetQuests: true })
+      });
+      if(res.ok){ status.textContent = "Zadania zresetowane ✓"; status.style.color = "var(--good)"; }
+      else { status.textContent = "Błąd"; status.style.color = "var(--bad)"; }
+    }catch(e){
+      status.textContent = "Błąd sieci";
+      status.style.color = "var(--bad)";
+    }
+    resetBtn.disabled = false;
     setTimeout(() => { status.textContent = ""; }, 2500);
   };
   return tr;

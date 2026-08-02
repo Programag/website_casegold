@@ -727,6 +727,14 @@ app.put("/api/admin/users/:steamid", requireAdmin, async (req, res) => {
       if (Array.isArray(body.claimedLevelRewards)) {
         u.state.claimedLevelRewards = body.claimedLevelRewards.filter((n) => typeof n === "number" && isFinite(n));
       }
+      // Resetuje TYLKO odebrane poziomy zadań (questClaims), nie liczniki
+      // aktywności (spentCases, battlesPlayed...) - te są współdzielone gdzie
+      // trzeba (casesOpened/upgradeClicks w topce) albo liczone na żywo
+      // (wartość ekwipunku), więc czyszczenie ich tutaj byłoby dużo szerszą,
+      // nieproszoną operacją niż "zresetuj zadania".
+      if (body.resetQuests === true) {
+        u.state.questClaims = {};
+      }
       // Znacznik "admin właśnie autorytatywnie nadpisał ten stan" - klient
       // (steam-auth.js) używa go, żeby w pełni zaufać serwerowi przy następnej
       // synchronizacji, z pominięciem zwykłej ochrony "świeższy/wyższy wygrywa"
