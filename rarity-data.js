@@ -24,7 +24,9 @@
 const SKIN_RARITY = {
   "AK-47|Aquamarine Revenge": "var(--r-covert)", // Covert
   "AK-47|B the Monster": "var(--r-covert)", // Covert
+  "AK-47|Black Laminate": "var(--r-milspec)", // Mil-Spec Grade
   "AK-47|Blue Laminate": "var(--r-restricted)", // Restricted
+  "AK-47|Case Hardened": "var(--r-classified)", // Classified
   "AK-47|Elite Build": "var(--r-milspec)", // Mil-Spec Grade
   "AK-47|Emerald Pinstripe": "var(--r-restricted)", // Restricted
   "AK-47|Frontside Misty": "var(--r-classified)", // Classified
@@ -34,11 +36,13 @@ const SKIN_RARITY = {
   "AK-47|Inheritance": "var(--r-covert)", // Covert
   "AK-47|Jaguar": "var(--r-covert)", // Covert
   "AK-47|Neon Rider": "var(--r-covert)", // Covert
+  "AK-47|Nightwish": "var(--r-covert)", // Covert
   "AK-47|Nouveau Rouge": "var(--r-classified)", // Classified
   "AK-47|Orbit Mk01": "var(--r-restricted)", // Restricted
   "AK-47|Point Disarray": "var(--r-classified)", // Classified
   "AK-47|Searing Rage": "var(--r-classified)", // Classified
   "AK-47|Wild Lotus": "var(--r-covert)", // Covert
+  "AK-47|X-Ray": "var(--r-covert)", // Covert
   "AUG|Amber Slipstream": "var(--r-milspec)", // Mil-Spec Grade
   "AUG|Triqua": "var(--r-milspec)", // Mil-Spec Grade
   "AWP|Containment Breach": "var(--r-covert)", // Covert
@@ -46,8 +50,10 @@ const SKIN_RARITY = {
   "AWP|Desert Hydra": "var(--r-covert)", // Covert
   "AWP|Dragon Lore": "var(--r-covert)", // Covert
   "AWP|Fade": "var(--r-covert)", // Covert
+  "AWP|Graphite": "var(--r-classified)", // Classified
   "AWP|Green Energy": "var(--r-classified)", // Classified
   "AWP|Gungnir": "var(--r-covert)", // Covert
+  "AWP|Hyper Beast": "var(--r-covert)", // Covert
   "AWP|Oni Taiji": "var(--r-covert)", // Covert
   "AWP|Phobos": "var(--r-restricted)", // Restricted
   "AWP|Pink DDPAT": "var(--r-restricted)", // Restricted
@@ -91,6 +97,7 @@ const SKIN_RARITY = {
   "FAMAS|Eye of Athena": "var(--r-classified)", // Classified
   "FAMAS|Hexane": "var(--r-milspec)", // Mil-Spec Grade
   "FAMAS|Neural Net": "var(--r-restricted)", // Restricted
+  "FAMAS|Prime Conspiracy": "var(--r-restricted)", // Restricted
   "FAMAS|Styx": "var(--r-restricted)", // Restricted
   "FAMAS|Survivor Z": "var(--r-milspec)", // Mil-Spec Grade
   "FAMAS|Waters of Nephthys": "var(--r-classified)", // Classified
@@ -159,6 +166,7 @@ const SKIN_RARITY = {
   "M4A1-S|Fade": "var(--r-covert)", // Covert
   "M4A1-S|Flashback": "var(--r-restricted)", // Restricted
   "M4A1-S|Golden Coil": "var(--r-covert)", // Covert
+  "M4A1-S|Hot Rod": "var(--r-classified)", // Classified
   "M4A1-S|Icarus Fell": "var(--r-restricted)", // Restricted
   "M4A1-S|Liquidation": "var(--r-restricted)", // Restricted
   "M4A1-S|Master Piece": "var(--r-classified)", // Classified
@@ -306,6 +314,7 @@ const SKIN_RARITY = {
   "Sticker|Fnatic | Katowice 2015": "var(--r-milspec)", // High Grade
   "Sticker|Virtus.pro | Katowice 2015": "var(--r-milspec)", // High Grade
   "Sticker|Ninjas in Pyjamas | Katowice 2015": "var(--r-milspec)", // High Grade
+  "Sticker|Team LDLC.com": "var(--r-milspec)", // High Grade
   "Stiletto Knife|Doppler Black Pearl": "var(--r-covert)", // Extraordinary
   "Survival Knife|Doppler Black Pearl": "var(--r-covert)", // Extraordinary
   "Survival Knife|Tiger Tooth": "var(--r-covert)", // Covert
@@ -351,7 +360,7 @@ const SKIN_RARITY = {
    fallback niżej w getSkinRarityColor() wywołujących plikach. */
 const KNIFE_GLOVE_WEAPONS = new Set([
   "Bayonet", "Bowie Knife", "Butterfly Knife", "Classic Knife", "Falchion Knife",
-  "Flip Knife", "Gut Knife", "Huntsman Knife", "Karambit", "M9 Bayonet",
+  "Flip Knife", "Gut Knife", "Huntsman Knife", "Karambit", "M9 Bayonet", "M9 Bayonet (ST)",
   "Navaja Knife", "Nomad Knife", "Paracord Knife", "Shadow Daggers", "Skeleton Knife",
   "Stiletto Knife", "Survival Knife", "Talon Knife", "Ursus Knife",
   "Hand Wraps", "Moto Gloves", "Sport Gloves",
