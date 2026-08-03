@@ -319,14 +319,19 @@ module.exports = function attachBattleLobby(io, { readUsers, redisGet, redisSet,
       if (!lobby || lobby.hostTabId !== tabId || lobby.status !== "lobby") return;
       if (!lobby.slots[idx] || lobby.slots[idx].type !== "empty") return;
       const used = lobby.slots.filter((s) => s.type === "bot").map((s) => s.name);
+      const available = BOT_NAMES.filter((n) => !used.includes(n));
       // Klient może poprosić o konkretne imię z panelu wyboru bota - akceptuj
       // je tylko, jeśli jest na liście dozwolonych i jeszcze wolne w tym
       // lobby, inaczej (albo przy "Dodaj losowego", które nie wysyła imienia)
-      // dobierz sam pierwsze wolne.
+      // dobierz PRAWDZIWIE losowe spośród wolnych - branie zawsze pierwszego
+      // wolnego z listy dawało te same boty w tych samych miejscach za
+      // każdym razem (np. w 2v2, gdzie kolejność dodawania jest stała).
       const name =
         typeof requestedName === "string" && BOT_NAMES.includes(requestedName) && !used.includes(requestedName)
           ? requestedName
-          : BOT_NAMES.find((n) => !used.includes(n)) || `Bot ${idx + 1}`;
+          : available.length > 0
+          ? available[Math.floor(Math.random() * available.length)]
+          : `Bot ${idx + 1}`;
       lobby.slots[idx] = { type: "bot", name, tabId: null };
       broadcastLobby(lobby);
     });
