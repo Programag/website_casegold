@@ -571,8 +571,10 @@
   .bot-picker-tile:disabled{opacity:.3; cursor:not-allowed;}
   .bot-picker-avatar{
     width:64px; height:64px; border-radius:50%; display:flex; align-items:center; justify-content:center;
-    font-family:'Oswald',sans-serif; font-weight:700; font-size:24px; color:#fff; flex:none;
+    font-family:'Oswald',sans-serif; font-weight:700; font-size:24px; color:var(--muted); flex:none;
+    background:var(--panel); border:1px solid var(--line); overflow:hidden;
   }
+  .bot-picker-avatar img{width:100%; height:100%; object-fit:cover;}
   .bot-picker-name{font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:.5px; font-size:14px; color:var(--text);}
   .bot-picker-random-btn{
     width:100%; background:var(--panel-2); border:1px solid var(--hazard-dim); color:var(--text);
@@ -2005,13 +2007,17 @@ const MAX_ROUNDS = 40; // matches the "Skrzynki (x/40)" counter on the setup scr
    akceptuje wybrane imię tylko, jeśli jest na tej liście (i jeszcze wolne w
    danym lobby), inaczej dobiera je sam. */
 const BOT_ROSTER = [
-  { name: "Kacper", color: "var(--r-milspec)" },
-  { name: "Bartek", color: "var(--hazard)" },
-  { name: "Dawid", color: "var(--good)" },
-  { name: "Łukasz", color: "var(--r-restricted)" },
-  { name: "Michał", color: "var(--r-gold)" },
-  { name: "Radek", color: "var(--r-classified)" },
+  { name: "Hacker", avatar: "hacker_bot.png" },
+  { name: "Guy", avatar: "guy_bot.png" },
+  { name: "Chad", avatar: "chad_bot.png" },
+  { name: "Steve", avatar: "steve_bot.png" },
+  { name: "Clown", avatar: "clown_bot.png" },
+  { name: "Shiba", avatar: "shiba_bot.png" },
 ];
+function botAvatarByName(name){
+  const b = BOT_ROSTER.find(x => x.name === name);
+  return b ? b.avatar : null;
+}
 
 function fmt(n){
   return n.toLocaleString("pl-PL", {minimumFractionDigits:2, maximumFractionDigits:2}) + " zł";
@@ -3034,7 +3040,11 @@ function showDailyTopView(){
 
 /* ---- small avatar next to a player's name, so it's easy to spot yourself/opponents ---- */
 function avatarHtml(slot){
-  if(slot.type === "bot") return `<span class="player-avatar">🤖</span>`;
+  if(slot.type === "bot"){
+    const botAvatar = botAvatarByName(slot.name);
+    if(botAvatar) return `<img class="player-avatar" src="${botAvatar}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'player-avatar',textContent:'🤖'}));">`;
+    return `<span class="player-avatar">🤖</span>`;
+  }
   if(slot.avatar) return `<img class="player-avatar" src="${slot.avatar}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'player-avatar',textContent:'🙂'}));">`;
   return `<span class="player-avatar">🙂</span>`;
 }
@@ -3231,7 +3241,7 @@ function openBotPickerModal(lobbyId, idx){
     tile.className = "bot-picker-tile";
     tile.disabled = taken;
     tile.innerHTML = `
-      <div class="bot-picker-avatar" style="background:${b.color};">${b.name[0]}</div>
+      <div class="bot-picker-avatar"><img src="${b.avatar}" alt="${b.name}" onerror="this.parentElement.textContent='${b.name[0]}'"></div>
       <div class="bot-picker-name">${b.name}</div>
     `;
     if(!taken) tile.onclick = () => confirmAddBot(b.name);

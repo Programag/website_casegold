@@ -15,7 +15,7 @@ const crypto = require("crypto");
 // Musi być identyczne z BOT_ROSTER w battle.html (kolejność/imiona) - klient
 // pokazuje ten sam roster w panelu wyboru bota, serwer tylko akceptuje albo
 // odrzuca konkretne żądane imię.
-const BOT_NAMES = ["Kacper", "Bartek", "Dawid", "Łukasz", "Michał", "Radek"];
+const BOT_NAMES = ["Hacker", "Guy", "Chad", "Steve", "Clown", "Shiba"];
 const MAX_ROUNDS = 40;
 const MAX_PLAYERS = 4;
 const MAX_COST = 1000000;
