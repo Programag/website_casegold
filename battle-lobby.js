@@ -85,16 +85,21 @@ module.exports = function attachBattleLobby(io, { readUsers, redisGet, redisSet,
   }
   // Wśród miejsc, które FAKTYCZNIE WYGRAŁY tę bitwę (wg lobby.outcome -
   // gospodarz liczy go raz, tak samo jak `results`, patrz nagłówek pliku),
-  // znajduje realnego gracza (nie bota) z najwyższym mnożnikiem kosztu
-  // wejścia - to on reprezentuje tę bitwę w codziennej topce. W trybie
-  // "shared" nie ma przegranych, więc kwalifikuje się każdy uczestnik. Jeśli
-  // zwyciężył wyłącznie bot (albo w ogóle brak realnych graczy wśród
-  // zwycięzców), bitwa NIE trafia do topki - to jest tu wymuszane właśnie
-  // przez ograniczenie kandydatów do zwycięzców, a nie do "kogokolwiek z
-  // najlepszym wynikiem" jak poprzednio.
+  // znajduje realnego gracza (nie bota) - to on reprezentuje tę bitwę w
+  // codziennej topce. Jeśli zwyciężył wyłącznie bot (albo w ogóle brak
+  // realnych graczy wśród zwycięzców), bitwa NIE trafia do topki.
+  //
+  // WAŻNE: `lobby.results[i].total` to WŁASNA pula danego gracza (suma cen
+  // przedmiotów z JEGO WŁASNYCH rund) - to NIE jest to samo, co realna
+  // wygrana! W trybach innych niż "shared" zwycięzca zgarnia całą wspólną
+  // pulę wszystkich graczy (albo jej połowę przy zwycięstwie drużynowym
+  // 2v2), a nie tylko swoją własną część - dokładnie tak samo, jak liczy to
+  // finishConclusion() po stronie klienta. Dlatego mnożnik i kwota wygranej
+  // muszą być liczone od połączonej puli WSZYSTKICH rund w tej bitwie, nie
+  // od samego wyniku zwycięzcy.
   function bestNonBotResult(lobby) {
     const outcome = lobby.outcome;
-    if (!outcome) return null;
+    if (!outcome || !Array.isArray(lobby.results) || !lobby.cost) return null;
     let candidateIdx;
     if (outcome.shared) {
       candidateIdx = lobby.slots.map((_, i) => i);
@@ -105,18 +110,17 @@ module.exports = function attachBattleLobby(io, { readUsers, redisGet, redisSet,
     } else {
       return null;
     }
-    let best = null;
-    candidateIdx.forEach((i) => {
-      const slot = lobby.slots[i];
-      if (!slot || (slot.type !== "host" && slot.type !== "player")) return;
-      const res = lobby.results && lobby.results[i];
-      if (!res || typeof res.total !== "number" || !lobby.cost) return;
-      const multiplier = res.total / lobby.cost;
-      if (!best || multiplier > best.multiplier) {
-        best = { multiplier, winAmount: res.total, playerName: slot.name, playerAvatar: slot.avatar || null };
-      }
-    });
-    return best;
+    const winnerSlot = candidateIdx
+      .map((i) => lobby.slots[i])
+      .find((slot) => slot && (slot.type === "host" || slot.type === "player"));
+    if (!winnerSlot) return null; // wygrał wyłącznie bot (albo bez zwycięzców) - nie liczy się
+    const combinedPot = lobby.results.reduce((sum, r) => sum + (r && typeof r.total === "number" ? r.total : 0), 0);
+    const winAmount = outcome.shared
+      ? combinedPot / lobby.totalPlayers
+      : lobby.teams
+      ? combinedPot / 2 // zwycięska drużyna dzieli pulę na pół między dwóch członków
+      : combinedPot; // zwycięzca solo bierze całą wspólną pulę
+    return { multiplier: winAmount / lobby.cost, winAmount, playerName: winnerSlot.name, playerAvatar: winnerSlot.avatar || null };
   }
   async function recordDailyTopBattle(lobby) {
     const best = bestNonBotResult(lobby);
