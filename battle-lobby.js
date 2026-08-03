@@ -83,13 +83,32 @@ module.exports = function attachBattleLobby(io, { readUsers, redisGet, redisSet,
     dailyTopCache[dateStr] = list;
     return list;
   }
-  // Wśród miejsc "host"/"player" (czyli realni gracze, nie boty i nie puste
-  // miejsca) znajduje tego, kto najbardziej pomnożył koszt wejścia - to on
-  // reprezentuje tę bitwę w codziennej topce.
+  // Wśród miejsc, które FAKTYCZNIE WYGRAŁY tę bitwę (wg lobby.outcome -
+  // gospodarz liczy go raz, tak samo jak `results`, patrz nagłówek pliku),
+  // znajduje realnego gracza (nie bota) z najwyższym mnożnikiem kosztu
+  // wejścia - to on reprezentuje tę bitwę w codziennej topce. W trybie
+  // "shared" nie ma przegranych, więc kwalifikuje się każdy uczestnik. Jeśli
+  // zwyciężył wyłącznie bot (albo w ogóle brak realnych graczy wśród
+  // zwycięzców), bitwa NIE trafia do topki - to jest tu wymuszane właśnie
+  // przez ograniczenie kandydatów do zwycięzców, a nie do "kogokolwiek z
+  // najlepszym wynikiem" jak poprzednio.
   function bestNonBotResult(lobby) {
+    const outcome = lobby.outcome;
+    if (!outcome) return null;
+    let candidateIdx;
+    if (outcome.shared) {
+      candidateIdx = lobby.slots.map((_, i) => i);
+    } else if (Array.isArray(outcome.winnerIndices) && outcome.winnerIndices.length > 0) {
+      candidateIdx = outcome.winnerIndices;
+    } else if (typeof outcome.winnerIdx === "number") {
+      candidateIdx = [outcome.winnerIdx];
+    } else {
+      return null;
+    }
     let best = null;
-    lobby.slots.forEach((slot, i) => {
-      if (slot.type !== "host" && slot.type !== "player") return;
+    candidateIdx.forEach((i) => {
+      const slot = lobby.slots[i];
+      if (!slot || (slot.type !== "host" && slot.type !== "player")) return;
       const res = lobby.results && lobby.results[i];
       if (!res || typeof res.total !== "number" || !lobby.cost) return;
       const multiplier = res.total / lobby.cost;
