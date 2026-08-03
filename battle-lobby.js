@@ -12,7 +12,10 @@
    ========================================================================= */
 const crypto = require("crypto");
 
-const BOT_NAMES = ["Bot Alfa", "Bot Bravo", "Bot Charlie"];
+// Musi być identyczne z BOT_ROSTER w battle.html (kolejność/imiona) - klient
+// pokazuje ten sam roster w panelu wyboru bota, serwer tylko akceptuje albo
+// odrzuca konkretne żądane imię.
+const BOT_NAMES = ["Kacper", "Bartek", "Dawid", "Łukasz", "Michał", "Radek"];
 const MAX_ROUNDS = 40;
 const MAX_PLAYERS = 4;
 const MAX_COST = 1000000;
@@ -267,12 +270,19 @@ module.exports = function attachBattleLobby(io, { readUsers, redisGet, redisSet,
     });
 
     socket.on("battle:addBot", (payload) => {
-      const { lobbyId, idx, tabId } = payload || {};
+      const { lobbyId, idx, tabId, name: requestedName } = payload || {};
       const lobby = lobbies[lobbyId];
       if (!lobby || lobby.hostTabId !== tabId || lobby.status !== "lobby") return;
       if (!lobby.slots[idx] || lobby.slots[idx].type !== "empty") return;
       const used = lobby.slots.filter((s) => s.type === "bot").map((s) => s.name);
-      const name = BOT_NAMES.find((n) => !used.includes(n)) || `Bot ${idx + 1}`;
+      // Klient może poprosić o konkretne imię z panelu wyboru bota - akceptuj
+      // je tylko, jeśli jest na liście dozwolonych i jeszcze wolne w tym
+      // lobby, inaczej (albo przy "Dodaj losowego", które nie wysyła imienia)
+      // dobierz sam pierwsze wolne.
+      const name =
+        typeof requestedName === "string" && BOT_NAMES.includes(requestedName) && !used.includes(requestedName)
+          ? requestedName
+          : BOT_NAMES.find((n) => !used.includes(n)) || `Bot ${idx + 1}`;
       lobby.slots[idx] = { type: "bot", name, tabId: null };
       broadcastLobby(lobby);
     });

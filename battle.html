@@ -556,6 +556,32 @@
     background:var(--panel-2); border:1px solid var(--line); color:var(--text);
     border-radius:6px; width:28px; height:28px; cursor:pointer;
   }
+  .bot-picker-grid{
+    display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin-bottom:14px;
+  }
+  @media (max-width:420px){
+    .bot-picker-grid{grid-template-columns:repeat(2, 1fr);}
+  }
+  .bot-picker-tile{
+    background:var(--panel-2); border:1px solid var(--line); border-radius:12px; padding:16px 10px;
+    display:flex; flex-direction:column; align-items:center; gap:10px; cursor:pointer;
+    transition:border-color .15s ease, transform .15s ease; font-family:'Inter',sans-serif;
+  }
+  .bot-picker-tile:hover:not(:disabled){border-color:var(--hazard); transform:translateY(-2px);}
+  .bot-picker-tile:disabled{opacity:.3; cursor:not-allowed;}
+  .bot-picker-avatar{
+    width:64px; height:64px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-family:'Oswald',sans-serif; font-weight:700; font-size:24px; color:#fff; flex:none;
+  }
+  .bot-picker-name{font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:.5px; font-size:14px; color:var(--text);}
+  .bot-picker-random-btn{
+    width:100%; background:var(--panel-2); border:1px solid var(--hazard-dim); color:var(--text);
+    padding:14px; border-radius:10px; cursor:pointer; font-family:'Oswald',sans-serif; text-transform:uppercase;
+    letter-spacing:1px; font-size:13px; display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .bot-picker-random-btn:hover:not(:disabled){border-color:var(--hazard); color:var(--hazard);}
+  .bot-picker-random-btn .count{color:var(--hazard); font-weight:700; font-family:'JetBrains Mono',monospace;}
+  .bot-picker-random-btn:disabled{opacity:.4; cursor:not-allowed;}
   @media (max-width:480px){
     #leaderboardBtn .lbl{display:none;}
   }
@@ -1315,6 +1341,16 @@
     <div class="case-info-modal" id="caseInfoModal">
       <div class="case-info-card" id="caseInfoCard"></div>
     </div>
+    <div class="nb-case-modal" id="botPickerModal">
+      <div class="nb-case-modal-card" style="max-width:420px;">
+        <div class="nb-case-modal-head">
+          <div>🤖 Wybierz bota</div>
+          <button id="botPickerCloseBtn" type="button">✕</button>
+        </div>
+        <div class="bot-picker-grid" id="botPickerGrid"></div>
+        <button class="bot-picker-random-btn" id="botPickerRandomBtn" type="button">🤖 Dodaj losowego <span class="count" id="botPickerRandomCount"></span></button>
+      </div>
+    </div>
     <div class="lobby-summary-bar" id="lobbySummaryBar" style="display:none;">
       <div class="txt" id="lobbySummaryTxt"></div>
     </div>
@@ -1965,7 +2001,17 @@ const DAILY_BONUS_KEY = "cs2sim_daily_bonus_at";
 const DAILY_BONUS_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 const START_BALANCE = 50.00;
 const MAX_ROUNDS = 40; // matches the "Skrzynki (x/40)" counter on the setup screen
-const BOT_NAMES = ["Bot Alfa", "Bot Bravo", "Bot Charlie"];
+/* Nazwy botów muszą być identyczne z BOT_NAMES w battle-lobby.js - serwer
+   akceptuje wybrane imię tylko, jeśli jest na tej liście (i jeszcze wolne w
+   danym lobby), inaczej dobiera je sam. */
+const BOT_ROSTER = [
+  { name: "Kacper", color: "var(--r-milspec)" },
+  { name: "Bartek", color: "var(--hazard)" },
+  { name: "Dawid", color: "var(--good)" },
+  { name: "Łukasz", color: "var(--r-restricted)" },
+  { name: "Michał", color: "var(--r-gold)" },
+  { name: "Radek", color: "var(--r-classified)" },
+];
 
 function fmt(n){
   return n.toLocaleString("pl-PL", {minimumFractionDigits:2, maximumFractionDigits:2}) + " zł";
@@ -3166,8 +3212,55 @@ function tryAutoStartLobby(lobbyId){
   socket.emit("battle:submitResults", { lobbyId, tabId: myTabId, results });
 }
 
+/* ---- panel wyboru bota (kliknięcie "Dodaj bota" pyta, którego z rostera
+   dodać, zamiast dobierać go automatycznie) ---- */
+let botPickerLobbyId = null;
+let botPickerSlotIdx = null;
+function openBotPickerModal(lobbyId, idx){
+  const lobby = getLobby(lobbyId);
+  if(!lobby) return;
+  botPickerLobbyId = lobbyId;
+  botPickerSlotIdx = idx;
+  const usedNames = lobby.slots.filter(s => s.type === "bot").map(s => s.name);
+  const grid = document.getElementById("botPickerGrid");
+  grid.innerHTML = "";
+  BOT_ROSTER.forEach(b => {
+    const taken = usedNames.includes(b.name);
+    const tile = document.createElement("button");
+    tile.type = "button";
+    tile.className = "bot-picker-tile";
+    tile.disabled = taken;
+    tile.innerHTML = `
+      <div class="bot-picker-avatar" style="background:${b.color};">${b.name[0]}</div>
+      <div class="bot-picker-name">${b.name}</div>
+    `;
+    if(!taken) tile.onclick = () => confirmAddBot(b.name);
+    grid.appendChild(tile);
+  });
+  const freeCount = BOT_ROSTER.length - usedNames.length;
+  const randomBtn = document.getElementById("botPickerRandomBtn");
+  document.getElementById("botPickerRandomCount").textContent = `(${freeCount} wolnych)`;
+  randomBtn.disabled = freeCount === 0;
+  document.getElementById("botPickerModal").classList.add("show");
+}
+function closeBotPickerModal(){
+  document.getElementById("botPickerModal").classList.remove("show");
+  botPickerLobbyId = null;
+  botPickerSlotIdx = null;
+}
+function confirmAddBot(name){
+  if(botPickerLobbyId == null || botPickerSlotIdx == null) return;
+  socket.emit("battle:addBot", { lobbyId: botPickerLobbyId, idx: botPickerSlotIdx, tabId: myTabId, name: name || null });
+  closeBotPickerModal();
+}
+document.getElementById("botPickerCloseBtn").onclick = closeBotPickerModal;
+document.getElementById("botPickerModal").addEventListener("click", (e) => {
+  if(e.target.id === "botPickerModal") closeBotPickerModal();
+});
+document.getElementById("botPickerRandomBtn").onclick = () => confirmAddBot(null);
+
 function addBotToSlot(lobbyId, idx){
-  socket.emit("battle:addBot", { lobbyId, idx, tabId: myTabId });
+  openBotPickerModal(lobbyId, idx);
 }
 
 function joinSlot(lobbyId, idx){
