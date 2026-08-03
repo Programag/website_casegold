@@ -2299,8 +2299,15 @@ socket.on("battle:closed", ({lobbyId}) => {
 socket.on("connect", () => {
   if(myLobbyId){
     socket.emit("battle:resume", {lobbyId: myLobbyId, tabId: myTabId}, (res) => {
-      if(res && res.ok){ myLobbyObj = res.lobby; showLobbyView(res.lobby); updateBattleUrl(res.lobby.id); }
-      else { myLobbyId = null; sessionStorage.removeItem("myLobbyId_v1"); tryViewLobbyFromUrl(); }
+      // Nie wskakuj automatycznie z powrotem w JUŻ ZAKOŃCZONĄ bitwę - to
+      // dawało wrażenie "utknięcia" na starym wyniku po prostym wejściu w
+      // zakładkę Battle (trzeba było ręcznie klikać "Powrót"). Odtworzenie
+      // gotowej bitwy dalej działa normalnie przez "Moje bitwy" albo link.
+      if(res && res.ok && res.lobby.status !== "finished"){
+        myLobbyObj = res.lobby; showLobbyView(res.lobby); updateBattleUrl(res.lobby.id);
+      } else {
+        myLobbyId = null; sessionStorage.removeItem("myLobbyId_v1"); tryViewLobbyFromUrl();
+      }
     });
   } else {
     tryViewLobbyFromUrl();
