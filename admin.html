@@ -67,6 +67,17 @@
   .reset-quests-btn:disabled{opacity:.5; cursor:not-allowed;}
   .row-status{font-size:11px; color:var(--good); margin-left:8px;}
   .empty{padding:30px; text-align:center; color:var(--muted);}
+  .maintenance-panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:16px 20px; margin-bottom:20px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  }
+  .clear-daily-top-btn{
+    background:var(--panel-2); color:var(--bad); border:1px solid var(--bad); border-radius:7px; padding:9px 16px;
+    font-weight:700; font-size:12.5px; cursor:pointer;
+  }
+  .clear-daily-top-btn:hover{background:var(--bad); color:#1a0505;}
+  .clear-daily-top-btn:disabled{opacity:.5; cursor:not-allowed;}
+  .maintenance-status{font-size:11.5px; color:var(--muted);}
   .top-row{display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:10px;}
   .back-link{color:var(--muted); text-decoration:none; font-size:13px;}
   .back-link:hover{color:var(--hazard);}
@@ -219,6 +230,29 @@ async function init(){
   }
   const data = await loadUsers();
   content.innerHTML = "";
+
+  const maintenancePanel = document.createElement("div");
+  maintenancePanel.className = "maintenance-panel";
+  maintenancePanel.innerHTML = `
+    <button class="clear-daily-top-btn" id="clearDailyTopBtn">🗑 Wyczyść ranking "Codzienne najlepsze bitwy"</button>
+    <span class="maintenance-status" id="clearDailyTopStatus"></span>
+  `;
+  content.appendChild(maintenancePanel);
+  const clearDailyTopBtn = document.getElementById("clearDailyTopBtn");
+  const clearDailyTopStatus = document.getElementById("clearDailyTopStatus");
+  clearDailyTopBtn.onclick = async () => {
+    if(!confirm("Na pewno wyczyścić dzisiejszy ranking 'Codzienne najlepsze bitwy'? Nieodwracalne.")) return;
+    clearDailyTopBtn.disabled = true;
+    clearDailyTopStatus.textContent = "Czyszczę…";
+    try{
+      const res = await fetch("/api/admin/daily-top/clear", { method: "POST", credentials: "same-origin" });
+      clearDailyTopStatus.textContent = res.ok ? "Wyczyszczono." : "Błąd.";
+    }catch(e){
+      clearDailyTopStatus.textContent = "Błąd.";
+    }
+    clearDailyTopBtn.disabled = false;
+  };
+
   if(!data || !Array.isArray(data.users) || data.users.length === 0){
     const empty = document.createElement("div");
     empty.className = "state-box";

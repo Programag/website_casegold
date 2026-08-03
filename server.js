@@ -793,7 +793,12 @@ app.use(
 const httpServer = http.createServer(app);
 const io = new SocketIOServer(httpServer);
 io.engine.use(sessionMiddleware); // lets battle-lobby.js read socket.request.session
-attachBattleLobby(io, { readUsers, redisGet, redisSet, useRedis: USE_REDIS, warsawDateString });
+const battleLobbyApi = attachBattleLobby(io, { readUsers, redisGet, redisSet, useRedis: USE_REDIS, warsawDateString });
+
+app.post("/api/admin/daily-top/clear", requireAdmin, async (req, res) => {
+  await battleLobbyApi.clearDailyTop();
+  res.json({ ok: true });
+});
 
 httpServer.listen(PORT, () => {
   console.log(`CS2SIM działa: ${SITE_URL} (port ${PORT})`);

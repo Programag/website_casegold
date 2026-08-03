@@ -83,6 +83,27 @@ module.exports = function attachBattleLobby(io, { readUsers, redisGet, redisSet,
     dailyTopCache[dateStr] = list;
     return list;
   }
+  // Czyści codzienną topkę (pamięć procesu + Redis, jeśli skonfigurowany) -
+  // używane z panelu admina po zmianie sposobu liczenia wygranej, żeby stare
+  // wpisy policzone starym (błędnym) wzorem nie zostały w rankingu na resztę
+  // dnia. Czyści zarówno dzisiejszą datę, jak i każdą inną już wczytaną do
+  // pamięci w tym uruchomieniu procesu - kolejne dni i tak zaczynają puste.
+  async function clearDailyTop() {
+    const todayStr = warsawDateString(Date.now());
+    const dates = new Set([todayStr, ...Object.keys(dailyTopCache)]);
+    dates.forEach((d) => {
+      dailyTopCache[d] = [];
+    });
+    if (useRedis) {
+      await Promise.all(
+        [...dates].map((d) =>
+          redisSet(DAILY_TOP_PREFIX + d, [], DAILY_TOP_TTL_SECONDS).catch((e) => {
+            console.error(`Nie udało się wyczyścić dziennej topki bitew (${d}) w Redisie:`, e.message);
+          })
+        )
+      );
+    }
+  }
   // Wśród miejsc, które FAKTYCZNIE WYGRAŁY tę bitwę (wg lobby.outcome -
   // gospodarz liczy go raz, tak samo jak `results`, patrz nagłówek pliku),
   // znajduje realnego gracza (nie bota) - to on reprezentuje tę bitwę w
@@ -378,4 +399,6 @@ module.exports = function attachBattleLobby(io, { readUsers, redisGet, redisSet,
       if (meta) schedulePendingFree(meta.lobbyId, meta.tabId);
     });
   });
+
+  return { clearDailyTop };
 };
