@@ -40,11 +40,14 @@ const SKIN_RARITY = {
   "AK-47|Nouveau Rouge": "var(--r-classified)", // Classified
   "AK-47|Orbit Mk01": "var(--r-restricted)", // Restricted
   "AK-47|Point Disarray": "var(--r-classified)", // Classified
+  "AK-47|Predator": "var(--r-milspec)", // Industrial Grade
+  "AK-47|Jungle Spray": "var(--r-milspec)", // Industrial Grade
   "AK-47|Searing Rage": "var(--r-classified)", // Classified
   "AK-47|Wild Lotus": "var(--r-covert)", // Covert
   "AK-47|X-Ray": "var(--r-covert)", // Covert
   "AUG|Amber Slipstream": "var(--r-milspec)", // Mil-Spec Grade
   "AUG|Triqua": "var(--r-milspec)", // Mil-Spec Grade
+  "AWP|Acheron": "var(--r-milspec)", // Mil-Spec Grade
   "AWP|Containment Breach": "var(--r-covert)", // Covert
   "AWP|Corticera": "var(--r-classified)", // Classified
   "AWP|Desert Hydra": "var(--r-covert)", // Covert
@@ -80,11 +83,14 @@ const SKIN_RARITY = {
   "CZ75-Auto|Victoria": "var(--r-covert)", // Covert
   "Classic Knife|Fade": "var(--r-covert)", // Covert
   "Desert Eagle|Blaze": "var(--r-restricted)", // Restricted
+  "Desert Eagle|Conspiracy": "var(--r-classified)", // Classified
   "Desert Eagle|Crimson Web": "var(--r-restricted)", // Restricted
   "Desert Eagle|Emerald Jörmungandr": "var(--r-restricted)", // Restricted
+  "Desert Eagle|Firebreathing": "var(--r-restricted)", // Restricted
   "Desert Eagle|Golden Koi": "var(--r-covert)", // Covert
   "Desert Eagle|Heirloom": "var(--r-restricted)", // Restricted
   "Desert Eagle|Midnight Storm": "var(--r-milspec)", // Industrial Grade
+  "Desert Eagle|Mecha Industries": "var(--r-classified)", // Classified
   "Desert Eagle|Mint Fan": "var(--r-milspec)", // Mil-Spec Grade
   "Desert Eagle|Ocean Drive": "var(--r-covert)", // Covert
   "Desert Eagle|Oxide Blaze": "var(--r-milspec)", // Mil-Spec Grade
@@ -93,7 +99,9 @@ const SKIN_RARITY = {
   "Desert Eagle|Urban Rubble": "var(--r-milspec)", // Mil-Spec Grade
   "Dual Berettas|Emerald": "var(--r-milspec)", // Mil-Spec Grade
   "Dual Berettas|Flora Carnivora": "var(--r-restricted)", // Restricted
+  "Dual Berettas|Urban Shock": "var(--r-restricted)", // Restricted
   "FAMAS|Commemoration": "var(--r-covert)", // Covert
+  "FAMAS|Djinn": "var(--r-classified)", // Classified
   "FAMAS|Eye of Athena": "var(--r-classified)", // Classified
   "FAMAS|Hexane": "var(--r-milspec)", // Mil-Spec Grade
   "FAMAS|Neural Net": "var(--r-restricted)", // Restricted
@@ -109,12 +117,15 @@ const SKIN_RARITY = {
   "Five-SeveN|Copper Galaxy": "var(--r-restricted)", // Restricted
   "Five-SeveN|Crimson Blossom": "var(--r-milspec)", // Mil-Spec Grade
   "Five-SeveN|Fairy Tale": "var(--r-classified)", // Classified
+  "Five-SeveN|Fowl Play": "var(--r-classified)", // Classified
   "Five-SeveN|Fraise Crane": "var(--r-milspec)", // Mil-Spec Grade
+  "Five-SeveN|Monkey Business": "var(--r-classified)", // Classified
   "Five-SeveN|Scumbria": "var(--r-milspec)", // Mil-Spec Grade
   "Five-SeveN|Urban Hazard": "var(--r-milspec)", // Mil-Spec Grade
   "Flip Knife|Doppler Black Pearl": "var(--r-covert)", // Extraordinary
   "Flip Knife|Gamma Doppler Emerald": "var(--r-covert)", // Extraordinary
   "G3SG1|Dream Glade": "var(--r-restricted)", // Restricted
+  "G3SG1|Flux": "var(--r-classified)", // Classified
   "G3SG1|Orange Crash": "var(--r-milspec)", // Mil-Spec Grade
   "Galil AR|Aqua Terrace": "var(--r-milspec)", // Mil-Spec Grade
   "Galil AR|Galigator": "var(--r-restricted)", // Restricted
@@ -129,6 +140,7 @@ const SKIN_RARITY = {
   "Glock-18|Catacombs": "var(--r-milspec)", // Mil-Spec Grade
   "Glock-18|Fade": "var(--r-restricted)", // Restricted
   "Glock-18|Gamma Doppler Emerald": "var(--r-covert)", // Covert
+  "Glock-18|Gamma Doppler Phase 4": "var(--r-covert)", // Covert
   "Glock-18|Moonrise": "var(--r-restricted)", // Restricted
   "Glock-18|Ocean Topo": "var(--r-milspec)", // Industrial Grade
   "Glock-18|Off World": "var(--r-milspec)", // Mil-Spec Grade
@@ -154,6 +166,7 @@ const SKIN_RARITY = {
   "Karambit|Tiger Tooth": "var(--r-covert)", // Covert
   "M249|Downtown": "var(--r-restricted)", // Restricted
   "M249|Emerald Poison Dart": "var(--r-restricted)", // Restricted
+  "M249|Nebula Crusader": "var(--r-restricted)", // Restricted
   "M249|System Lock": "var(--r-milspec)", // Mil-Spec Grade
   "M4A1-S|Basilisk": "var(--r-restricted)", // Restricted
   "M4A1-S|Black Lotus": "var(--r-classified)", // Classified
@@ -173,12 +186,15 @@ const SKIN_RARITY = {
   "M4A1-S|Nightmare": "var(--r-classified)", // Classified
   "M4A1-S|Nitro": "var(--r-restricted)", // Restricted
   "M4A1-S|Printstream": "var(--r-covert)", // Covert
+  "M4A1-S|Solitude": "var(--r-classified)", // Classified
   "M4A4|Evil Daimyo": "var(--r-restricted)", // Restricted
   "M4A4|Eye of Horus": "var(--r-covert)", // Covert
+  "M4A4|Faded Zebra": "var(--r-milspec)", // Mil-Spec Grade
   "M4A4|Griffin": "var(--r-restricted)", // Restricted
   "M4A4|Hellfire": "var(--r-classified)", // Classified
   "M4A4|Hellish": "var(--r-classified)", // Classified
   "M4A4|Howl": "var(--r-gold)", // Contraband
+  "M4A4|Neo-Noir": "var(--r-covert)", // Covert
   "M4A4|Royal Paladin": "var(--r-covert)", // Covert
   "M4A4|Temukau": "var(--r-covert)", // Covert
   "M4A4|The Emperor": "var(--r-covert)", // Covert
@@ -191,10 +207,13 @@ const SKIN_RARITY = {
   "MAC-10|Ensnared": "var(--r-milspec)", // Mil-Spec Grade
   "MAC-10|Fade": "var(--r-milspec)", // Mil-Spec Grade
   "MAC-10|Gold Brick": "var(--r-restricted)", // Restricted
+  "MAC-10|Last Dive": "var(--r-restricted)", // Restricted
+  "MAC-10|Nuclear Garden": "var(--r-milspec)", // Mil-Spec Grade
   "MAC-10|Oceanic": "var(--r-milspec)", // Mil-Spec Grade
   "MAC-10|Saibā Oni": "var(--r-restricted)", // Restricted
   "MAC-10|Toybox": "var(--r-classified)", // Classified
   "MAC-10|Ultraviolet": "var(--r-milspec)", // Mil-Spec Grade
+  "MAG-7|Core Breach": "var(--r-restricted)", // Restricted
   "MAG-7|Counter Terrace": "var(--r-milspec)", // Mil-Spec Grade
   "MAG-7|SWAG-7": "var(--r-restricted)", // Restricted
   "MAG-7|Sand Dune": "var(--r-milspec)", // Consumer Grade
@@ -212,6 +231,7 @@ const SKIN_RARITY = {
   "MP9|Black Sand": "var(--r-milspec)", // Mil-Spec Grade
   "MP9|Buff Blue": "var(--r-milspec)", // Consumer Grade
   "MP9|Mount Fuji": "var(--r-restricted)", // Restricted
+  "MP9|Urban Sovereign": "var(--r-restricted)", // Restricted
   "MP9|Ruby Poison Dart": "var(--r-restricted)", // Restricted
   "MP9|Sand Dashed": "var(--r-milspec)", // Consumer Grade
   "MP9|Setting Sun": "var(--r-milspec)", // Mil-Spec Grade
@@ -222,6 +242,7 @@ const SKIN_RARITY = {
   "Negev|Mjölnir": "var(--r-classified)", // Classified
   "Negev|Power Loader": "var(--r-restricted)", // Restricted
   "Nomad Knife|Doppler Black Pearl": "var(--r-covert)", // Extraordinary
+  "Nova|Koi": "var(--r-restricted)", // Restricted
   "P2000|Fire Elemental": "var(--r-covert)", // Covert
   "P2000|Handgun": "var(--r-restricted)", // Restricted
   "P2000|Ocean Foam": "var(--r-classified)", // Classified
@@ -243,6 +264,8 @@ const SKIN_RARITY = {
   "P90|Off World": "var(--r-milspec)", // Mil-Spec Grade
   "P90|ScaraB Rush": "var(--r-restricted)", // Restricted
   "PP-Bizon|Antique": "var(--r-restricted)", // Restricted
+  "PP-Bizon|Cobalt Halftone": "var(--r-milspec)", // Mil-Spec Grade
+  "PP-Bizon|Embargo": "var(--r-restricted)", // Restricted
   "PP-Bizon|Jungle Slipstream": "var(--r-milspec)", // Mil-Spec Grade
   "Paracord Knife|Doppler Black Pearl": "var(--r-covert)", // Extraordinary
   "R8 Revolver|Crimson Web": "var(--r-milspec)", // Mil-Spec Grade
@@ -333,6 +356,7 @@ const SKIN_RARITY = {
   "UMP-45|Briefing": "var(--r-milspec)", // Mil-Spec Grade
   "UMP-45|Exposure": "var(--r-restricted)", // Restricted
   "UMP-45|Labyrinth": "var(--r-milspec)", // Mil-Spec Grade
+  "UMP-45|Moonrise": "var(--r-restricted)", // Restricted
   "UMP-45|Scaffold": "var(--r-restricted)", // Restricted
   "USP-S|Ancient Visions": "var(--r-restricted)", // Restricted
   "USP-S|Check Engine": "var(--r-milspec)", // Mil-Spec Grade
