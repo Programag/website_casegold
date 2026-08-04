@@ -2421,11 +2421,14 @@ document.getElementById("dailyBonusBtn").onclick = () => {
 setInterval(renderDailyBonusBtn, 1000);
 renderDailyBonusBtn();
 
-/* "Podkręcony drop" (panel admina, patrz slot.boosted) - podwaja WAGĘ 5
-   najdroższych przedmiotów danej skrzynki względem reszty puli, kosztem
-   reszty puli (przez renormalizację) - dokładnie tak samo w trybie jester
-   (gdzie bazowa waga każdego przedmiotu jest i tak równa) jak w standardowym
-   (gdzie bazowa waga to szerokość jego przedziału na osi 1..100000). */
+/* "Podkręcony drop" (panel admina, patrz slot.boosted) - dla gracza z
+   włączoną flagą, NAJDROŻSZY przedmiot danej skrzynki ma zawsze dokładnie
+   30% szans na wypadnięcie w tej rundzie, niezależnie od jego normalnej
+   (często dużo mniejszej) wagi. Pozostałe 70% dzieli reszta puli między
+   sobą w tych samych proporcjach co bez boosta (tryb jester: równo, tryb
+   standardowy: wg szerokości przedziału). Dotyczy WYŁĄCZNIE slotu, dla
+   którego `boosted` przyszło z serwera jako true (patrz tryAutoStartLobby)
+   - reszta graczy w tej samej bitwie losuje normalnie. */
 function itemPoolWeight(it, jester){
   return jester ? 1 : Math.max(1, it.end - it.start + 1);
 }
@@ -2437,19 +2440,19 @@ function rollFromCase(caseKey, boosted){
     const roll = Math.floor(Math.random()*100000) + 1;
     return pool.find(it => roll >= it.start && roll <= it.end) || pool[0];
   }
-  const boostedKeys = topPriceKeys(pool, Math.min(5, pool.length));
-  const weights = pool.map(it => {
-    const base = itemPoolWeight(it, caseData.jester);
-    const key = `${it.weapon}|${it.skin}|${it.wear}`;
-    return boostedKeys.has(key) ? base * 2 : base;
-  });
+  const topItem = pool.reduce((best, it) => it.price > best.price ? it : best, pool[0]);
+  if(Math.random() < 0.30) return topItem;
+  const rest = pool.filter(it => it !== topItem);
+  if(rest.length === 0) return topItem;
+  if(caseData.jester) return rollItemUniform(rest);
+  const weights = rest.map(it => itemPoolWeight(it, false));
   const total = weights.reduce((a,b) => a + b, 0);
   let r = Math.random() * total;
-  for(let i = 0; i < pool.length; i++){
+  for(let i = 0; i < rest.length; i++){
     r -= weights[i];
-    if(r <= 0) return pool[i];
+    if(r <= 0) return rest[i];
   }
-  return pool[pool.length - 1];
+  return rest[rest.length - 1];
 }
 
 /* ---------------- sound effects (synthesized, no external files) ---------------- */
