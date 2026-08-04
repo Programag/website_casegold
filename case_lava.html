@@ -621,7 +621,6 @@
     </div>
   </div>
 
-  <div class="log" id="log"></div>
 
   <div class="contents-title">Zawartość skrzynki</div>
   <div class="contents-grid" id="contentsGrid"></div>
@@ -846,12 +845,7 @@ function itemNode(it, cls){
   return div;
 }
 
-function log(msg){
-  const d = document.createElement("div");
-  d.textContent = msg;
-  logEl.prepend(d);
-  while(logEl.children.length > 40) logEl.removeChild(logEl.lastChild);
-}
+function log(msg){}
 
 function addToInventory(it){
   invCounter++;

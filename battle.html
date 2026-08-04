@@ -1364,7 +1364,6 @@
     <div class="players-grid" id="playersGrid"></div>
   </div>
 
-  <div class="log" id="log"></div>
   <footer>Symulacja edukacyjna / rozrywkowa — fikcyjna waluta, brak realnych transakcji.</footer>
 </div>
 </div>
@@ -2378,12 +2377,7 @@ function awardBattleXp(amountWon){
 
 const balanceEl = document.getElementById("balance");
 const logEl = document.getElementById("log");
-function log(msg){
-  const d = document.createElement("div");
-  d.textContent = msg;
-  logEl.prepend(d);
-  while(logEl.children.length > 40) logEl.removeChild(logEl.lastChild);
-}
+function log(msg){}
 function renderBalance(){
   balanceEl.textContent = fmt(balance);
   balanceEl.classList.toggle("low", balance < 0);

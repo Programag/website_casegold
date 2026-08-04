@@ -266,7 +266,6 @@
     <div class="empty-note" id="invEmpty">Brak przedmiotów. Otwórz skrzynkę, żeby coś zdobyć.</div>
   </div>
 
-  <div class="log" id="log"></div>
   <footer>Symulacja edukacyjna / rozrywkowa — fikcyjna waluta, brak realnych transakcji.</footer>
 </div>
 </div>
@@ -378,12 +377,7 @@ function getRarityColor(it){
   if(price < 100) return "var(--r-covert)";
   return "var(--r-gold)";
 }
-function log(msg){
-  const d = document.createElement("div");
-  d.textContent = msg;
-  logEl.prepend(d);
-  while(logEl.children.length > 40) logEl.removeChild(logEl.lastChild);
-}
+function log(msg){}
 window.addEventListener("error", (e) => {
   try{ log(`Błąd JS: ${e.message} (${(e.filename||"").split("/").pop()}:${e.lineno})`); }catch(e2){}
 });
