@@ -40,12 +40,14 @@ const SKIN_RARITY = {
   "AK-47|Nouveau Rouge": "var(--r-classified)", // Classified
   "AK-47|Orbit Mk01": "var(--r-restricted)", // Restricted
   "AK-47|Point Disarray": "var(--r-classified)", // Classified
+  "AK-47|Panthera onca": "var(--r-classified)", // Classified
   "AK-47|Predator": "var(--r-milspec)", // Industrial Grade
   "AK-47|Jungle Spray": "var(--r-milspec)", // Industrial Grade
   "AK-47|Searing Rage": "var(--r-classified)", // Classified
   "AK-47|Wild Lotus": "var(--r-covert)", // Covert
   "AK-47|X-Ray": "var(--r-covert)", // Covert
   "AUG|Amber Slipstream": "var(--r-milspec)", // Mil-Spec Grade
+  "AUG|Flame Jörmungandr": "var(--r-restricted)", // Restricted
   "AUG|Triqua": "var(--r-milspec)", // Mil-Spec Grade
   "AWP|Acheron": "var(--r-milspec)", // Mil-Spec Grade
   "AWP|Containment Breach": "var(--r-covert)", // Covert
@@ -62,6 +64,7 @@ const SKIN_RARITY = {
   "AWP|Pink DDPAT": "var(--r-restricted)", // Restricted
   "AWP|Pit Viper": "var(--r-restricted)", // Restricted
   "AWP|Printstream": "var(--r-covert)", // Covert
+  "AWP|Silk Tiger": "var(--r-classified)", // Classified
   "AWP|The Prince": "var(--r-covert)", // Covert
   "AWP|Wildfire": "var(--r-covert)", // Covert
   "AWP|Worm God": "var(--r-restricted)", // Restricted
@@ -74,6 +77,7 @@ const SKIN_RARITY = {
   "Butterfly Knife|Gamma Doppler Emerald": "var(--r-covert)", // Extraordinary
   "Butterfly Knife|Gamma Doppler Phase 2": "var(--r-covert)", // Extraordinary
   "Butterfly Knife|Lore": "var(--r-covert)", // Covert
+  "CZ75-Auto|Chalice": "var(--r-restricted)", // Restricted
   "CZ75-Auto|Emerald": "var(--r-milspec)", // Mil-Spec Grade
   "CZ75-Auto|Hexane": "var(--r-milspec)", // Mil-Spec Grade
   "CZ75-Auto|Pole Position": "var(--r-restricted)", // Restricted
@@ -88,6 +92,7 @@ const SKIN_RARITY = {
   "Desert Eagle|Emerald Jörmungandr": "var(--r-restricted)", // Restricted
   "Desert Eagle|Firebreathing": "var(--r-restricted)", // Restricted
   "Desert Eagle|Golden Koi": "var(--r-covert)", // Covert
+  "Desert Eagle|Hand Cannon": "var(--r-restricted)", // Restricted
   "Desert Eagle|Heirloom": "var(--r-restricted)", // Restricted
   "Desert Eagle|Midnight Storm": "var(--r-milspec)", // Industrial Grade
   "Desert Eagle|Mecha Industries": "var(--r-classified)", // Classified
@@ -171,6 +176,7 @@ const SKIN_RARITY = {
   "M4A1-S|Basilisk": "var(--r-restricted)", // Restricted
   "M4A1-S|Black Lotus": "var(--r-classified)", // Classified
   "M4A1-S|Blood Tiger": "var(--r-milspec)", // Mil-Spec Grade
+  "M4A1-S|Blue Phosphor": "var(--r-classified)", // Classified
   "M4A1-S|Briefing": "var(--r-milspec)", // Mil-Spec Grade
   "M4A1-S|Bright Water": "var(--r-restricted)", // Restricted
   "M4A1-S|Chantico's Fire": "var(--r-covert)", // Covert
@@ -181,12 +187,14 @@ const SKIN_RARITY = {
   "M4A1-S|Golden Coil": "var(--r-covert)", // Covert
   "M4A1-S|Hot Rod": "var(--r-classified)", // Classified
   "M4A1-S|Icarus Fell": "var(--r-restricted)", // Restricted
+  "M4A1-S|Knight": "var(--r-classified)", // Classified
   "M4A1-S|Liquidation": "var(--r-restricted)", // Restricted
   "M4A1-S|Master Piece": "var(--r-classified)", // Classified
   "M4A1-S|Nightmare": "var(--r-classified)", // Classified
   "M4A1-S|Nitro": "var(--r-restricted)", // Restricted
   "M4A1-S|Printstream": "var(--r-covert)", // Covert
   "M4A1-S|Solitude": "var(--r-classified)", // Classified
+  "M4A1-S|Welcome to the Jungle": "var(--r-covert)", // Covert
   "M4A4|Evil Daimyo": "var(--r-restricted)", // Restricted
   "M4A4|Eye of Horus": "var(--r-covert)", // Covert
   "M4A4|Faded Zebra": "var(--r-milspec)", // Mil-Spec Grade
@@ -213,6 +221,7 @@ const SKIN_RARITY = {
   "MAC-10|Saibā Oni": "var(--r-restricted)", // Restricted
   "MAC-10|Toybox": "var(--r-classified)", // Classified
   "MAC-10|Ultraviolet": "var(--r-milspec)", // Mil-Spec Grade
+  "MAG-7|Cinquedea": "var(--r-classified)", // Classified
   "MAG-7|Core Breach": "var(--r-restricted)", // Restricted
   "MAG-7|Counter Terrace": "var(--r-milspec)", // Mil-Spec Grade
   "MAG-7|SWAG-7": "var(--r-restricted)", // Restricted
@@ -270,6 +279,7 @@ const SKIN_RARITY = {
   "Paracord Knife|Doppler Black Pearl": "var(--r-covert)", // Extraordinary
   "R8 Revolver|Crimson Web": "var(--r-milspec)", // Mil-Spec Grade
   "SCAR-20|Blueprint": "var(--r-milspec)", // Mil-Spec Grade
+  "SCAR-20|Contractor": "var(--r-milspec)", // Consumer Grade
   "SG 553|Aerial": "var(--r-milspec)", // Mil-Spec Grade
   "SG 553|Colony IV": "var(--r-classified)", // Classified
   "SG 553|Triarch": "var(--r-restricted)", // Restricted
