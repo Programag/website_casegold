@@ -524,6 +524,7 @@ app.get("/api/profile/:slug", async (req, res) => {
         typeof st.level === "number" ? st.level : 0
       ),
       bestPull: st.bestPull || null,
+      updatedAt: typeof st.updatedAt === "number" ? st.updatedAt : null,
     },
   });
 });

@@ -230,6 +230,10 @@
         <div class="stat-value" id="statJoined">—</div>
       </div>
       <div class="stat-card">
+        <div class="stat-label">Ostatnio aktywny</div>
+        <div class="stat-value" id="statLastActive">—</div>
+      </div>
+      <div class="stat-card">
         <div class="stat-label">Poziom</div>
         <div class="stat-value" id="statLevel">—</div>
       </div>
@@ -330,6 +334,29 @@ function renderBestPullCard(bp){
   `;
 }
 
+function pluralPl(n, one, few, many){
+  if(n === 1) return one;
+  const mod10 = n % 10, mod100 = n % 100;
+  if(mod10 >= 2 && mod10 <= 4 && !(mod100 >= 12 && mod100 <= 14)) return few;
+  return many;
+}
+/* "Ostatnio aktywny" - ts to updatedAt z ostatniego zapisu stanu na serwer
+   (dzieje się przy niemal każdej akcji w grze, patrz PUT /api/state), więc
+   to najlepsze dostępne przybliżenie faktycznej ostatniej aktywności. */
+function fmtLastActive(ts){
+  if(!ts) return "—";
+  const diffMs = Date.now() - ts;
+  if(diffMs < 60000) return "przed chwilą";
+  const diffMin = Math.floor(diffMs / 60000);
+  if(diffMin < 60) return `${diffMin} min temu`;
+  const diffH = Math.floor(diffMin / 60);
+  if(diffH < 24) return `${diffH} ${pluralPl(diffH, "godzinę", "godziny", "godzin")} temu`;
+  const diffD = Math.floor(diffH / 24);
+  if(diffD === 1) return "wczoraj";
+  if(diffD < 7) return `${diffD} dni temu`;
+  return new Date(ts).toLocaleDateString("pl-PL", {day:"numeric", month:"long", year:"numeric"});
+}
+
 function renderOwnProfile(u){
   document.getElementById("pageH1").innerHTML = `Mój profil <span>//</span> Casegold`;
   document.getElementById("pageSub").textContent = "Twoje dane konta i statystyki.";
@@ -344,6 +371,7 @@ function renderOwnProfile(u){
   document.getElementById("statJoined").textContent = joined
     ? joined.toLocaleDateString("pl-PL", {day:"numeric", month:"long", year:"numeric"})
     : "—";
+  document.getElementById("statLastActive").textContent = fmtLastActive(u.state && u.state.updatedAt);
   document.getElementById("statLevel").textContent = String(window.SteamAuth.effectiveLevel(s.xp));
   document.getElementById("statBalance").textContent = fmt(s.balance);
   renderBestPullCard(s.bestPull);
@@ -359,6 +387,7 @@ function renderPublicProfile(p){
   document.getElementById("statJoined").textContent = joined
     ? joined.toLocaleDateString("pl-PL", {day:"numeric", month:"long", year:"numeric"})
     : "—";
+  document.getElementById("statLastActive").textContent = fmtLastActive(p.updatedAt);
   document.getElementById("statLevel").textContent = String(p.level);
   renderBestPullCard(p.bestPull);
 }

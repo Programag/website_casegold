@@ -156,6 +156,10 @@
   }
   h1 span{color:var(--hazard);}
   .sub{color:var(--muted);font-size:13px;letter-spacing:.5px;margin-top:6px;}
+  .active-battles-chip{
+    display:inline-flex; align-items:center; gap:5px; color:var(--text); font-weight:600;
+    font-family:'JetBrains Mono',monospace; font-size:12px;
+  }
 
   .wallet{
     background:var(--panel);
@@ -1194,7 +1198,7 @@
 
   <div class="page-title">
     <h1>Bitwy <span>//</span> Skrzynki</h1>
-    <div class="sub">Wirtualna waluta. Zero realnej wartości. Tylko dla zabawy.</div>
+    <div class="sub">Wirtualna waluta. Zero realnej wartości. Tylko dla zabawy. · <span class="active-battles-chip" id="activeBattlesChip">🔴 Liczba aktywnych bitew: 0</span></div>
   </div>
 
   <!-- ===================== LANDING / OPEN LOBBIES (join from another window) ===================== -->
@@ -2477,6 +2481,10 @@ function tryViewLobbyFromUrl(){
 socket.on("battle:lobbies", (list) => {
   lobbyCache = {};
   list.forEach(l => { lobbyCache[l.id] = l; });
+  // "list" to już publiczne (nie-prywatne) lobby w stanie "lobby" albo
+  // "running" - patrz publicLobbies() w battle-lobby.js - więc to jest
+  // dokładnie liczba aktywnych bitew widoczna z zewnątrz w danym momencie.
+  document.getElementById("activeBattlesChip").textContent = `🔴 Liczba aktywnych bitew: ${list.length}`;
   if(!myLobbyId){ renderOpenLobbies(); renderRunningLobbies(); }
 });
 socket.on("battle:lobby", (lobby) => {
