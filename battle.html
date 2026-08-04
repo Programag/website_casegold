@@ -2421,12 +2421,35 @@ document.getElementById("dailyBonusBtn").onclick = () => {
 setInterval(renderDailyBonusBtn, 1000);
 renderDailyBonusBtn();
 
-function rollFromCase(caseKey){
+/* "Podkręcony drop" (panel admina, patrz slot.boosted) - podwaja WAGĘ 5
+   najdroższych przedmiotów danej skrzynki względem reszty puli, kosztem
+   reszty puli (przez renormalizację) - dokładnie tak samo w trybie jester
+   (gdzie bazowa waga każdego przedmiotu jest i tak równa) jak w standardowym
+   (gdzie bazowa waga to szerokość jego przedziału na osi 1..100000). */
+function itemPoolWeight(it, jester){
+  return jester ? 1 : Math.max(1, it.end - it.start + 1);
+}
+function rollFromCase(caseKey, boosted){
   const caseData = getCaseData(caseKey);
   const pool = caseData.items;
-  if(caseData.jester) return rollItemUniform(pool);
-  const roll = Math.floor(Math.random()*100000) + 1;
-  return pool.find(it => roll >= it.start && roll <= it.end) || pool[0];
+  if(!boosted){
+    if(caseData.jester) return rollItemUniform(pool);
+    const roll = Math.floor(Math.random()*100000) + 1;
+    return pool.find(it => roll >= it.start && roll <= it.end) || pool[0];
+  }
+  const boostedKeys = topPriceKeys(pool, Math.min(5, pool.length));
+  const weights = pool.map(it => {
+    const base = itemPoolWeight(it, caseData.jester);
+    const key = `${it.weapon}|${it.skin}|${it.wear}`;
+    return boostedKeys.has(key) ? base * 2 : base;
+  });
+  const total = weights.reduce((a,b) => a + b, 0);
+  let r = Math.random() * total;
+  for(let i = 0; i < pool.length; i++){
+    r -= weights[i];
+    if(r <= 0) return pool[i];
+  }
+  return pool[pool.length - 1];
 }
 
 /* ---------------- sound effects (synthesized, no external files) ---------------- */
@@ -3468,7 +3491,7 @@ function tryAutoStartLobby(lobbyId){
   const results = current.slots.map(() => ({ rounds: [], total: 0 }));
   current.rounds.forEach(caseKey => {
     current.slots.forEach((s, i) => {
-      const it = rollFromCase(caseKey);
+      const it = rollFromCase(caseKey, !!s.boosted);
       it._caseKey = caseKey;
       results[i].rounds.push(it);
       results[i].total += it.price;

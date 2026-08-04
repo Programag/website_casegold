@@ -691,6 +691,7 @@ app.get("/api/admin/users", requireAdmin, async (req, res) => {
     claimedLevelRewards: u.state && Array.isArray(u.state.claimedLevelRewards) ? u.state.claimedLevelRewards : [],
     invCount: u.state && Array.isArray(u.state.inventory) ? u.state.inventory.length : 0,
     updatedAt: u.state ? u.state.updatedAt : null,
+    boostedDrop: !!u.boostedDrop,
   }));
   list.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
   res.json({ users: list });
@@ -709,6 +710,12 @@ app.put("/api/admin/users/:steamid", requireAdmin, async (req, res) => {
       const users = await readUsers();
       const u = users[req.params.steamid];
       if (!u) return { status: 404, body: { error: "no_such_user" } };
+      // Poza `u.state` celowo - `u.state` jest w całości nadpisywane przy
+      // każdym zwykłym pushu klienta (patrz PUT /api/state), więc flaga
+      // trzymana tutaj przetrwałaby tylko do najbliższej synchronizacji
+      // gracza. Jako pole na samym `u` (obok displayName/avatar/slug) jest
+      // trwała i nietykana przez normalną rozgrywkę.
+      if (typeof body.boostedDrop === "boolean") u.boostedDrop = body.boostedDrop;
       if (!u.state) u.state = { balance: 0, inventory: [], invCounter: 0, level: 0, xp: 0 };
       if (typeof body.balance === "number") u.state.balance = body.balance;
       if (typeof body.level === "number") {
@@ -757,7 +764,7 @@ app.put("/api/admin/users/:steamid", requireAdmin, async (req, res) => {
         status: 200,
         body: {
           ok: true,
-          user: { steamid: u.steamid, displayName: u.displayName, balance: u.state.balance, level: u.state.level, xp: u.state.xp },
+          user: { steamid: u.steamid, displayName: u.displayName, balance: u.state.balance, level: u.state.level, xp: u.state.xp, boostedDrop: !!u.boostedDrop },
         },
       };
     });

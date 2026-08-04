@@ -36,7 +36,7 @@ async function steamUserFromSocket(socket, readUsers) {
   }
   const u = users[steamid];
   if (!u) return null;
-  return { steamid: u.steamid, displayName: u.displayName, avatar: u.avatar };
+  return { steamid: u.steamid, displayName: u.displayName, avatar: u.avatar, boostedDrop: !!u.boostedDrop };
 }
 
 // Trwała migawka zakończonej bitwy w Redisie (jeśli skonfigurowany), żeby
@@ -244,7 +244,7 @@ module.exports = function attachBattleLobby(io, { readUsers, redisGet, redisSet,
         totalPlayers,
         slots: Array.from({ length: totalPlayers }, (_, i) =>
           i === hostSlotIdx
-            ? { type: "host", name: hostName, tabId, steamid: user ? user.steamid : null, avatar: user ? user.avatar : null }
+            ? { type: "host", name: hostName, tabId, steamid: user ? user.steamid : null, avatar: user ? user.avatar : null, boosted: user ? !!user.boostedDrop : false }
             : { type: "empty" }
         ),
         status: "lobby",
@@ -272,7 +272,7 @@ module.exports = function attachBattleLobby(io, { readUsers, redisGet, redisSet,
       // grając samo przeciwko sobie (gwarantowana wygrana / podział puli).
       if (user && lobby.slots.some((s) => s.steamid === user.steamid)) return ack({ ok: false, reason: "already_seated" });
       const playerName = user ? user.displayName : String(name || "Gracz").slice(0, 18);
-      lobby.slots[idx] = { type: "player", name: playerName, tabId: String(tabId || ""), steamid: user ? user.steamid : null, avatar: user ? user.avatar : null };
+      lobby.slots[idx] = { type: "player", name: playerName, tabId: String(tabId || ""), steamid: user ? user.steamid : null, avatar: user ? user.avatar : null, boosted: user ? !!user.boostedDrop : false };
       lobby.stakedTotal = (lobby.stakedTotal || lobby.cost) + lobby.cost;
       socket.join("lobby:" + lobbyId);
       socketMeta[socket.id] = { lobbyId, tabId: String(tabId || "") };

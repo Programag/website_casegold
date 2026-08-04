@@ -66,6 +66,13 @@
   .reset-quests-btn:hover{background:var(--bad); color:#1a0505;}
   .reset-quests-btn:disabled{opacity:.5; cursor:not-allowed;}
   .row-status{font-size:11px; color:var(--good); margin-left:8px;}
+  .boost-btn{
+    background:var(--panel-2); color:var(--muted); border:1px solid var(--line); border-radius:7px; padding:7px 12px;
+    font-weight:700; font-size:12.5px; cursor:pointer; white-space:nowrap;
+  }
+  .boost-btn:hover{opacity:.9;}
+  .boost-btn:disabled{opacity:.5; cursor:not-allowed;}
+  .boost-btn.active{background:var(--hazard); color:#181000; border-color:var(--hazard);}
   .empty{padding:30px; text-align:center; color:var(--muted);}
   .maintenance-panel{
     background:var(--panel); border:1px solid var(--line); border-radius:12px;
@@ -158,6 +165,9 @@ function userRow(u){
     <td data-label="EXP"><input class="edit-num" data-field="xp" type="number" step="1" value="${Number(u.xp || 0)}"></td>
     <td data-label="Przedmioty">${u.invCount ?? 0}</td>
     <td data-label="Nagrody (poziomy)"><input class="edit-text" data-field="claimedLevelRewards" type="text" placeholder="np. 1,2,3" value="${(Array.isArray(u.claimedLevelRewards) ? u.claimedLevelRewards : []).join(',')}"></td>
+    <td data-label="Podkręcony drop">
+      <button class="boost-btn${u.boostedDrop ? ' active' : ''}">${u.boostedDrop ? '🔥 Włączony' : '🔥 Podkręcony drop'}</button>
+    </td>
     <td>
       <button class="save-btn">Zapisz</button>
       <button class="reset-quests-btn">Resetuj zadania</button>
@@ -166,7 +176,34 @@ function userRow(u){
   `;
   const btn = tr.querySelector(".save-btn");
   const resetBtn = tr.querySelector(".reset-quests-btn");
+  const boostBtn = tr.querySelector(".boost-btn");
   const status = tr.querySelector(".row-status");
+  boostBtn.onclick = async () => {
+    const next = !boostBtn.classList.contains("active");
+    boostBtn.disabled = true;
+    status.textContent = "";
+    try{
+      const res = await fetch(`/api/admin/users/${encodeURIComponent(u.steamid)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ boostedDrop: next })
+      });
+      if(res.ok){
+        u.boostedDrop = next;
+        boostBtn.classList.toggle("active", next);
+        boostBtn.textContent = next ? "🔥 Włączony" : "🔥 Podkręcony drop";
+        status.textContent = next ? "Podkręcono ✓" : "Wyłączono ✓";
+        status.style.color = "var(--good)";
+      } else {
+        status.textContent = "Błąd"; status.style.color = "var(--bad)";
+      }
+    }catch(e){
+      status.textContent = "Błąd sieci"; status.style.color = "var(--bad)";
+    }
+    boostBtn.disabled = false;
+    setTimeout(() => { status.textContent = ""; }, 2500);
+  };
   btn.onclick = async () => {
     btn.disabled = true;
     status.textContent = "";
@@ -270,6 +307,7 @@ async function init(){
         <th>EXP</th>
         <th>Przedmioty</th>
         <th>Odebrane nagrody (poziomy)</th>
+        <th>Podkręcony drop</th>
         <th></th>
       </tr>
     </thead>
