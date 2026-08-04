@@ -3305,11 +3305,15 @@ function avatarHtml(slot){
 /* ---- render the players-grid for a lobby, in whichever state it's in ---- */
 function renderLobbyArena(lobby){
   const isHost = lobby.hostTabId === myTabId;
-  // Dopóki bitwa jest w poczekalni, host widzi "Anuluj bitwę" zamiast zwykłego
-  // "Powrót" - w tym stanie każde opuszczenie lobby i tak je kasuje po stronie
-  // serwera (patrz battle:leave), więc jeden jednoznaczny przycisk ze zwrotem
-  // pieniędzy jest lepszy niż dwa różne sposoby na to samo.
-  const showCancelBtn = isHost && lobby.status === "lobby";
+  // Dopóki bitwa jest w poczekalni, każdy usadzony gracz (host i dołączeni)
+  // widzi "Anuluj" zamiast zwykłego "Powrót" - w tym stanie każde opuszczenie
+  // lobby i tak zwalnia miejsce po stronie serwera (patrz battle:leave), więc
+  // jeden jednoznaczny przycisk ze zwrotem pieniędzy jest lepszy niż dwa różne
+  // sposoby na to samo. Widzowie (obejrzenie cudzej bitwy) nie mają tu miejsca,
+  // więc przycisku nie widzą.
+  const isSeated = lobby.slots.some(s => s.tabId === myTabId);
+  const showCancelBtn = isSeated && lobby.status === "lobby";
+  document.getElementById("cancelBattleBtn").textContent = isHost ? "🚫 Anuluj bitwę" : "🚫 Anuluj udział";
   document.getElementById("cancelBattleBtn").style.display = showCancelBtn ? "" : "none";
   document.getElementById("newBattleBtn").style.display = showCancelBtn ? "none" : "";
   const MODE_LABELS = {
@@ -4469,18 +4473,24 @@ document.getElementById("newBattleBtn").onclick = () => {
   showLandingView();
 };
 
-/* Tylko dla hosta, dopóki bitwa jest jeszcze w poczekalni (nikt jeszcze nie
-   grał) - w przeciwieństwie do zwykłego "Powrót" (który w tym stanie i tak
-   już kasuje lobby po stronie serwera, patrz battle:leave w battle-lobby.js,
-   tylko bez zwrotu pieniędzy), ten przycisk jest jawny i oddaje hostowi
-   wpłacone wejście. */
+/* Dla każdego usadzonego gracza (host i dołączeni), dopóki bitwa jest jeszcze
+   w poczekalni (nikt jeszcze nie grał) - w przeciwieństwie do zwykłego
+   "Powrót" (który w tym stanie i tak zwalnia miejsce po stronie serwera,
+   patrz battle:leave w battle-lobby.js, tylko bez zwrotu pieniędzy), ten
+   przycisk jest jawny i oddaje wpłacone wejście. Gdy anuluje host, serwer
+   kasuje całe lobby (battle:closed); gdy anuluje dołączony gracz, serwer
+   tylko zwalnia jego miejsce, a lobby zostaje otwarte dla reszty. */
 document.getElementById("cancelBattleBtn").onclick = () => {
   const lobby = getLobby(myLobbyId);
   if(!lobby) return;
-  if(!confirm(`Na pewno chcesz anulować tę bitwę? Wpłacone wejście (${fmt(lobby.cost)}) zostanie zwrócone na Twoje saldo.`)) return;
+  const isHost = lobby.hostTabId === myTabId;
+  const confirmMsg = isHost
+    ? `Na pewno chcesz anulować tę bitwę? Wpłacone wejście (${fmt(lobby.cost)}) zostanie zwrócone na Twoje saldo.`
+    : `Na pewno chcesz anulować swój udział w tej bitwie? Wpłacone wejście (${fmt(lobby.cost)}) zostanie zwrócone na Twoje saldo.`;
+  if(!confirm(confirmMsg)) return;
   socket.emit("battle:leave", { lobbyId: myLobbyId, tabId: myTabId });
   creditShared(lobby.cost);
-  log(`Anulowano bitwę. Zwrócono wejście: ${fmt(lobby.cost)}.`);
+  log(isHost ? `Anulowano bitwę. Zwrócono wejście: ${fmt(lobby.cost)}.` : `Anulowano udział w bitwie. Zwrócono wejście: ${fmt(lobby.cost)}.`);
   myLobbyId = null;
   myLobbyObj = null;
   animatingLobbyId = null;
