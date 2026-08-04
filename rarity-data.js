@@ -338,6 +338,29 @@ const SKIN_RARITY = {
   "Sticker|Virtus.pro | Katowice 2015": "var(--r-milspec)", // High Grade
   "Sticker|Ninjas in Pyjamas | Katowice 2015": "var(--r-milspec)", // High Grade
   "Sticker|Team LDLC.com": "var(--r-milspec)", // High Grade
+  "Sticker|Avangar (F)": "var(--r-classified)", // Exotic
+  "Sticker|Bravado Gaming": "var(--r-milspec)", // High Grade
+  "Sticker|CeRq (G)": "var(--r-restricted)", // Remarkable
+  "Sticker|EliGE (F)": "var(--r-classified)", // Exotic
+  "Sticker|FalleN (H)": "var(--r-classified)", // Exotic
+  "Sticker|GeT_RiGhT (G)": "var(--r-classified)", // Exotic
+  "Sticker|Happy (F)": "var(--r-classified)", // Exotic
+  "Sticker|HellRaisers (H)": "var(--r-restricted)", // Remarkable
+  "Sticker|Hobbit (G)": "var(--r-restricted)", // Remarkable
+  "Sticker|Hobbit (H)": "var(--r-classified)", // Exotic
+  "Sticker|Imperial Esports (H)": "var(--r-classified)", // Exotic
+  "Sticker|Keyd Stars (H)": "var(--r-restricted)", // Remarkable
+  "Sticker|LGB eSports (F)": "var(--r-classified)", // Exotic
+  "Sticker|London Conspiracy (H)": "var(--r-restricted)", // Remarkable
+  "Sticker|NQZ (H)": "var(--r-classified)", // Exotic
+  "Sticker|Skadoodle (G)": "var(--r-classified)", // Exotic
+  "Sticker|Team Dignitas": "var(--r-milspec)", // High Grade
+  "Sticker|ZywOo (H)": "var(--r-restricted)", // Remarkable
+  "Sticker|kennyS (G)": "var(--r-classified)", // Exotic
+  "Sticker|m0NESY (H)": "var(--r-classified)", // Exotic
+  "Sticker|ropz (H)": "var(--r-classified)", // Exotic
+  "Sticker|s1mple (H)": "var(--r-restricted)", // Remarkable
+  "Sticker|sk0R (G)": "var(--r-restricted)", // Remarkable
   "Stiletto Knife|Doppler Black Pearl": "var(--r-covert)", // Extraordinary
   "Survival Knife|Doppler Black Pearl": "var(--r-covert)", // Extraordinary
   "Survival Knife|Tiger Tooth": "var(--r-covert)", // Covert
