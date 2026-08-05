@@ -1625,7 +1625,6 @@ upgradeBtn.onclick = () => {
       window.SteamAuth.recordPull(tgIt);
       outcomeBanner.classList.add("show", "win");
       outcomeBanner.textContent = `Wygrana! Otrzymujesz ${tgIt.weapon} | ${tgIt.skin} (${tgIt.wear}) za ${fmt(tgIt.price)}`;
-      log(`Ulepszenie: sukces (${chance.toFixed(2)}%) → ${tgIt.weapon} | ${tgIt.skin} (${tgIt.wear})`);
       playWinSound();
     } else {
       const lostParts = [];
