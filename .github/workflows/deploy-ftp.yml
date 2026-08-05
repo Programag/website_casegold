@@ -19,11 +19,10 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftp
-          # Katalog na serwerze, do którego mają trafić pliki strony (tam,
-          # gdzie dziś wgrywasz przez FileZillę/panel). Jeśli po pierwszym
-          # uruchomieniu pliki lądują w złym miejscu, zmień na katalog
-          # strony, np. "public_html/" - musi kończyć się ukośnikiem.
-          server-dir: ./
+          # Katalog strony na serwerze home.pl - obok niego w FTP-root są
+          # też api/, backup/, logs/, svn_repo/, więc pliki muszą trafiać
+          # właśnie tu, nie do katalogu głównego.
+          server-dir: public_html/
           exclude: |
             **/.git*
             **/.git*/**
