@@ -36,3 +36,13 @@ RewriteRule ^api/battle/daily-top/?$ api/battle-daily-top.php [L,QSA]
 # Publiczny profil (np. /profile/aleksio) - serwuj statyczny profile.html,
 # slug czyta się z URL po stronie klienta (patrz profile.html).
 RewriteRule ^profile/([^/]+)/?$ profile.html [L]
+
+# Reszta stron bez rozszerzenia w URL (np. /battle, /upgrade, /case_water,
+# /case_simulator) - odpowiednik opcji `extensions: ["html"]` z Express,
+# którego Apache nie robi domyślnie. Jeśli /nazwa nie istnieje jako plik
+# ani katalog, ale nazwa.html istnieje, serwuj ją (adres w przeglądarce
+# zostaje bez zmian - to wewnętrzne przepisanie, nie przekierowanie).
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}\.html -f
+RewriteRule ^(.*)$ $1.html [L]
