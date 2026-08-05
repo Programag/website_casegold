@@ -3117,8 +3117,10 @@ function updateTeamTotalsBoxes(lobby, slotTotals){
       const box = document.createElement("div");
       box.className = "team-total-box" + (!allTied && total === extreme ? " leading" : "");
       box.dataset.side = i;
-      const name = lobby.slots[i] ? lobby.slots[i].name : `Gracz ${i+1}`;
-      box.innerHTML = `<div class="ttb-label">${name}</div><div class="ttb-value">${fmt(total)}</div>`;
+      // Bez nazwy gracza tutaj - jest już widoczna niżej, w nagłówku jego
+      // kolumny w players-grid, więc powtarzanie jej przy samej puli byłoby
+      // zbędnym duplikatem.
+      box.innerHTML = `<div class="ttb-value">${fmt(total)}</div>`;
       teamTotalsShell.appendChild(box);
     });
   }
