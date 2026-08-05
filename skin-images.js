@@ -566,6 +566,8 @@ const CASE_IMAGES = {
   "Noir Case": "case_noir.PNG",
   "Robot Sticker": "sticker_robot.PNG",
   "Lava Case": "lava_case.png",
+  "Devil Case": "case_devil.PNG",
+  "Angel Case": "case_angel.PNG",
 };
 
 /* Zwraca link do obrazka danego przedmiotu na podstawie broni, skina i wear. */
