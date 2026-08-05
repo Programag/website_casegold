@@ -56,7 +56,8 @@ function steam_openid_verify(?array &$debug = null): ?string {
         CURLOPT_POST => true,
         CURLOPT_POSTFIELDS => http_build_query($params),
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 15,
+        CURLOPT_CONNECTTIMEOUT => 6,
+        CURLOPT_TIMEOUT => 10,
     ]);
     $response = curl_exec($ch);
     $curlErrno = curl_errno($ch);
