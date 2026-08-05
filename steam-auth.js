@@ -9,6 +9,15 @@
    i z powrotem, gdy użytkownik jest zalogowany przez Steam.
    ========================================================================= */
 (function () {
+  // Ciasteczko sesji jest oznaczone jako Secure (bo site_url w config.php
+  // to https://...), więc przeglądarka wysyła je TYLKO przez HTTPS - wejście
+  // po zwykłym http:// (np. wpisanie samego "casegold.eu" bez przedrostka)
+  // wyglądałoby jak bycie wylogowanym, mimo że sesja na serwerze istnieje.
+  // Ten redirect nie zależy od mod_rewrite/panelu hostingu - działa zawsze.
+  if (location.protocol === "http:" && !/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) {
+    location.replace("https://" + location.host + location.pathname + location.search + location.hash);
+    return;
+  }
   const STATE_KEY = "cs2sim_state_v1";
   const DAILY_KEY = "cs2sim_daily_bonus_at";
   const DAILY_STREAK_KEY = "cs2sim_daily_streak";
