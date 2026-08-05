@@ -7,6 +7,12 @@
 let soundOn = true;
 let audioCtx = null;
 let spinSoundStop = null;
+// Zabezpieczenie przed "trzaskiem" wielu naraz odtwarzanych dźwięków (np.
+// telefon nadganiający zaległe tykanie po powrocie z tła) - wątek audio na
+// słabszym sprzęcie (telefony) po prostu nie nadąża, jeśli zaplanuje się za
+// dużo dźwięków naraz.
+let activeToneCount = 0;
+const MAX_CONCURRENT_TONES = 16;
 
 function getAudioCtx(){
   if(!audioCtx){
@@ -17,9 +23,22 @@ function getAudioCtx(){
   return audioCtx;
 }
 
+// Telefony usypiają/dławią kartę w tle (zgaszony ekran, przełączenie
+// aplikacji) - zaplanowane tykanie rundy potrafi się spóźnić o kilka-
+// -kilkanaście sekund i po powrocie odpalić się w całości naraz, co brzmi
+// jak zacinanie/trzask. Zatrzymujemy tykanie od razu przy zejściu do tła,
+// żeby nic się nie kumulowało do odtworzenia w jednym momencie.
+if(typeof document !== "undefined"){
+  document.addEventListener("visibilitychange", () => {
+    if(document.hidden) stopSpinSound();
+  });
+}
+
 function playTone(freq, startTime, duration, {type="sine", gain=0.18, glideTo=null} = {}){
   const ctx = getAudioCtx();
   if(!ctx) return;
+  if(activeToneCount >= MAX_CONCURRENT_TONES) return;
+  activeToneCount++;
   const osc = ctx.createOscillator();
   const g = ctx.createGain();
   osc.type = type;
@@ -34,7 +53,7 @@ function playTone(freq, startTime, duration, {type="sine", gain=0.18, glideTo=nu
   // jednej sesji (np. cała bitwa z wieloma rundami) to narastające
   // przeciążenie, które z czasem powoduje zacinanie się dźwięku, aż w końcu
   // AudioContext przestaje nadążać.
-  osc.onended = () => { try { osc.disconnect(); g.disconnect(); } catch (e) {} };
+  osc.onended = () => { activeToneCount--; try { osc.disconnect(); g.disconnect(); } catch (e) {} };
   osc.start(startTime);
   osc.stop(startTime + duration + 0.02);
 }
@@ -44,6 +63,7 @@ function playSpinSound(totalMs){
   if(!soundOn) return;
   const ctx = getAudioCtx();
   if(!ctx) return;
+  stopSpinSound(); // nigdy dwóch nakładających się tykań naraz
   let cancelled = false;
   const start = ctx.currentTime + 0.02;
   const totalSec = totalMs / 1000;
