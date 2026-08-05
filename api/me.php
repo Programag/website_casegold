@@ -7,9 +7,10 @@ require_once __DIR__ . '/../inc/niefart.php';
 header('Content-Type: application/json');
 
 // Wołane synchronicznie na KAŻDYM wejściu na stronę (patrz steam-auth.js) -
-// najlepsze miejsce na "leniwe" sprawdzenie wypłaty niefartu dnia, bo Node
-// robił to przez stały proces w tle, którego PHP nie ma.
+// najlepsze miejsce na "leniwe" sprawdzenie wypłat dnia (niefart, najaktywniejszy
+// gracz), bo Node robił to przez stały proces w tle, którego PHP nie ma.
 check_niefart_payout();
+check_active_player_payout();
 
 $u = current_user();
 if (!$u) {

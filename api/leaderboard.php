@@ -29,7 +29,9 @@ echo json_encode([
     'balance' => $top('balance'),
     'upgrades' => $top('upgradeClicks'),
     'cases' => $top('casesOpened'),
-    // Ranking "na żywo" za DZISIAJ (w toku) - patrz check_niefart_payout()
-    // dla faktycznej, jednorazowej wypłaty za dzień, który się skończył.
+    // Ranking "na żywo" za DZISIAJ (w toku) - patrz check_niefart_payout()/
+    // check_active_player_payout() dla faktycznej, jednorazowej wypłaty za
+    // dzień, który się skończył.
     'niefart' => niefart_ranking_for_date(warsaw_date_string(now_ms())),
+    'active' => active_player_ranking_for_date(warsaw_date_string(now_ms())),
 ]);

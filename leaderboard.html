@@ -219,8 +219,9 @@
       <button class="lb-tab" data-lb-tab="upgrades">🎡 Upgrade'y</button>
       <button class="lb-tab" data-lb-tab="cases">📦 Skrzynki</button>
       <button class="lb-tab" data-lb-tab="niefart">😭 Niefart dnia</button>
+      <button class="lb-tab" data-lb-tab="active">🔥 Najaktywniejszy gracz</button>
     </div>
-    <div class="lb-note" id="lbNiefartNote">Najwięcej przegranych bitew Case Battle <strong>dzisiaj</strong>. Tuż po północy górna <strong>10</strong> z tych <strong>20</strong> miejsc dostaje automatycznie <strong>5000 zł</strong> do salda za dzień, który się właśnie skończył.</div>
+    <div class="lb-note" id="lbRewardNote"></div>
     <div class="lb-list" id="leaderboardList"></div>
   </div>
 
@@ -289,12 +290,21 @@ const LB_TABS = {
   upgrades: { key: "upgrades", fmtValue: (v) => String(v) },
   cases: { key: "cases", fmtValue: (v) => String(v) },
   niefart: { key: "niefart", fmtValue: (v) => `${v} przegr.` },
+  active: { key: "active", fmtValue: (v) => `${v} bitew` },
 };
-// Ile górnych miejsc danej zakładki faktycznie dostaje nagrodę (na razie
-// tylko "niefart dnia" - top 10 z widocznych 20, patrz checkNiefartPayout
-// po stronie serwera) - podświetlane w topce jako wyróżnione.
-const LB_REWARDED_TOP = { niefart: 10 };
-const lbNiefartNote = document.getElementById("lbNiefartNote");
+// Ile górnych miejsc danej zakładki faktycznie dostaje nagrodę (podświetlane
+// w topce jako wyróżnione) - patrz check_niefart_payout()/
+// check_active_player_payout() po stronie serwera.
+const LB_REWARDED_TOP = { niefart: 10, active: 1 };
+const LB_REWARD_NOTES = {
+  niefart: 'Najwięcej przegranych bitew Case Battle <strong>dzisiaj</strong>. Tuż po północy górna <strong>10</strong> z tych <strong>20</strong> miejsc dostaje automatycznie <strong>5000 zł</strong> do salda za dzień, który się właśnie skończył.',
+  active: 'Najwięcej rozegranych bitew Case Battle <strong>dzisiaj</strong> (niezależnie od wyniku). Tuż po północy <strong>tylko pierwsze</strong> miejsce z tych <strong>20</strong> dostaje automatycznie <strong>2000 zł</strong> do salda za dzień, który się właśnie skończył.',
+};
+const LB_REWARD_TITLES = {
+  niefart: "Dostanie 5000 zł po północy za dzisiejsze przegrane bitwy",
+  active: "Dostanie 2000 zł po północy za dzisiejszą liczbę rozegranych bitew",
+};
+const lbRewardNote = document.getElementById("lbRewardNote");
 const leaderboardList = document.getElementById("leaderboardList");
 let leaderboardData = null;
 let leaderboardTab = "balance";
@@ -303,7 +313,9 @@ document.querySelectorAll(".lb-tab").forEach(tab => {
   tab.onclick = () => {
     leaderboardTab = tab.dataset.lbTab;
     document.querySelectorAll(".lb-tab").forEach(t => t.classList.toggle("active", t === tab));
-    lbNiefartNote.classList.toggle("show", leaderboardTab === "niefart");
+    const note = LB_REWARD_NOTES[leaderboardTab];
+    lbRewardNote.innerHTML = note || "";
+    lbRewardNote.classList.toggle("show", !!note);
     renderLeaderboard();
   };
 });
@@ -330,7 +342,7 @@ function renderLeaderboard(){
     const row = document.createElement(entry ? "a" : "div");
     row.className = "lb-row" + (entry ? "" : " empty") + (i < 3 && entry ? ` rank-${i+1}` : "") + (entry && i < rewardedTop ? " rewarded" : "");
     if(entry && i < rewardedTop){
-      row.title = "Dostanie 5000 zł po północy za dzisiejsze przegrane bitwy";
+      row.title = LB_REWARD_TITLES[leaderboardTab] || "";
     }
     if(entry){
       row.href = `/profile.html?u=${encodeURIComponent(entry.slug || "")}`;
