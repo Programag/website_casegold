@@ -70,10 +70,15 @@ try {
     $xpFloor = ($state && isset($state['xp']) && is_numeric($state['xp'])) ? $state['xp'] : 0;
 
     $newState = [
-        'balance' => num_or($body, 'balance', 0),
-        'inventory' => isset($body['inventory']) && is_array($body['inventory']) ? $body['inventory'] : [],
-        'invCounter' => num_or($body, 'invCounter', 0),
-        'level' => num_or($body, 'level', 0),
+        // balance/inventory/invCounter/level MUSZĄ paść wstecz na już
+        // zapisaną wartość (tak jak każde inne pole niżej), a nie na twarde
+        // 0/[] - inaczej jeden niekompletny/wadliwy push (np. urwane w
+        // połowie żądanie) trwale zeruje saldo gracza zamiast po prostu nic
+        // nie zmieniać w tym polu.
+        'balance' => num_or($body, 'balance', $state['balance'] ?? 0),
+        'inventory' => isset($body['inventory']) && is_array($body['inventory']) ? $body['inventory'] : ($state['inventory'] ?? []),
+        'invCounter' => num_or($body, 'invCounter', $state['invCounter'] ?? 0),
+        'level' => num_or($body, 'level', $state['level'] ?? 0),
         'xp' => max(num_or($body, 'xp', 0), $xpFloor),
         'dailyBonusAt' => num_or($body, 'dailyBonusAt', null),
         'dailyStreak' => num_or($body, 'dailyStreak', $state['dailyStreak'] ?? 0),
