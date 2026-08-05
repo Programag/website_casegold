@@ -33,15 +33,23 @@ function raw_query_params(): array {
 
 /* Weryfikuje powrót ze Steam i zwraca steamid64 albo null, jeśli podpis
    jest nieprawidłowy / to nie jest w ogóle odpowiedź logowania. */
-function steam_openid_verify(): ?string {
+function steam_openid_verify(?array &$debug = null): ?string {
     $get = raw_query_params();
-    if (($get['openid.mode'] ?? '') !== 'id_res') return null;
+    if (($get['openid.mode'] ?? '') !== 'id_res') {
+        $debug = ['stage' => 'no_id_res', 'openid_mode' => $get['openid.mode'] ?? null];
+        return null;
+    }
 
     $params = [];
     foreach ($get as $key => $value) {
         if (strpos($key, 'openid.') === 0) $params[$key] = $value;
     }
     $params['openid.mode'] = 'check_authentication';
+
+    if (!function_exists('curl_init')) {
+        $debug = ['stage' => 'no_curl_extension'];
+        return null;
+    }
 
     $ch = curl_init('https://steamcommunity.com/openid/login');
     curl_setopt_array($ch, [
@@ -51,16 +59,24 @@ function steam_openid_verify(): ?string {
         CURLOPT_TIMEOUT => 15,
     ]);
     $response = curl_exec($ch);
+    $curlErrno = curl_errno($ch);
     $curlErr = curl_error($ch);
     curl_close($ch);
     if ($response === false) {
         error_log('Steam OpenID verify - błąd cURL: ' . $curlErr);
+        $debug = ['stage' => 'curl_failed', 'curl_errno' => $curlErrno, 'curl_error' => $curlErr];
         return null;
     }
-    if (strpos($response, 'is_valid:true') === false) return null;
+    if (strpos($response, 'is_valid:true') === false) {
+        $debug = ['stage' => 'not_valid', 'response' => substr($response, 0, 300)];
+        return null;
+    }
 
     $claimedId = $params['openid.claimed_id'] ?? '';
-    if (!preg_match('#/id/(\d+)$#', $claimedId, $m)) return null;
+    if (!preg_match('#/id/(\d+)$#', $claimedId, $m)) {
+        $debug = ['stage' => 'no_claimed_id', 'claimed_id' => $claimedId];
+        return null;
+    }
     return $m[1];
 }
 

@@ -4,8 +4,16 @@ require_once __DIR__ . '/inc/steam_openid.php';
 require_once __DIR__ . '/inc/users.php';
 require_once __DIR__ . '/inc/auth.php';
 
-$steamid = steam_openid_verify();
+$debugInfo = null;
+$steamid = steam_openid_verify($debugInfo);
 if (!$steamid) {
+    // TYMCZASOWA diagnostyka logowania Steam - USUNĄĆ po znalezieniu przyczyny.
+    if (($_GET['debug'] ?? '') === '1') {
+        header('Content-Type: text/plain; charset=utf-8');
+        echo "Weryfikacja Steam nie powiodła się.\n\n";
+        echo json_encode($debugInfo, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        exit;
+    }
     header('Location: /');
     exit;
 }
