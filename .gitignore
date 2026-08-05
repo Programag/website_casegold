@@ -4,3 +4,4 @@ data/users.json
 data/meta.json
 .claude/
 server.log
+config.php

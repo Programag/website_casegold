@@ -1377,7 +1377,7 @@
 <script src="jester-mode.js"></script>
 <script src="nav-i18n.js"></script>
 <script src="general-skin-db.js"></script>
-<script src="/socket.io/socket.io.js"></script>
+<script src="/battle-poll-shim.js"></script>
 <script>
 /* Ikonki/etykiety kategorii do grupowania skrzynek w panelu wyboru - te
    same klucze co CATEGORIES w index.html, żeby nazewnictwo było spójne. */
@@ -2565,7 +2565,8 @@ const myTabId = (() => {
   if(!id){ id = "p-" + Math.random().toString(36).slice(2,10) + Date.now().toString(36); sessionStorage.setItem(KEY, id); }
   return id;
 })();
-const socket = io();
+// `socket` (z .on/.emit) jest już zdefiniowany globalnie przez
+// battle-poll-shim.js (AJAX polling zamiast Socket.IO) - patrz ten plik.
 let lobbyCache = {};   // public, joinable lobbies (id -> lobby), kept in sync by the server
 let myLobbyObj = null; // full detail of whichever lobby I'm currently seated in
 
