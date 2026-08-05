@@ -793,11 +793,14 @@
     margin-bottom:0;
   }
   .round-indicator-row{
-    display:flex; align-items:center; justify-content:center; gap:10px;
+    display:flex; align-items:center; justify-content:center; gap:14px;
     margin-bottom:14px;
   }
+  /* Pasek pokazuje bieżącą skrzynkę (podświetloną) i te, które dopiero
+     nadejdą w tej bitwie - nie tylko jedną - i przesuwa się o jedną ikonę
+     w lewo po każdej rundzie, żeby zawsze zaczynał się od aktualnej. */
   .case-swiper{
-    width:34px; height:34px; flex:none;
+    width:330px; max-width:100%; height:34px; flex:0 1 330px; min-width:0;
     border-radius:8px; overflow:hidden;
     border:1px solid var(--line);
     background:var(--panel-2);
@@ -808,16 +811,18 @@
   .case-swiper:hover{border-color:var(--hazard);}
   .case-swiper.show{display:block;}
   .case-swiper-track{
-    display:flex; height:100%;
+    display:flex; height:100%; gap:3px;
     transition:transform .45s cubic-bezier(.4,0,.2,1);
   }
   .case-swiper-icon{
     width:34px; height:34px; flex:none;
     display:flex; align-items:center; justify-content:center;
+    border-radius:6px;
   }
   .case-swiper-icon img{max-width:78%; max-height:78%; object-fit:contain;}
   .case-swiper-icon .fb{font-size:6px; color:var(--muted); font-family:'JetBrains Mono',monospace; text-align:center; line-height:1;}
-  .case-swiper-icon.jester-icon{box-shadow:inset 0 0 0 2px #b06fff; border-radius:6px;}
+  .case-swiper-icon.jester-icon{box-shadow:inset 0 0 0 2px #b06fff;}
+  .case-swiper-icon.current{box-shadow:inset 0 0 0 2px var(--teal); background:var(--teal-dim);}
 
   /* ---- "best possible drop" popup, opened by tapping the case swiper icon ---- */
   .case-info-modal{
@@ -1339,8 +1344,8 @@
       <div class="detail" id="outcomeDetail"></div>
     </div>
     <div class="round-indicator-row">
-      <div class="case-swiper" id="caseSwiper"><div class="case-swiper-track" id="caseSwiperTrack"></div></div>
       <div class="round-indicator" id="roundIndicator"></div>
+      <div class="case-swiper" id="caseSwiper"><div class="case-swiper-track" id="caseSwiperTrack"></div></div>
     </div>
 
     <div class="case-info-modal" id="caseInfoModal">
@@ -3176,10 +3181,13 @@ const caseSwiperTrackEl = document.getElementById("caseSwiperTrack");
 const caseInfoModal = document.getElementById("caseInfoModal");
 const caseInfoCard = document.getElementById("caseInfoCard");
 let swiperCaseKeys = [];      // this lobby's rounds, in order
-let swiperCurrentIdx = 0;     // which one is currently centered in the little window
+let swiperCurrentIdx = 0;     // which one is currently highlighted at the left edge of the strip
+const SWIPER_ICON_STEP = 34 + 3; // ikona (34px) + gap (3px, patrz .case-swiper-track)
 
-/* Builds the strip of mini case icons (one per round) once per lobby,
-   then slides it so the current round's case sits in the little window. */
+/* Builds the strip of mini case icons for EVERY round in this lobby, then
+   slides the whole strip so the current round's icon sits highlighted at
+   the left edge, with the still-upcoming rounds visible to its right and
+   already-opened ones scrolled out of view. */
 function buildCaseSwiper(lobby){
   swiperCaseKeys = lobby.rounds.slice();
   caseSwiperTrackEl.innerHTML = "";
@@ -3198,7 +3206,8 @@ function buildCaseSwiper(lobby){
 }
 function updateCaseSwiper(roundIdx){
   swiperCurrentIdx = roundIdx;
-  caseSwiperTrackEl.style.transform = `translateX(-${roundIdx * 34}px)`;
+  [...caseSwiperTrackEl.children].forEach((icon, i) => icon.classList.toggle("current", i === roundIdx));
+  caseSwiperTrackEl.style.transform = `translateX(-${roundIdx * SWIPER_ICON_STEP}px)`;
 }
 
 /* ---- "tap the case icon to see the best possible drop" popup ---- */
