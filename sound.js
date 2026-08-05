@@ -29,6 +29,12 @@ function playTone(freq, startTime, duration, {type="sine", gain=0.18, glideTo=nu
   g.gain.linearRampToValueAtTime(gain, startTime + 0.015);
   g.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
   osc.connect(g).connect(ctx.destination);
+  // Bez tego węzły oscylatora/gaina zostają na stałe podłączone do grafu
+  // audio nawet po zakończeniu dźwięku - przy setkach/tysiącach dźwięków w
+  // jednej sesji (np. cała bitwa z wieloma rundami) to narastające
+  // przeciążenie, które z czasem powoduje zacinanie się dźwięku, aż w końcu
+  // AudioContext przestaje nadążać.
+  osc.onended = () => { try { osc.disconnect(); g.disconnect(); } catch (e) {} };
   osc.start(startTime);
   osc.stop(startTime + duration + 0.02);
 }
