@@ -310,11 +310,11 @@
   .opt-btn.disabled{opacity:.35; cursor:not-allowed; pointer-events:none;}
   .opt-btn.team-a-opt.selected{border-color:var(--r-milspec); color:var(--r-milspec); background:rgba(75,105,255,.12);}
   .opt-btn.team-a-opt.selected small{color:var(--r-milspec);}
-  .opt-btn.team-b-opt.selected{border-color:var(--r-covert); color:var(--r-covert); background:rgba(235,75,75,.12);}
-  .opt-btn.team-b-opt.selected small{color:var(--r-covert);}
+  .opt-btn.team-b-opt.selected{border-color:var(--hazard); color:var(--hazard); background:rgba(255,149,0,.12);}
+  .opt-btn.team-b-opt.selected small{color:var(--hazard);}
 
   .player-tag.team-a-tag{color:var(--r-milspec); border-color:var(--r-milspec); background:rgba(75,105,255,.12);}
-  .player-tag.team-b-tag{color:var(--r-covert); border-color:var(--r-covert); background:rgba(235,75,75,.12);}
+  .player-tag.team-b-tag{color:var(--hazard); border-color:var(--hazard); background:rgba(255,149,0,.12);}
 
   .mode-card{
     background:var(--panel-2);
@@ -455,8 +455,8 @@
   }
   .nb-slot-avatar.team-a{border-color:var(--r-milspec);}
   .nb-slot-avatar.team-a.host{color:var(--r-milspec); background:rgba(75,105,255,.12); box-shadow:0 0 0 3px rgba(75,105,255,.12);}
-  .nb-slot-avatar.team-b{border-color:var(--r-covert);}
-  .nb-slot-avatar.team-b.host{color:var(--r-covert); background:rgba(235,75,75,.12); box-shadow:0 0 0 3px rgba(235,75,75,.12);}
+  .nb-slot-avatar.team-b{border-color:var(--hazard);}
+  .nb-slot-avatar.team-b.host{color:var(--hazard); background:rgba(255,149,0,.12); box-shadow:0 0 0 3px rgba(255,149,0,.12);}
 
   .nb-mode-desc{
     margin-top:18px; padding-top:16px; border-top:1px solid var(--line);
@@ -2984,7 +2984,7 @@ function renderSlotOptions(){
     const team = teams ? teamOfIdx(i, totalPlayers) : null;
     const btn = document.createElement("div");
     btn.className = "nb-slot-avatar" + (i === hostSlotIdx ? " host" : "") + (team === 0 ? " team-a" : team === 1 ? " team-b" : "");
-    btn.title = `Pole ${i+1}` + (teams ? ` — Drużyna ${team === 0 ? "A" : "B"}` : "");
+    btn.title = `Pole ${i+1}` + (teams ? ` — ${team === 0 ? "CT" : "T"}` : "");
     btn.textContent = i === hostSlotIdx ? "TY" : "+";
     btn.onclick = () => {
       hostSlotIdx = i;
@@ -3131,7 +3131,7 @@ function updateTeamTotalsBoxes(lobby, slotTotals){
     });
     const inv = lobby.mode.startsWith("under");
     const leadTeam = sumA === sumB ? -1 : (inv ? sumA < sumB : sumA > sumB) ? 0 : 1;
-    [["Drużyna A", sumA, "team-a-box"], ["Drużyna B", sumB, "team-b-box"]].forEach(([label, sum, cls], i) => {
+    [["CT", sumA, "team-a-box"], ["T", sumB, "team-b-box"]].forEach(([label, sum, cls], i) => {
       const box = document.createElement("div");
       box.className = `team-total-box ${cls}` + (i === leadTeam ? " leading" : "");
       box.dataset.side = i;
@@ -3464,7 +3464,7 @@ function buildPlayersGrid(lobby){
     const team = isTeamsMode(lobby) ? teamOfIdx(idx, lobby.totalPlayers) : null;
     col.className = "player-col" + (slot.tabId === myTabId ? " you" : "") + (team === 0 ? " team-a" : team === 1 ? " team-b" : "");
     col.id = `player-${idx}`;
-    const teamTag = team === 0 ? '<span class="player-tag team-a-tag">DRUŻYNA A</span>' : team === 1 ? '<span class="player-tag team-b-tag">DRUŻYNA B</span>' : "";
+    const teamTag = team === 0 ? '<span class="player-tag team-a-tag">CT</span>' : team === 1 ? '<span class="player-tag team-b-tag">T</span>' : "";
     const showStars = lobby.mode === "burst" || lobby.mode === "under-burst";
     col.innerHTML = `
       <div class="result-badge" id="result-badge-${idx}"><div class="rb-label"></div><div class="rb-amount"></div></div>
@@ -3485,7 +3485,7 @@ function lobbySlotNode(lobby, idx){
   const isHost = lobby.hostTabId === myTabId;
   const alreadyIn = lobby.slots.some(s => s.tabId === myTabId);
   const team = isTeamsMode(lobby) ? teamOfIdx(idx, lobby.totalPlayers) : null;
-  const teamTag = team === 0 ? '<span class="player-tag team-a-tag">DRUŻYNA A</span>' : team === 1 ? '<span class="player-tag team-b-tag">DRUŻYNA B</span>' : "";
+  const teamTag = team === 0 ? '<span class="player-tag team-a-tag">CT</span>' : team === 1 ? '<span class="player-tag team-b-tag">T</span>' : "";
   const teamClass = team === 0 ? " team-a" : team === 1 ? " team-b" : "";
 
   if(slot.type === "empty"){
@@ -4109,7 +4109,7 @@ function renderOutcomeBanner(lobby, outcome){
       const wonValue = potValue;
       let who;
       if(isTeamsMode(lobby)){
-        const teamLabel = `Drużyna ${outcome.winnerTeam === 0 ? "A" : "B"}`;
+        const teamLabel = `${outcome.winnerTeam === 0 ? "CT" : "T"}`;
         who = iAmWinner ? "Twoja drużyna wygrywa!" : `${teamLabel} wygrywa bitwę`;
       } else {
         who = winners[0].tabId === myTabId ? "Wygrałeś bitwę!" : `${winners[0].name} wygrywa bitwę`;
@@ -4125,7 +4125,7 @@ function renderOutcomeBanner(lobby, outcome){
         document.getElementById("outcomeDetail").textContent = `${grabber} wszystkie ${allItems.length} przedmioty z bitwy o łącznej wartości ${fmt(wonValue)}.`;
       }
     } else {
-      const winLabel = isTeamsMode(lobby) ? `Drużyna ${outcome.winnerTeam === 0 ? "A" : "B"}` : winners[0].name;
+      const winLabel = isTeamsMode(lobby) ? `${outcome.winnerTeam === 0 ? "CT" : "T"}` : winners[0].name;
       document.getElementById("outcomeHeadline").textContent = `${winLabel} wygrywa`;
       document.getElementById("outcomeHeadline").className = "headline lose";
       const myTotal = mySlotIdx >= 0 ? fmt(lobby.results[mySlotIdx].total) : "—";
@@ -4238,7 +4238,7 @@ function finishConclusion(lobby, outcome, mySlotIdx){
       historyOutcome = "tie";
     } else {
       const winners = outcome.winnerIndices.map(i => lobby.slots[i]);
-      const winLabel = isTeamsMode(lobby) ? `Drużyna ${outcome.winnerTeam === 0 ? "A" : "B"} (${winners.map(w=>w.name).join(", ")})` : winners[0].name;
+      const winLabel = isTeamsMode(lobby) ? `${outcome.winnerTeam === 0 ? "CT" : "T"} (${winners.map(w=>w.name).join(", ")})` : winners[0].name;
       const iAmWinner = outcome.winnerIndices.includes(mySlotIdx);
       if(iAmWinner){
         const allItems = [];
