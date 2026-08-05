@@ -3200,6 +3200,7 @@ function buildCaseSwiper(lobby){
     const img = getCaseImage(c.baseName || c.name);
     const icon = document.createElement("div");
     icon.className = "case-swiper-icon" + (c.jester ? " jester-icon" : "");
+    icon.dataset.idx = String(caseSwiperTrackEl.children.length);
     icon.innerHTML = img
       ? `<img src="${img}" alt="${c.name}" onerror="this.parentElement.innerHTML='<div class=&quot;fb&quot;>${(c.baseName || c.name).toUpperCase()}</div>'">`
       : `<div class="fb">${(c.baseName || c.name).toUpperCase()}</div>`;
@@ -3243,8 +3244,13 @@ function openCaseInfoModal(caseKey){
 function closeCaseInfoModal(){
   caseInfoModal.classList.remove("show");
 }
-caseSwiperEl.onclick = () => {
-  const key = swiperCaseKeys[swiperCurrentIdx];
+/* Każda ikona w pasku pokazuje info o SWOJEJ skrzynce, nie tylko bieżąca -
+   od kiedy pasek pokazuje wiele skrzynek naraz (nie tylko jedną), kliknięcie
+   musi trafić w konkretną ikonę, na którą realnie kliknięto. */
+caseSwiperEl.onclick = (e) => {
+  const iconEl = e.target.closest(".case-swiper-icon");
+  const idx = iconEl ? Number(iconEl.dataset.idx) : swiperCurrentIdx;
+  const key = swiperCaseKeys[idx];
   if(key) openCaseInfoModal(key);
 };
 caseInfoModal.addEventListener("click", (e) => {
