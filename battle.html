@@ -1338,6 +1338,7 @@
         <div class="arena-chip cost"><span class="ac-label">Koszt wejścia:</span> <span class="ac-value" id="arenaCostChip"></span></div>
         <button class="mini-btn arena-copy-btn" id="copyLinkBtn">🔗 Skopiuj link</button>
         <button class="mini-btn arena-copy-btn" id="replayBtn" style="display:none;">↻ Odtwórz od początku</button>
+        <button class="mini-btn arena-copy-btn" id="repeatBattleBtn" style="display:none;">🔁 Powtórz bitwę</button>
       </div>
     </div>
     <div class="arena-outcome" id="arenaOutcome">
@@ -3194,6 +3195,11 @@ document.getElementById("copyLinkBtn").onclick = () => {
 };
 const replayBtn = document.getElementById("replayBtn");
 replayBtn.onclick = replayBattle;
+const repeatBattleBtn = document.getElementById("repeatBattleBtn");
+repeatBattleBtn.onclick = () => {
+  const lobby = getLobby(myLobbyId);
+  if(lobby && lobby.hostTabId === myTabId) repeatBattle(lobby);
+};
 const lobbySummaryBar = document.getElementById("lobbySummaryBar");
 const lobbySummaryTxt = document.getElementById("lobbySummaryTxt");
 const openLobbiesPanel = document.getElementById("openLobbiesPanel");
@@ -3445,6 +3451,7 @@ function renderLobbyArena(lobby){
   }
 
   replayBtn.style.display = lobby.status === "finished" ? "" : "none";
+  repeatBattleBtn.style.display = (lobby.status === "finished" && lobby.hostTabId === myTabId) ? "" : "none";
 
   if(lobby.status === "running" && animatingLobbyId !== lobby.id){
     animatingLobbyId = lobby.id;
@@ -3967,6 +3974,49 @@ function replayBattle(){
   animatingLobbyId = lobby.id;
   const myToken = ++animationToken;
   runLobbyRounds(lobby, 0, { replay: true, token: myToken });
+}
+
+/* Host-only "powtórz bitwę": otwiera kreator od razu wypełniony tymi samymi
+   skrzynkami i tym samym trybem co właśnie zakończona bitwa - host tylko
+   klika "Rozpocznij bitwę" zamiast układać wszystko od nowa. */
+function repeatBattle(lobby){
+  if(myLobbyId){
+    socket.emit("battle:leave", { lobbyId: myLobbyId, tabId: myTabId });
+  }
+  myLobbyId = null;
+  animatingLobbyId = null;
+  sessionStorage.removeItem("myLobbyId_v1");
+  updateBattleUrl(null);
+
+  selectedRounds = lobby.rounds.slice();
+  opponentCount = lobby.totalPlayers - 1;
+  isTeams = !!lobby.teams;
+  const hostIdx = lobby.slots.findIndex(s => s.tabId === lobby.hostTabId);
+  hostSlotIdx = hostIdx >= 0 ? hostIdx : 0;
+  if(lobby.shared){
+    baseMode = "shared";
+    modifier = "none";
+  } else if(lobby.mode === "decider" || lobby.mode === "under-decider"){
+    baseMode = lobby.mode === "under-decider" ? "underdog" : "standard";
+    modifier = "decider";
+  } else if(lobby.mode === "burst" || lobby.mode === "under-burst"){
+    baseMode = lobby.mode === "under-burst" ? "underdog" : "standard";
+    modifier = "burst";
+  } else {
+    baseMode = lobby.mode === "underdog" ? "underdog" : "standard";
+    modifier = "none";
+  }
+  visibility = lobby.private ? "private" : "public";
+
+  renderSelectedRounds();
+  renderSummary();
+  renderBaseModeTabs();
+  updateModifierAvailability();
+  renderRodzajDropdown();
+  renderSlotOptions();
+  renderModeDesc();
+  renderVisibilityRow();
+  showSetupView();
 }
 
 /* pure — same result on every tab, no side effects */
