@@ -494,9 +494,7 @@ function claimTier(taskId, tierIndex, reward){
   if(!window.SteamAuth.requireLogin()) return;
   const ok = window.SteamAuth.claimQuestTier(taskId, tierIndex, reward);
   if(!ok){ renderAll(); return; }
-  const q = QUESTS.find(t => t.id === taskId);
   playWinSound();
-  log(`Zadanie "${q ? q.title : taskId}": odebrano nagrodę za poziom ${tierIndex + 1} (+${fmt(reward)}).`);
   renderAll();
 }
 
