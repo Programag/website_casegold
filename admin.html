@@ -138,12 +138,12 @@ function fmt(n){
 }
 
 async function loadMe(){
-  const res = await fetch("/api/me", { credentials: "same-origin" });
+  const res = await fetch("/api/me.php", { credentials: "same-origin" });
   return res.json();
 }
 
 async function loadUsers(){
-  const res = await fetch("/api/admin/users", { credentials: "same-origin" });
+  const res = await fetch("/api/admin-users.php", { credentials: "same-origin" });
   if(!res.ok) return null;
   return res.json();
 }
@@ -183,7 +183,7 @@ function userRow(u){
     boostBtn.disabled = true;
     status.textContent = "";
     try{
-      const res = await fetch(`/api/admin/users/${encodeURIComponent(u.steamid)}`, {
+      const res = await fetch(`/api/admin-users.php?steamid=${encodeURIComponent(u.steamid)}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
@@ -216,7 +216,7 @@ function userRow(u){
       payload.claimedLevelRewards = claimedInp.value.split(",").map(s => s.trim()).filter(s => s !== "").map(Number).filter(n => Number.isFinite(n));
     }
     try{
-      const res = await fetch(`/api/admin/users/${encodeURIComponent(u.steamid)}`, {
+      const res = await fetch(`/api/admin-users.php?steamid=${encodeURIComponent(u.steamid)}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
@@ -236,7 +236,7 @@ function userRow(u){
     resetBtn.disabled = true;
     status.textContent = "";
     try{
-      const res = await fetch(`/api/admin/users/${encodeURIComponent(u.steamid)}`, {
+      const res = await fetch(`/api/admin-users.php?steamid=${encodeURIComponent(u.steamid)}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
@@ -258,7 +258,7 @@ async function init(){
   const content = document.getElementById("content");
   const me = await loadMe();
   if(!me.loggedIn){
-    content.innerHTML = `<div class="state-box">Musisz się zalogować przez Steam, żeby zobaczyć ten panel.<br><br><a href="/auth/steam">Zaloguj przez Steam</a></div>`;
+    content.innerHTML = `<div class="state-box">Musisz się zalogować przez Steam, żeby zobaczyć ten panel.<br><br><a href="/auth-steam.php">Zaloguj przez Steam</a></div>`;
     return;
   }
   if(!me.isAdmin){
@@ -282,7 +282,7 @@ async function init(){
     clearDailyTopBtn.disabled = true;
     clearDailyTopStatus.textContent = "Czyszczę…";
     try{
-      const res = await fetch("/api/admin/daily-top/clear", { method: "POST", credentials: "same-origin" });
+      const res = await fetch("/api/admin-daily-top-clear.php", { method: "POST", credentials: "same-origin" });
       clearDailyTopStatus.textContent = res.ok ? "Wyczyszczono." : "Błąd.";
     }catch(e){
       clearDailyTopStatus.textContent = "Błąd.";

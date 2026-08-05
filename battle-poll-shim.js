@@ -29,15 +29,15 @@ const socket = (function () {
   }
 
   const ENDPOINTS = {
-    'battle:create': '/api/battle/create',
-    'battle:join': '/api/battle/join',
-    'battle:leave': '/api/battle/leave',
-    'battle:resume': '/api/battle/resume',
-    'battle:getLobby': '/api/battle/get-lobby',
-    'battle:addBot': '/api/battle/add-bot',
-    'battle:submitResults': '/api/battle/submit-results',
-    'battle:finish': '/api/battle/finish',
-    'battle:dailyTop': '/api/battle/daily-top',
+    'battle:create': '/api/battle-create.php',
+    'battle:join': '/api/battle-join.php',
+    'battle:leave': '/api/battle-leave.php',
+    'battle:resume': '/api/battle-resume.php',
+    'battle:getLobby': '/api/battle-get-lobby.php',
+    'battle:addBot': '/api/battle-add-bot.php',
+    'battle:submitResults': '/api/battle-submit-results.php',
+    'battle:finish': '/api/battle-finish.php',
+    'battle:dailyTop': '/api/battle-daily-top.php',
   };
 
   async function postJson(url, payload) {
@@ -95,7 +95,7 @@ const socket = (function () {
     try {
       const qs = new URLSearchParams({ id });
       if (polledTabId) qs.set('tabId', polledTabId);
-      const res = await fetch(`/api/battle/get-lobby?${qs}`, { credentials: 'same-origin' });
+      const res = await fetch(`/api/battle-get-lobby.php?${qs}`, { credentials: 'same-origin' });
       const data = await res.json();
       if (polledLobbyId !== id) return; // w międzyczasie przełączyliśmy się gdzie indziej
       if (!data.ok) {
@@ -116,7 +116,7 @@ const socket = (function () {
 
   async function pollListOnce() {
     try {
-      const res = await fetch('/api/battle/lobbies', { credentials: 'same-origin' });
+      const res = await fetch('/api/battle-lobbies.php', { credentials: 'same-origin' });
       const list = await res.json();
       const json = JSON.stringify(list);
       if (json !== lastListJson) {

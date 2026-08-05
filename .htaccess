@@ -1,48 +1,14 @@
-RewriteEngine On
-
-# Blokuj bezpośredni dostęp do plików pomocniczych/configu/schematu.
-RewriteRule ^inc/ - [F,L]
-RewriteRule ^config\.php$ - [F,L]
-RewriteRule ^config\.example\.php$ - [F,L]
-RewriteRule ^schema\.sql$ - [F,L]
-
-# Logowanie Steam - te same ścieżki publiczne co w wersji Node, żeby
-# steam-auth.js nie wymagał żadnych zmian.
-RewriteRule ^auth/steam/return/?$ auth-steam-return.php [L,QSA]
-RewriteRule ^auth/steam/?$ auth-steam.php [L,QSA]
-RewriteRule ^auth/logout/?$ auth-logout.php [L,QSA]
-
-# API stanu gracza / profilu / adminowe
-RewriteRule ^api/me/?$ api/me.php [L,QSA]
-RewriteRule ^api/state/?$ api/state.php [L,QSA]
-RewriteRule ^api/profile/([^/]+)/?$ api/profile.php?slug=$1 [L,QSA]
-RewriteRule ^api/leaderboard/?$ api/leaderboard.php [L,QSA]
-RewriteRule ^api/admin/users/([^/]+)/?$ api/admin-users.php?steamid=$1 [L,QSA]
-RewriteRule ^api/admin/users/?$ api/admin-users.php [L,QSA]
-RewriteRule ^api/admin/daily-top/clear/?$ api/admin-daily-top-clear.php [L,QSA]
-
-# Case Battle (odpytywanie AJAX zamiast Socket.IO - patrz battle-poll-shim.js)
-RewriteRule ^api/battle/create/?$ api/battle-create.php [L,QSA]
-RewriteRule ^api/battle/join/?$ api/battle-join.php [L,QSA]
-RewriteRule ^api/battle/leave/?$ api/battle-leave.php [L,QSA]
-RewriteRule ^api/battle/add-bot/?$ api/battle-add-bot.php [L,QSA]
-RewriteRule ^api/battle/submit-results/?$ api/battle-submit-results.php [L,QSA]
-RewriteRule ^api/battle/finish/?$ api/battle-finish.php [L,QSA]
-RewriteRule ^api/battle/get-lobby/?$ api/battle-get-lobby.php [L,QSA]
-RewriteRule ^api/battle/resume/?$ api/battle-resume.php [L,QSA]
-RewriteRule ^api/battle/lobbies/?$ api/battle-lobbies.php [L,QSA]
-RewriteRule ^api/battle/daily-top/?$ api/battle-daily-top.php [L,QSA]
-
-# Publiczny profil (np. /profile/aleksio) - serwuj statyczny profile.html,
-# slug czyta się z URL po stronie klienta (patrz profile.html).
-RewriteRule ^profile/([^/]+)/?$ profile.html [L]
-
-# Reszta stron bez rozszerzenia w URL (np. /battle, /upgrade, /case_water,
-# /case_simulator) - odpowiednik opcji `extensions: ["html"]` z Express,
-# którego Apache nie robi domyślnie. Jeśli /nazwa nie istnieje jako plik
-# ani katalog, ale nazwa.html istnieje, serwuj ją (adres w przeglądarce
-# zostaje bez zmian - to wewnętrzne przepisanie, nie przekierowanie).
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteCond %{REQUEST_FILENAME}\.html -f
-RewriteRule ^(.*)$ $1.html [L]
+# mod_rewrite nie działa na tym hostingu (potwierdzone: żadna z reguł
+# RewriteRule poniżej faktycznie się nie wykonywała), więc cały serwis
+# odwołuje się teraz bezpośrednio do plików (*.html, *.php) i parametrów
+# w query stringu - żadne przepisywanie adresów już nie jest potrzebne.
+#
+# To, co zostało, to próba zablokowania bezpośredniego dostępu do plików
+# pomocniczych przez mod_authz_core (nie mod_rewrite) - jeśli hosting w
+# ogóle ignoruje .htaccess, to i tak nic nie zrobi (ale i nic nie zepsuje).
+# config.php/inc/*.php nie mają żadnego kodu wypisującego coś na wyjściu
+# (same funkcje/return), więc nawet bez tej blokady bezpośrednie wejście
+# pokaże pustą stronę, nie żadne dane.
+<FilesMatch "^(config\.php|config\.example\.php|schema\.sql)$">
+    Require all denied
+</FilesMatch>

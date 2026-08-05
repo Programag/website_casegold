@@ -264,11 +264,11 @@
   </div>
   <div class="nav-links">
     <a class="nav-link" href="/">Skrzynki</a>
-    <a class="nav-link active" href="/darmowe">Darmowe</a>
-    <a class="nav-link" href="/battle">Case Battle</a>
-    <a class="nav-link" href="/upgrade">Upgrader</a>
-    <a class="nav-link" href="/zadania">Zadania</a>
-    <a class="nav-link" href="/equipment">Ekwipunek</a>
+    <a class="nav-link active" href="/darmowe.html">Darmowe</a>
+    <a class="nav-link" href="/battle.html">Case Battle</a>
+    <a class="nav-link" href="/upgrade.html">Upgrader</a>
+    <a class="nav-link" href="/zadania.html">Zadania</a>
+    <a class="nav-link" href="/equipment.html">Ekwipunek</a>
   </div>
   <div class="nav-right">
     <button class="daily-btn" id="dailyBonusBtn">🎁 Daily Bonus</button>
@@ -291,7 +291,7 @@
 <div class="page-body">
 <div class="wrap">
 
-  <a class="back-link" href="/darmowe">‹ Powrót do skrzynek</a>
+  <a class="back-link" href="/darmowe.html">‹ Powrót do skrzynek</a>
 
   <div class="open-header">
     <h1><span id="caseIcon">🎁</span> <span id="caseName">Free Case</span> <span class="oh-tag" id="caseTag">DARMOWA</span></h1>
@@ -373,7 +373,7 @@ const settingsBtn = document.getElementById("settingsBtn");
 const settingsMenu = document.getElementById("settingsMenu");
 settingsBtn.onclick = (e) => { e.stopPropagation(); settingsMenu.classList.toggle("open"); };
 document.addEventListener("click", () => settingsMenu.classList.remove("open"));
-document.getElementById("inventoryBtn").onclick = () => { window.location.href = "/equipment"; };
+document.getElementById("inventoryBtn").onclick = () => { window.location.href = "/equipment.html"; };
 
 function fmtCountdown(ms){
   const total = Math.max(0, Math.ceil(ms / 1000));
@@ -511,7 +511,7 @@ CASE.items = TIER_ITEMS[caseId] || TIER_ITEMS.free;
 
 if(CASE.level && PLAYER_LEVEL < CASE.level){
   // locked case reached directly by URL — bounce back to the list
-  location.href = "/darmowe";
+  location.href = "/darmowe.html";
 }
 
 document.documentElement.style.setProperty("--case-accent", CASE.accent);

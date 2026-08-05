@@ -180,11 +180,11 @@
   </div>
   <div class="nav-links">
     <a class="nav-link" href="/">Skrzynki</a>
-    <a class="nav-link" href="/darmowe">Darmowe</a>
-    <a class="nav-link" href="/battle">Case Battle</a>
-    <a class="nav-link" href="/upgrade">Upgrader</a>
-    <a class="nav-link" href="/zadania">Zadania</a>
-    <a class="nav-link" href="/equipment">Ekwipunek</a>
+    <a class="nav-link" href="/darmowe.html">Darmowe</a>
+    <a class="nav-link" href="/battle.html">Case Battle</a>
+    <a class="nav-link" href="/upgrade.html">Upgrader</a>
+    <a class="nav-link" href="/zadania.html">Zadania</a>
+    <a class="nav-link" href="/equipment.html">Ekwipunek</a>
   </div>
   <div class="nav-right">
     <button class="daily-btn" id="dailyBonusBtn">🎁 Daily Bonus</button>
@@ -254,7 +254,7 @@ const settingsBtn = document.getElementById("settingsBtn");
 const settingsMenu = document.getElementById("settingsMenu");
 settingsBtn.onclick = (e) => { e.stopPropagation(); settingsMenu.classList.toggle("open"); };
 document.addEventListener("click", () => settingsMenu.classList.remove("open"));
-document.getElementById("inventoryBtn").onclick = () => { window.location.href = "/equipment"; };
+document.getElementById("inventoryBtn").onclick = () => { window.location.href = "/equipment.html"; };
 function fmtCountdown(ms){
   const total = Math.max(0, Math.ceil(ms / 1000));
   const h = String(Math.floor(total / 3600)).padStart(2,"0");
@@ -310,7 +310,7 @@ document.querySelectorAll(".lb-tab").forEach(tab => {
 async function loadLeaderboard(){
   leaderboardList.innerHTML = `<div class="lb-loading">Ładowanie…</div>`;
   try{
-    const res = await fetch("/api/leaderboard");
+    const res = await fetch("/api/leaderboard.php");
     leaderboardData = await res.json();
     renderLeaderboard();
   }catch(e){
@@ -332,7 +332,7 @@ function renderLeaderboard(){
       row.title = "Dostanie 5000 zł po północy za dzisiejsze przegrane bitwy";
     }
     if(entry){
-      row.href = `/profile/${encodeURIComponent(entry.slug || "")}`;
+      row.href = `/profile.html?u=${encodeURIComponent(entry.slug || "")}`;
     }
     const rank = document.createElement("div");
     rank.className = "lb-rank";

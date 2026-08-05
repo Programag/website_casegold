@@ -29,11 +29,12 @@
     const t = DICT[lang];
     const map = [
       ['a[href="/"]', t.cases],
-      ['a[href="/darmowe"]', t.free],
-      ['a[href="/battle"]', t.battle],
-      ['a[href="/upgrade"]', t.upgrader],
-      ['a[href="/zadania"]', t.tasks],
-      ['a[href="/equipment"]', t.inventory],
+      ['a[href="/index.html"]', t.cases],
+      ['a[href="/darmowe.html"]', t.free],
+      ['a[href="/battle.html"]', t.battle],
+      ['a[href="/upgrade.html"]', t.upgrader],
+      ['a[href="/zadania.html"]', t.tasks],
+      ['a[href="/equipment.html"]', t.inventory],
     ];
     map.forEach(([sel, label]) => {
       document.querySelectorAll(`.nav-links ${sel}`).forEach(el => { el.textContent = label; });

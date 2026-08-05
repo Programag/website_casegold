@@ -345,11 +345,11 @@
   </div>
   <div class="nav-links">
     <a class="nav-link" href="/">Skrzynki</a>
-    <a class="nav-link" href="/darmowe">Darmowe</a>
-    <a class="nav-link" href="/battle">Case Battle</a>
-    <a class="nav-link active" href="/upgrade">Upgrader</a>
-    <a class="nav-link" href="/zadania">Zadania</a>
-    <a class="nav-link" href="/equipment">Ekwipunek</a>
+    <a class="nav-link" href="/darmowe.html">Darmowe</a>
+    <a class="nav-link" href="/battle.html">Case Battle</a>
+    <a class="nav-link active" href="/upgrade.html">Upgrader</a>
+    <a class="nav-link" href="/zadania.html">Zadania</a>
+    <a class="nav-link" href="/equipment.html">Ekwipunek</a>
   </div>
   <div class="nav-right">
     <button class="daily-btn" id="dailyBonusBtn">🎁 Daily Bonus</button>
@@ -1066,7 +1066,7 @@ function renderBalance(){
   balanceEl.classList.toggle("low", balance < 0);
   saveState();
 }
-document.getElementById("inventoryBtn").onclick = () => { window.location.href = "/equipment"; };
+document.getElementById("inventoryBtn").onclick = () => { window.location.href = "/equipment.html"; };
 
 /* ---- shared top-nav widgets: settings dropdown + daily bonus (24h cooldown) ---- */
 document.querySelectorAll("[data-soon]").forEach(el => {

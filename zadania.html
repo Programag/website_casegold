@@ -211,11 +211,11 @@
   </div>
   <div class="nav-links">
     <a class="nav-link" href="/">Skrzynki</a>
-    <a class="nav-link" href="/darmowe">Darmowe</a>
-    <a class="nav-link" href="/battle">Case Battle</a>
-    <a class="nav-link" href="/upgrade">Upgrader</a>
-    <a class="nav-link active" href="/zadania">Zadania</a>
-    <a class="nav-link" href="/equipment">Ekwipunek</a>
+    <a class="nav-link" href="/darmowe.html">Darmowe</a>
+    <a class="nav-link" href="/battle.html">Case Battle</a>
+    <a class="nav-link" href="/upgrade.html">Upgrader</a>
+    <a class="nav-link active" href="/zadania.html">Zadania</a>
+    <a class="nav-link" href="/equipment.html">Ekwipunek</a>
   </div>
   <div class="nav-right">
     <button class="daily-btn" id="dailyBonusBtn">🎁 Daily Bonus</button>
@@ -508,7 +508,7 @@ document.getElementById("zadFilters").addEventListener("click", (e) => {
 });
 
 function init(){
-  document.getElementById("inventoryBtn").onclick = () => { window.location.href = "/equipment"; };
+  document.getElementById("inventoryBtn").onclick = () => { window.location.href = "/equipment.html"; };
   renderAll();
   log("Lista zadań gotowa.");
 }

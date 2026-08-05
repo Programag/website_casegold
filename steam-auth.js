@@ -30,7 +30,7 @@
   function fetchMeSync() {
     try {
       const xhr = new XMLHttpRequest();
-      xhr.open("GET", "/api/me", false); // synchroniczne - celowo, patrz komentarz na górze pliku
+      xhr.open("GET", "/api/me.php", false); // synchroniczne - celowo, patrz komentarz na górze pliku
       xhr.send(null);
       if (xhr.status >= 200 && xhr.status < 300) return JSON.parse(xhr.responseText);
     } catch (e) {
@@ -184,7 +184,7 @@
       freeCaseAt: Number(localStorage.getItem(FREE_CASE_KEY) || 0) || null,
       baseUpdatedAt: Number(localStorage.getItem(SERVER_BASE_KEY) || 0) || 0,
     };
-    fetch("/api/state", {
+    fetch("/api/state.php", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -879,7 +879,7 @@
     const hide = () => overlay.classList.remove("show");
     overlay.addEventListener("click", (e) => { if (e.target === overlay) hide(); });
     document.getElementById("authWallClose").onclick = hide;
-    document.getElementById("authWallSteamBtn").onclick = () => { window.location.href = "/auth/steam"; };
+    document.getElementById("authWallSteamBtn").onclick = () => { window.location.href = "/auth-steam.php"; };
     document.addEventListener("keydown", (e) => { if (e.key === "Escape") hide(); });
     return overlay;
   }
@@ -917,7 +917,7 @@
     const menu = document.getElementById("settingsMenu");
 
     if (me.loggedIn && me.user) {
-      const profileUrl = me.user.slug ? `/profile/${encodeURIComponent(me.user.slug)}` : "/profile";
+      const profileUrl = me.user.slug ? `/profile.html?u=${encodeURIComponent(me.user.slug)}` : "/profile.html";
       if (avatar) {
         avatar.innerHTML = "";
         const img = document.createElement("img");
@@ -948,7 +948,7 @@
         const btn = document.createElement("button");
         btn.id = "adminPanelBtn";
         btn.textContent = "🛠 Panel admina";
-        btn.onclick = () => { window.location.href = "/admin"; };
+        btn.onclick = () => { window.location.href = "/admin.html"; };
         menu.appendChild(btn);
       }
 
@@ -959,7 +959,7 @@
         row.innerHTML = `<button id="steamLogoutBtn">${t.logout} (${me.user.displayName || ""})</button>`;
         menu.appendChild(row);
         document.getElementById("steamLogoutBtn").onclick = () => {
-          fetch("/auth/logout", { method: "POST", credentials: "same-origin" })
+          fetch("/auth-logout.php", { method: "POST", credentials: "same-origin" })
             .finally(() => { window.location.reload(); });
         };
       }
@@ -970,7 +970,7 @@
       }
       if (avatarWrap) {
         avatarWrap.title = t.login;
-        avatarWrap.onclick = () => { window.location.href = "/auth/steam"; };
+        avatarWrap.onclick = () => { window.location.href = "/auth-steam.php"; };
         const badge = avatarWrap.querySelector(".lvl-badge");
         if (badge) { badge.classList.add("steam-badge"); badge.innerHTML = STEAM_ICON_SVG; badge.title = t.login; }
       }
@@ -981,7 +981,7 @@
         row.innerHTML = `<button id="steamLoginBtn">${steamIconBadge()} ${t.login}</button>`;
         menu.appendChild(row);
         document.getElementById("steamLoginBtn").onclick = () => {
-          window.location.href = "/auth/steam";
+          window.location.href = "/auth-steam.php";
         };
       }
     }
