@@ -800,7 +800,7 @@
      nadejdą w tej bitwie - nie tylko jedną - i przesuwa się o jedną ikonę
      w lewo po każdej rundzie, żeby zawsze zaczynał się od aktualnej. */
   .case-swiper{
-    width:330px; max-width:100%; height:34px; flex:0 1 330px; min-width:0;
+    width:330px; max-width:100%; height:34px; flex:0 1 auto; min-width:0;
     border-radius:8px; overflow:hidden;
     border:1px solid var(--line);
     background:var(--panel-2);
@@ -3182,12 +3182,16 @@ const caseInfoModal = document.getElementById("caseInfoModal");
 const caseInfoCard = document.getElementById("caseInfoCard");
 let swiperCaseKeys = [];      // this lobby's rounds, in order
 let swiperCurrentIdx = 0;     // which one is currently highlighted at the left edge of the strip
-const SWIPER_ICON_STEP = 34 + 3; // ikona (34px) + gap (3px, patrz .case-swiper-track)
+const SWIPER_ICON_W = 34, SWIPER_GAP = 3;
+const SWIPER_ICON_STEP = SWIPER_ICON_W + SWIPER_GAP;
+const SWIPER_MAX_VISIBLE = 9; // ile ikon mieści się w pełnej (330px) szerokości paska
 
 /* Builds the strip of mini case icons for EVERY round in this lobby, then
    slides the whole strip so the current round's icon sits highlighted at
    the left edge, with the still-upcoming rounds visible to its right and
-   already-opened ones scrolled out of view. */
+   already-opened ones scrolled out of view. Szerokość paska dopasowuje się
+   do liczby rund w TEJ bitwie (do SWIPER_MAX_VISIBLE) - krótka bitwa (np.
+   2-3 rundy) nie zostawia po sobie pustego, za długiego okienka. */
 function buildCaseSwiper(lobby){
   swiperCaseKeys = lobby.rounds.slice();
   caseSwiperTrackEl.innerHTML = "";
@@ -3201,6 +3205,8 @@ function buildCaseSwiper(lobby){
       : `<div class="fb">${(c.baseName || c.name).toUpperCase()}</div>`;
     caseSwiperTrackEl.appendChild(icon);
   });
+  const visibleCount = Math.min(SWIPER_MAX_VISIBLE, lobby.rounds.length);
+  caseSwiperEl.style.width = (visibleCount * SWIPER_ICON_W + Math.max(0, visibleCount - 1) * SWIPER_GAP) + "px";
   caseSwiperEl.classList.add("show");
   updateCaseSwiper(0);
 }
