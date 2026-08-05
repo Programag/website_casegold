@@ -87,7 +87,7 @@ function steam_fetch_player_summary(string $apiKey, string $steamid): array {
     $url = 'https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/'
         . '?key=' . urlencode($apiKey) . '&steamids=' . urlencode($steamid);
     $ch = curl_init($url);
-    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 15]);
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_CONNECTTIMEOUT => 6, CURLOPT_TIMEOUT => 10]);
     $response = curl_exec($ch);
     curl_close($ch);
     $data = $response ? json_decode($response, true) : null;
