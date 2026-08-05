@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<script src="steam-auth.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CASEGOLD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0d12;
+    --panel:#141821;
+    --panel-2:#1b202b;
+    --line:#262c3a;
+    --text:#e9ecf3;
+    --muted:#7d879b;
+    --hazard:#ff9500;
+    --hazard-dim:#3a2712;
+    --good:#3ddc84;
+    --bad:#ff5a5a;
+
+    /* rarity tiers, mapped from price bands (CS2-style) */
+    --r-milspec:#4b69ff;
+    --r-restricted:#8847ff;
+    --r-classified:#d32ce6;
+    --r-covert:#eb4b4b;
+    --r-gold:#ffd700;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 500px at 50% -10%, #1a2030 0%, transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+  }
+  .page-body{padding:24px 16px 60px;}
+
+  .hazard-bar{
+    height:8px;
+    background:repeating-linear-gradient(135deg,var(--hazard) 0 14px,#111 14px 28px);
+    opacity:.9;
+  }
+
+  .wrap{max-width:1100px;margin:0 auto;}
+
+  /* ---------------- top navigation (shared across pages) ---------------- */
+  .topnav{
+    display:flex; align-items:center; gap:14px;
+    padding:14px 20px; border-bottom:1px solid var(--line);
+    background:rgba(11,13,18,.8); backdrop-filter:blur(10px);
+    position:sticky; top:0; z-index:50; flex-wrap:wrap;
+  }
+  .brand{
+    display:flex; align-items:center; gap:8px; white-space:nowrap;
+    font-family:'Oswald',sans-serif; font-weight:700; letter-spacing:1px; text-transform:uppercase; font-size:18px;
+  }
+  .brand-icon{width:32px; height:32px; display:flex; align-items:center; justify-content:center; font-size:16px;}
+  .brand-icon img{width:100%; height:100%; object-fit:contain; animation:logo-glow 2.4s ease-in-out infinite;}
+  @keyframes logo-glow{
+    0%,100%{filter:drop-shadow(0 0 4px #ffd700) drop-shadow(0 0 9px rgba(255,215,0,.55));}
+    50%{filter:drop-shadow(0 0 7px #ffd700) drop-shadow(0 0 16px rgba(255,215,0,.85));}
+  }
+  .brand .accent{color:var(--hazard);}
+  .brand-socials{display:flex; gap:8px; color:var(--muted); font-size:15px;}
+  .brand-socials span, .brand-socials a{cursor:pointer; display:flex; align-items:center; justify-content:center; color:inherit; text-decoration:none;}
+  .brand-socials span:hover, .brand-socials a:hover{color:var(--text);}
+  .brand-socials svg{width:16px; height:16px; fill:currentColor; display:block;}
+  .nav-links{
+    display:flex; align-items:center; gap:14px; flex:1; flex-wrap:wrap;
+  }
+  .nav-link{
+    text-decoration:none; color:var(--muted); font-size:13.5px; font-weight:500;
+    text-transform:uppercase; letter-spacing:.5px; font-family:'Oswald',sans-serif;
+    padding-bottom:16px; margin-bottom:-15px; border-bottom:2px solid transparent;
+    display:flex; align-items:center; gap:6px; white-space:nowrap; cursor:pointer;
+    background:none; border-top:none; border-left:none; border-right:none;
+  }
+  .nav-link:hover{color:var(--text);}
+  .nav-link.active{color:var(--hazard); border-bottom-color:var(--hazard);}
+  .beta-tag{
+    font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700;
+    background:rgba(136,71,255,.14); color:var(--r-restricted);
+    padding:2px 5px; border-radius:4px; letter-spacing:.5px;
+  }
+  .nav-right{display:flex; align-items:center; gap:8px;}
+  .daily-btn{
+    background:var(--panel-2); border:1px solid var(--hazard-dim); color:var(--text);
+    padding:8px 11px; border-radius:9px; cursor:pointer; font-size:12.5px; font-weight:600;
+    display:flex; align-items:center; gap:6px; white-space:nowrap; font-family:'Inter',sans-serif;
+  }
+  .daily-btn:hover{border-color:var(--hazard); color:var(--hazard);}
+  .daily-btn:disabled{opacity:.5; cursor:not-allowed;}
+  .wallet-chip{
+    display:flex; align-items:center; gap:6px;
+    background:var(--panel-2); border:1px solid var(--line);
+    padding:6px 6px 6px 12px; border-radius:9px;
+  }
+  .wallet-chip .wc-amount{font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--good); font-size:14.5px; white-space:nowrap;}
+  .wallet-chip .wc-add{
+    width:26px; height:26px; border-radius:7px; border:none; cursor:pointer;
+    background:var(--hazard); color:#181000; font-weight:800; font-size:15px; line-height:1;
+  }
+  .icon-btn{
+    width:34px; height:34px; border-radius:9px; background:var(--panel-2); border:1px solid var(--line);
+    color:var(--muted); cursor:pointer; font-size:16px; position:relative;
+  }
+  .icon-btn:hover{color:var(--hazard); border-color:var(--hazard);}
+  .settings-wrap{position:relative;}
+  .settings-menu{
+    display:none; position:absolute; top:calc(100% + 8px); right:0; z-index:60;
+    background:var(--panel); border:1px solid var(--line); border-radius:10px; overflow:hidden;
+    min-width:180px; box-shadow:0 12px 30px -10px rgba(0,0,0,.6);
+  }
+  .settings-menu.open{display:block;}
+  .settings-menu button{
+    display:block; width:100%; text-align:left; background:none; border:none; color:var(--text);
+    padding:10px 14px; font-size:13px; cursor:pointer; font-family:'Inter',sans-serif;
+  }
+  .settings-menu button:hover{background:var(--panel-2); color:var(--hazard);}
+  .avatar-wrap{position:relative; display:flex;}
+  .avatar{
+    width:34px; height:34px; border-radius:50%; background:var(--panel-2); border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center; font-size:17px;
+  }
+  .lvl-badge{
+    position:absolute; bottom:-4px; right:-4px; background:var(--r-gold); color:#3a2a00;
+    font-size:9px; font-weight:800; padding:1px 5px; border-radius:8px; border:2px solid var(--bg);
+    font-family:'JetBrains Mono',monospace;
+  }
+  @media (max-width:760px){
+    .topnav .nav-links{flex:1 1 100%; flex-wrap:nowrap; gap:3px; justify-content:space-between;}
+    .topnav .nav-link{gap:0; padding:0 0 10px; margin-bottom:0; font-size:10px; letter-spacing:0; white-space:nowrap;}
+  }
+  @media (max-width:400px){
+    .topnav .nav-link{font-size:8.5px;}
+  }
+  .page-title{margin-bottom:26px;}
+
+  header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    flex-wrap:wrap;
+    gap:16px;
+    margin-bottom:22px;
+  }
+  h1{
+    font-family:'Oswald',sans-serif;
+    font-weight:700;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    font-size:clamp(28px,4vw,42px);
+    margin:0;
+    line-height:1;
+  }
+  h1 span{color:var(--hazard);}
+  .sub{color:var(--muted);font-size:13px;letter-spacing:.5px;margin-top:6px;}
+
+  .wallet{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:12px 18px;
+    text-align:right;
+    min-width:220px;
+  }
+  .wallet .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;}
+  .wallet .amount{
+    font-family:'JetBrains Mono',monospace;
+    font-size:26px;
+    font-weight:700;
+    color:var(--good);
+  }
+  .wallet .amount.low{color:var(--bad);}
+  .wallet-actions{display:flex;gap:8px;margin-top:8px;}
+  .mini-btn{
+    flex:1;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    color:var(--text);
+    font-size:11px;
+    padding:6px 8px;
+    border-radius:6px;
+    cursor:pointer;
+    font-family:'Inter',sans-serif;
+  }
+  .mini-btn:hover{border-color:var(--hazard);color:var(--hazard);}
+
+  /* CASE PANEL */
+  .case-panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:22px;
+    margin-bottom:20px;
+    position:relative;
+    overflow:hidden;
+  }
+  .case-panel::before{
+    content:"";
+    position:absolute; inset:0;
+    background:linear-gradient(180deg, rgba(255,149,0,.06), transparent 40%);
+    pointer-events:none;
+  }
+  .case-hero{
+    display:flex;
+    align-items:center;
+    gap:18px;
+    margin-bottom:16px;
+    flex-wrap:wrap;
+  }
+  .case-hero-img{
+    width:96px;
+    height:96px;
+    flex:0 0 auto;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:10px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+  }
+  .case-hero-img img{max-width:82%; max-height:82%; object-fit:contain;}
+  .case-hero-img .fallback{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;
+    color:var(--muted);
+    letter-spacing:1px;
+    text-align:center;
+  }
+  .case-hero-info{flex:1; min-width:180px; display:flex; flex-direction:column; gap:10px; align-items:flex-start;}
+  .nav-links{display:flex; gap:10px; flex-wrap:wrap;}
+  .back-link{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    color:var(--text);
+    font-size:13px;
+    font-weight:600;
+    text-decoration:none;
+    letter-spacing:.5px;
+    padding:10px 14px;
+    border-radius:8px;
+    min-width:132px;
+  }
+  .back-link:hover{
+    color:var(--hazard);
+    border-color:var(--hazard);
+    background:rgba(255,149,0,.08);
+    transform:translateY(-1px);
+  }
+  .case-title{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:8px;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .case-title h2{
+    font-family:'Oswald',sans-serif;
+    text-transform:uppercase;
+    letter-spacing:1.5px;
+    font-size:18px;
+    margin:0;
+    color:var(--text);
+  }
+  /* REEL */
+  .reels{
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+    margin-bottom:14px;
+  }
+  .reel-outer{
+    position:relative;
+    height:150px;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:10px;
+    overflow:hidden;
+  }
+  .reel-outer::before, .reel-outer::after{
+    content:"";
+    position:absolute; top:0; bottom:0; width:70px; z-index:3;
+    pointer-events:none;
+  }
+  .reel-outer::before{left:0; background:linear-gradient(90deg, var(--panel-2) 10%, transparent);}
+  .reel-outer::after{right:0; background:linear-gradient(270deg, var(--panel-2) 10%, transparent);}
+
+  .pointer{
+    position:absolute;
+    left:50%; top:0; bottom:0;
+    width:2px;
+    background:var(--hazard);
+    transform:translateX(-50%);
+    z-index:4;
+    box-shadow:0 0 12px var(--hazard);
+  }
+  .pointer::before, .pointer::after{
+    content:"";
+    position:absolute; left:50%; transform:translateX(-50%);
+    border-left:7px solid transparent; border-right:7px solid transparent;
+  }
+  .pointer::before{top:0; border-top:9px solid var(--hazard);}
+  .pointer::after{bottom:0; border-bottom:9px solid var(--hazard);}
+
+  .reel-track{
+    position:absolute;
+    top:0; bottom:0; left:0;
+    display:flex;
+    align-items:center;
+    will-change:transform;
+  }
+
+  .reel-item{
+    width:120px;
+    height:120px;
+    margin:0 6px;
+    flex:0 0 auto;
+    border-radius:8px;
+    position:relative;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-top:3px solid var(--rarity, var(--r-milspec));
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-end;
+    padding:6px 6px 8px;
+    overflow:hidden;
+  }
+  .reel-item .img-slot{
+    flex:1;
+    width:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin-bottom:4px;
+  }
+  .reel-item img{max-width:92%; max-height:70px; object-fit:contain;}
+  .reel-item .fallback{
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;
+    color:var(--muted);
+    text-align:center;
+    padding:0 4px;
+  }
+  .reel-item .nm{
+    font-size:9.5px;
+    color:var(--muted);
+    text-align:center;
+    line-height:1.2;
+    max-width:100%;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .reel-item .wp{
+    font-size:10.5px;
+    font-weight:600;
+    text-align:center;
+    max-width:100%;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+
+  .controls{
+    display:flex;
+    gap:12px;
+    align-items:center;
+    margin-top:18px;
+    flex-wrap:wrap;
+  }
+  .open-cost{
+    color:var(--hazard);
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    align-self:center;
+    min-width:120px;
+  }
+  .open-btn{
+    font-family:'Oswald',sans-serif;
+    text-transform:uppercase;
+    letter-spacing:1.5px;
+    font-size:16px;
+    font-weight:600;
+    background:var(--hazard);
+    color:#181000;
+    border:none;
+    padding:14px 28px;
+    border-radius:8px;
+    cursor:pointer;
+    transition:transform .1s ease, box-shadow .1s ease;
+    box-shadow:0 4px 0 #b56b00;
+  }
+  .open-btn:hover:not(:disabled){transform:translateY(-1px);}
+  .open-btn:active:not(:disabled){transform:translateY(3px); box-shadow:0 1px 0 #b56b00;}
+  .open-btn:disabled{opacity:.5; cursor:not-allowed; box-shadow:none;}
+  .fast-toggle{
+    display:inline-flex; align-items:center; gap:9px;
+    color:var(--muted); font-size:12.5px; cursor:pointer; user-select:none;
+    background:var(--panel-2); border:1px solid var(--line); border-radius:999px;
+    padding:8px 14px 8px 10px;
+    transition:border-color .15s ease, color .15s ease, background-color .15s ease;
+  }
+  .fast-toggle:hover{border-color:var(--hazard-dim); color:var(--text);}
+  .fast-toggle input{position:absolute; opacity:0; width:0; height:0;}
+  .toggle-switch{
+    position:relative; width:32px; height:18px; border-radius:20px; flex:none;
+    background:#252b3a; box-shadow:inset 0 0 0 1px var(--line);
+    transition:background-color .2s ease, box-shadow .2s ease;
+  }
+  .toggle-switch::after{
+    content:""; position:absolute; top:2px; left:2px; width:14px; height:14px;
+    border-radius:50%; background:#8892a6;
+    transition:transform .22s cubic-bezier(.34,1.56,.64,1), background-color .2s ease;
+    box-shadow:0 1px 3px rgba(0,0,0,.5);
+  }
+  .fast-toggle input:checked ~ .toggle-switch{background:var(--hazard-dim); box-shadow:inset 0 0 0 1px var(--hazard);}
+  .fast-toggle input:checked ~ .toggle-switch::after{transform:translateX(14px); background:var(--hazard);}
+  .jester-toggle:hover{border-color:#b06fff; color:#d7bbff;}
+  .jester-toggle input:checked ~ .toggle-switch{background:rgba(176,111,255,.18); box-shadow:inset 0 0 0 1px #b06fff;}
+  .jester-toggle input:checked ~ .toggle-switch::after{transform:translateX(14px); background:#b06fff; box-shadow:0 0 8px rgba(176,111,255,.75);}
+  .jester-toggle.active-jester{border-color:#b06fff; color:#d7bbff; background:rgba(176,111,255,.1);}
+  .jester-hint{
+    font-size:11.5px; color:var(--muted); margin-top:8px;
+    font-family:'JetBrains Mono',monospace;
+  }
+  .case-count{
+    display:flex; align-items:center; gap:8px;
+    color:var(--muted); font-size:13px;
+  }
+  .case-count select{
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    color:var(--text);
+    border-radius:6px;
+    padding:6px 8px;
+    font-size:13px;
+    cursor:pointer;
+  }
+
+  /* RESULT OVERLAY */
+  .result-flash{
+    position:fixed; inset:0;
+    background:rgba(5,6,9,.78);
+    display:flex; align-items:center; justify-content:center;
+    z-index:50;
+    opacity:0; pointer-events:none;
+    transition:opacity .25s ease;
+  }
+  .result-flash.show{opacity:1; pointer-events:auto;}
+  .result-card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-top:4px solid var(--rarity, var(--r-milspec));
+    border-radius:14px;
+    padding:28px 34px;
+    text-align:center;
+    width:280px;
+    transform:scale(.85);
+    transition:transform .25s ease;
+  }
+  .result-flash.show .result-card{transform:scale(1);}
+  .result-card .img-slot{height:100px; display:flex; align-items:center; justify-content:center; margin-bottom:10px;}
+  .result-card img{max-height:90px; max-width:100%; object-fit:contain;}
+  .result-card .fallback{color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:12px;}
+  .result-card .wp{font-family:'Oswald',sans-serif; font-size:18px; text-transform:uppercase; letter-spacing:.5px;}
+  .result-card .nm{color:var(--muted); font-size:13px; margin-top:2px;}
+  .result-card .pr{
+    margin-top:14px; font-family:'JetBrains Mono',monospace;
+    font-size:20px; color:var(--hazard); font-weight:700;
+  }
+  .result-card .odds{font-size:11px; color:var(--muted); margin-top:2px;}
+  .result-card .multi-note{font-size:11px; color:var(--hazard); margin-top:4px; font-weight:600;}
+  .result-card .close-btn{
+    margin-top:18px; width:100%;
+    background:var(--panel-2); border:1px solid var(--line); color:var(--text);
+    padding:10px; border-radius:8px; cursor:pointer; font-family:'Inter',sans-serif;
+  }
+  .result-card .close-btn:hover{border-color:var(--hazard); color:var(--hazard);}
+
+  .log{
+    margin-top:24px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    color:var(--muted);
+    max-height:120px;
+    overflow-y:auto;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:10px 14px;
+    background:var(--panel);
+  }
+  .log div{padding:2px 0; border-bottom:1px solid var(--line);}
+  .log div:last-child{border-bottom:none;}
+
+  .contents-title{
+    font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:1.5px; font-size:16px; font-weight:600;
+    text-align:center; margin:30px 0 18px;
+  }
+  .contents-grid{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(150px,1fr)); gap:14px; margin-bottom:10px;
+  }
+  .content-card{
+    position:relative; background:var(--panel); border:1px solid var(--line); border-top:3px solid var(--rarity, var(--r-milspec));
+    border-radius:10px; padding:12px 10px; text-align:center;
+  }
+  .content-card .cc-wear{
+    position:absolute; top:8px; left:8px; font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700;
+    color:var(--muted); background:rgba(0,0,0,.4); padding:2px 5px; border-radius:4px;
+  }
+  .content-card .cc-chance{
+    position:absolute; top:8px; right:8px; font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700;
+    color:var(--text); background:rgba(0,0,0,.4); padding:2px 5px; border-radius:4px;
+  }
+  .content-card .cc-img{height:76px; display:flex; align-items:center; justify-content:center; margin-bottom:8px;}
+  .content-card .cc-img img{max-width:88%; max-height:100%; object-fit:contain;}
+  .content-card .cc-img .fallback{font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--muted);}
+  .content-card .cc-wp{font-weight:600; font-size:12.5px;}
+  .content-card .cc-nm{color:var(--muted); font-size:10.5px; margin-top:1px;}
+  .content-card .cc-pr{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:12.5px; color:var(--hazard); margin-top:6px;}
+
+  footer{
+    text-align:center; color:var(--muted); font-size:11px; margin-top:30px;
+    letter-spacing:.5px;
+  }
+</style>
+</head>
+<body>
+
+<div class="hazard-bar"></div>
+
+<nav class="topnav">
+  <div class="brand"><span class="brand-icon"><img src="casegold_logo.PNG" alt="Casegold" onerror="this.outerHTML='📦';"></span>Case<span class="accent">gold</span></div>
+  <div class="brand-socials">
+    <a href="https://discord.gg/CGmvDMAsnK" title="Discord" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg></a><span title="Instagram"><svg viewBox="0 0 24 24"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.72 3.72 0 01-1.38-.9 3.72 3.72 0 01-.9-1.38c-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.17 8.8 2.16 12 2.16zM12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.3-1.46.72-2.13 1.38C1.35 2.68.93 3.35.63 4.14c-.3.76-.5 1.63-.56 2.91C.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.28.26 2.15.56 2.91.3.79.72 1.46 1.38 2.13.67.67 1.34 1.08 2.13 1.38.76.3 1.63.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.28-.06 2.15-.26 2.91-.56.79-.3 1.46-.72 2.13-1.38.67-.67 1.08-1.34 1.38-2.13.3-.76.5-1.63.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.28-.26-2.15-.56-2.91a5.88 5.88 0 00-1.38-2.13A5.88 5.88 0 0019.86.63c-.76-.3-1.63-.5-2.91-.56C15.67.01 15.26 0 12 0zm0 5.84A6.16 6.16 0 1012 18.16 6.16 6.16 0 0012 5.84zm0 10.16A4 4 0 1112 8a4 4 0 010 8zm6.41-10.4a1.44 1.44 0 11-2.88 0 1.44 1.44 0 012.88 0z"/></svg></span><span title="TikTok"><svg viewBox="0 0 24 24"><path d="M16.6 5.82c-1.12-1.08-1.67-2.64-1.75-4.17H11.9c-.02.04-.02.09-.02.13.02 4.01.01 8.03.01 12.05-.01.4-.22.96-.41 1.29-.58.95-1.65 1.6-2.77 1.61-1.68.15-3.26-1.23-3.5-2.87-.01-.54-.07-1.1.14-1.61.25-.71.73-1.34 1.36-1.75.87-.6 2.03-.69 3.02-.37 0-1.48.06-2.96.04-4.44-2.17-.41-4.49.28-6.15 1.72-1.46 1.24-2.4 3.06-2.58 4.96-.02.49-.01.99.01 1.49.21 2.34 1.63 4.52 3.65 5.71 1.22.72 2.65 1.11 4.08 1.03 2.33-.04 4.6-1.29 5.91-3.21.81-1.15 1.27-2.54 1.35-3.94.03-2.91.01-5.83.02-8.75.52.34 1.05.67 1.62.93 1.31.62 2.76.92 4.2.97V6.34c-1.4-.15-2.85-.63-3.83-1.5-.09-.01-.09-.01 0 0z"/></svg></span>
+  </div>
+  <div class="nav-links">
+    <a class="nav-link active" href="/">Skrzynki</a>
+    <a class="nav-link" href="/darmowe">Darmowe</a>
+    <a class="nav-link" href="/battle">Case Battle</a>
+    <a class="nav-link" href="/upgrade">Upgrader</a>
+    <a class="nav-link" href="/zadania">Zadania</a>
+    <a class="nav-link" href="/equipment">Ekwipunek</a>
+  </div>
+  <div class="nav-right">
+    <button class="daily-btn" id="dailyBonusBtn">🎁 Daily Bonus</button>
+    <div class="wallet-chip">
+      <span class="wc-amount" id="balance">50,00 zł</span>
+    </div>
+    <div class="settings-wrap">
+      <button class="icon-btn" id="settingsBtn">⚙</button>
+      <div class="settings-menu" id="settingsMenu">
+        <button id="inventoryBtn">Ekwipunek</button>
+      </div>
+    </div>
+    <div class="avatar-wrap">
+      <div class="avatar">🙂</div>
+      <span class="lvl-badge">4</span>
+    </div>
+  </div>
+</nav>
+
+<div class="page-body">
+<div class="wrap">
+
+  <div class="page-title">
+    <h1>Casegold</h1>
+    <div class="sub">Wirtualna waluta. Zero realnej wartości. Tylko dla zabawy.</div>
+  </div>
+
+  <div class="case-panel">
+    <div class="case-hero">
+      <div class="case-hero-img" id="caseHeroImg"><div class="fallback">SKRZYNKA</div></div>
+      <div class="case-hero-info">
+        <div class="case-title">
+          <h2>Dirt Case</h2>
+        </div>
+        <div class="nav-links">
+          <a class="back-link" href="/">← Strona główna</a>
+          <a class="back-link" href="/equipment">→ Ekwipunek</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="reels" id="reelsContainer"></div>
+
+    <div class="controls">
+      <button class="open-btn" id="openBtn">Otwórz skrzynkę</button>
+      <div class="open-cost" id="openCost">Koszt: 1,60 zł</div>
+      <label class="case-count">
+        Ilość:
+        <select id="openCount">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+        </select>
+      </label>
+      <label class="fast-toggle">
+        <input type="checkbox" id="fastToggle">
+        <span class="toggle-switch"></span>
+        <span>szybkie otwieranie</span>
+      </label>
+      <label class="fast-toggle jester-toggle">
+        <input type="checkbox" id="jesterToggle">
+        <span class="toggle-switch"></span>
+        <span>🃏 Tryb Jester</span>
+      </label>
+    </div>
+    <div class="jester-hint" id="jesterHint"></div>
+  </div>
+
+
+  <div class="contents-title">Zawartość skrzynki</div>
+  <div class="contents-grid" id="contentsGrid"></div>
+
+  <footer>Symulacja edukacyjna / rozrywkowa — fikcyjna waluta, brak realnych transakcji.</footer>
+</div>
+</div>
+
+<div class="result-flash" id="resultFlash">
+  <div class="result-card" id="resultCard">
+    <div class="img-slot" id="resultImgSlot"></div>
+    <div class="wp" id="resultWeapon"></div>
+    <div class="nm" id="resultSkin"></div>
+    <div class="pr" id="resultPrice"></div>
+    <div class="odds" id="resultOdds"></div>
+    <div class="multi-note" id="resultMultiNote"></div>
+    <button type="button" class="close-btn" id="resultClose">Zamknij</button>
+  </div>
+</div>
+
+<script src="skin-images.js"></script>
+<script src="sound.js"></script>
+<script src="rarity-data.js"></script>
+<script src="jester-mode.js"></script>
+<script src="nav-i18n.js"></script>
+<script>
+const ITEMS = [
+  {weapon:"MP5-SD", skin:"Co-Processor", wear:"MW", price:0.92, start:1, end:26015, chance:26.015},
+  {weapon:"P90", skin:"Facility Negative", wear:"MW", price:1.40, start:26016, end:39655, chance:13.640},
+  {weapon:"USP-S", skin:"Check Engine", wear:"FT", price:1.32, start:39656, end:46616, chance:6.961},
+  {weapon:"Tec-9", skin:"Fubar", wear:"FT", price:1.20, start:46617, end:53351, chance:6.735},
+  {weapon:"Desert Eagle", skin:"Urban Rubble", wear:"FT", price:1.84, start:53352, end:58138, chance:4.787},
+  {weapon:"G3SG1", skin:"Orange Crash", wear:"FT", price:1.64, start:58139, end:62625, chance:4.487},
+  {weapon:"MAC-10", skin:"Classic Crate", wear:"FT", price:1.60, start:62626, end:66965, chance:4.340},
+  {weapon:"Glock-18", skin:"Off World", wear:"FT", price:1.24, start:66966, end:71001, chance:4.036},
+  {weapon:"Five-SeveN", skin:"Capillary", wear:"FT", price:1.64, start:71002, end:75036, chance:4.035},
+  {weapon:"P250", skin:"Valence", wear:"FT", price:1.68, start:75037, end:78974, chance:3.938},
+  {weapon:"P90", skin:"Grim", wear:"FT", price:1.12, start:78975, end:82483, chance:3.509},
+  {weapon:"FAMAS", skin:"Survivor Z", wear:"FT", price:1.56, start:82484, end:85672, chance:3.189},
+  {weapon:"PP-Bizon", skin:"Jungle Slipstream", wear:"FT", price:1.96, start:85673, end:88415, chance:2.743},
+  {weapon:"AUG", skin:"Triqua", wear:"FT", price:1.16, start:88416, end:90930, chance:2.515},
+  {weapon:"UMP-45", skin:"Briefing", wear:"MW", price:2.32, start:90931, end:92846, chance:1.916},
+  {weapon:"MP7", skin:"Akoben", wear:"FT", price:1.88, start:92847, end:93945, chance:1.099},
+  {weapon:"SCAR-20", skin:"Blueprint", wear:"MW", price:1.88, start:93946, end:94964, chance:1.019},
+  {weapon:"SSG 08", skin:"Abyss", wear:"FT", price:1.72, start:94965, end:95929, chance:0.965},
+  {weapon:"Desert Eagle", skin:"Oxide Blaze", wear:"FT", price:1.72, start:95930, end:96821, chance:0.892},
+  {weapon:"Five-SeveN", skin:"Scumbria", wear:"BS", price:2.92, start:96822, end:97671, chance:0.850},
+  {weapon:"P2000", skin:"Oceanic", wear:"FT", price:3.16, start:97672, end:98299, chance:0.628},
+  {weapon:"G3SG1", skin:"Orange Crash", wear:"FN", price:2.20, start:98300, end:98607, chance:0.308},
+  {weapon:"Glock-18", skin:"Catacombs", wear:"FT", price:2.36, start:98608, end:98886, chance:0.279},
+  {weapon:"Desert Eagle", skin:"Urban Rubble", wear:"WW", price:2.64, start:98887, end:99156, chance:0.270},
+  {weapon:"R8 Revolver", skin:"Crimson Web", wear:"BS", price:3.84, start:99157, end:99401, chance:0.245},
+  {weapon:"Tec-9", skin:"Ice Cap", wear:"MW", price:2.84, start:99402, end:99637, chance:0.236},
+  {weapon:"Glock-18", skin:"Warhawk", wear:"MW", price:2.72, start:99638, end:99863, chance:0.226},
+  {weapon:"UMP-45", skin:"Labyrinth", wear:"FT", price:1.28, start:99864, end:99919, chance:0.056},
+  {weapon:"Glock-18", skin:"Bunsen Burner", wear:"FT", price:4.32, start:99920, end:99944, chance:0.025},
+  {weapon:"SG 553", skin:"Aerial", wear:"WW", price:1.84, start:99945, end:99956, chance:0.012},
+  {weapon:"MP7", skin:"Urban Hazard", wear:"FN", price:2.32, start:99957, end:99965, chance:0.009},
+  {weapon:"M249", skin:"System Lock", wear:"WW", price:2.20, start:99966, end:99971, chance:0.006},
+  {weapon:"MP7", skin:"Cirrus", wear:"FT", price:3.20, start:99972, end:99975, chance:0.004},
+  {weapon:"USP-S", skin:"Torque", wear:"FT", price:3.20, start:99976, end:99977, chance:0.002},
+  {weapon:"Tec-9", skin:"Jambiya", wear:"FT", price:3.28, start:99978, end:99979, chance:0.002},
+  {weapon:"Galil AR", skin:"Rocket Pop", wear:"FT", price:5.00, start:99980, end:99980, chance:0.001},
+  {weapon:"Desert Eagle", skin:"Oxide Blaze", wear:"FT", price:5.04, start:99981, end:99981, chance:0.001},
+  {weapon:"AK-47", skin:"Elite Build", wear:"WW", price:6.40, start:99982, end:99982, chance:0.001},
+  {weapon:"SSG 08", skin:"Slashed", wear:"WW", price:7.36, start:99983, end:99983, chance:0.001},
+  {weapon:"P90", skin:"Elite Build", wear:"FT", price:7.76, start:99984, end:99984, chance:0.001},
+  {weapon:"AK-47", skin:"Elite Build", wear:"FT", price:8.48, start:99985, end:99985, chance:0.001},
+  {weapon:"FAMAS", skin:"Hexane", wear:"FT", price:8.52, start:99986, end:99986, chance:0.001},
+  {weapon:"Five-SeveN", skin:"Urban Hazard", wear:"MW", price:10.84, start:99987, end:99987, chance:0.001},
+  {weapon:"MAC-10", skin:"Ultraviolet", wear:"FT", price:11.48, start:99988, end:99988, chance:0.001},
+  {weapon:"Tec-9", skin:"Sandstorm", wear:"MW", price:14.64, start:99989, end:99989, chance:0.001},
+  {weapon:"M4A1-S", skin:"Briefing", wear:"FT", price:19.00, start:99990, end:99990, chance:0.001},
+  {weapon:"M4A1-S", skin:"Blood Tiger", wear:"MW", price:23.52, start:99991, end:99991, chance:0.001},
+  {weapon:"CZ75-Auto", skin:"Hexane", wear:"FN", price:24.56, start:99992, end:99992, chance:0.001},
+  {weapon:"Tec-9", skin:"Isaac", wear:"MW", price:24.72, start:99993, end:99993, chance:0.001},
+  {weapon:"MAC-10", skin:"Amber Fade", wear:"MW", price:76.32, start:99994, end:99994, chance:0.001},
+  {weapon:"Tec-9", skin:"Toxic", wear:"FT", price:126.84, start:99995, end:99995, chance:0.001},
+  {weapon:"MP9", skin:"Setting Sun", wear:"FT", price:177.08, start:99996, end:99996, chance:0.001},
+  {weapon:"Five-SeveN", skin:"Crimson Blossom", wear:"MW", price:433.52, start:99997, end:99997, chance:0.001},
+  {weapon:"MAC-10", skin:"Fade", wear:"FN", price:556.28, start:99998, end:99998, chance:0.001},
+  {weapon:"MAG-7", skin:"Counter Terrace", wear:"MW", price:811.72, start:99999, end:99999, chance:0.001},
+  {weapon:"Galil AR", skin:"Aqua Terrace", wear:"FT", price:842.52, start:100000, end:100000, chance:0.001},
+];
+
+/* Wklej link do obrazka skrzynki tutaj (widoczny w nagłówku panelu otwierania) */
+const CASE_NAME = "Dirt Case";
+const CASE_IMAGE = getCaseImage(CASE_NAME);
+
+const CASE_PRICE = 1.60;
+const JESTER_PRICE = computeJesterPrice(ITEMS, CASE_PRICE);
+let jesterMode = false;
+function currentCasePrice(){ return jesterMode ? JESTER_PRICE : CASE_PRICE; }
+const START_BALANCE = 50.00;
+const STORAGE_KEY = "cs2sim_state_v1";
+const DAILY_BONUS_KEY = "cs2sim_daily_bonus_at";
+const DAILY_BONUS_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
+function rarityColor(it){
+  const known = getSkinRarityColor(it.weapon, it.skin);
+  if(known) return known;
+  const price = it.price;
+  if(price < 2) return "var(--r-milspec)";
+  if(price < 4) return "var(--r-restricted)";
+  if(price < 10) return "var(--r-classified)";
+  if(price < 100) return "var(--r-covert)";
+  return "var(--r-gold)";
+}
+
+function fmt(n){
+  return n.toLocaleString("pl-PL", {minimumFractionDigits:2, maximumFractionDigits:2}) + " zł";
+}
+
+function rollItem(){
+  if(jesterMode) return rollItemUniform(ITEMS);
+  const roll = Math.floor(Math.random()*100000) + 1; // 1..100000
+  return ITEMS.find(it => roll >= it.start && roll <= it.end) || ITEMS[0];
+}
+
+/* ---------------- state (persisted in localStorage, shared with index.html) ---------------- */
+function loadState(){
+  if(!(window.__STEAM_AUTH__ && window.__STEAM_AUTH__.loggedIn)) return {balance: 0, inventory: [], invCounter: 0, level: 0, xp: 0};
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return {balance: START_BALANCE, inventory: [], invCounter: 0, level: 0, xp: 0};
+    const parsed = JSON.parse(raw);
+    return {
+      balance: typeof parsed.balance === "number" ? parsed.balance : START_BALANCE,
+      inventory: Array.isArray(parsed.inventory) ? parsed.inventory : [],
+      invCounter: typeof parsed.invCounter === "number" ? parsed.invCounter : 0,
+      level: typeof parsed.level === "number" ? parsed.level : 0,
+      xp: typeof parsed.xp === "number" ? parsed.xp : 0
+    };
+  }catch(e){
+    return {balance: START_BALANCE, inventory: [], invCounter: 0, level: 0, xp: 0};
+  }
+}
+function saveState(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({balance, inventory, invCounter, level, xp, ...window.SteamAuth.readPersistentExtras()}));
+    window.SteamAuth.schedulePush();
+  }catch(e){}
+}
+
+const initial = loadState();
+let balance = initial.balance;
+let inventory = initial.inventory;
+let spinning = false;
+let invCounter = initial.invCounter;
+let xp = initial.xp;
+// effectiveLevel(xp), nie surowe initial.level - patrz darmowe.html po wyjaśnienie.
+let level = window.SteamAuth.effectiveLevel(xp);
+let pendingResults = null;
+
+const balanceEl = document.getElementById("balance");
+const openBtn = document.getElementById("openBtn");
+const reelsContainer = document.getElementById("reelsContainer");
+const logEl = document.getElementById("log");
+const fastToggle = document.getElementById("fastToggle");
+const openCount = document.getElementById("openCount");
+const openCostEl = document.getElementById("openCost");
+
+document.querySelector(".case-hero-info h2").textContent = CASE_NAME;
+(function(){
+  // compute and display expected value and profit % for the case
+  function computeExpectedValue(){
+    if(jesterMode){
+      // uniform distribution: EV is just the plain average price
+      return ITEMS.reduce((s, it) => s + it.price, 0) / ITEMS.length;
+    }
+    return ITEMS.reduce((sum, it) => {
+      const chance = typeof it.chance === 'number' ? it.chance/100 : 0;
+      const price = typeof it.price === 'number' ? it.price : 0;
+      return sum + price * chance;
+    }, 0);
+  }
+
+  function updateExpected(){
+    const cost = currentCasePrice();
+    const ev = computeExpectedValue();
+    const pct = cost ? (ev - cost) / cost * 100 : 0;
+    const evEl = document.getElementById('expectedValue');
+    const pctEl = document.getElementById('expectedPct');
+    const profitEl = document.getElementById('profitChance');
+    if(evEl) evEl.textContent = fmt(ev);
+    if(pctEl){
+      pctEl.textContent = `${pct>=0?'+':''}${pct.toFixed(2)}%`;
+      pctEl.style.color = pct >= 0 ? 'var(--good)' : 'var(--bad)';
+    }
+    if(profitEl){
+      let profitChance;
+      if(jesterMode){
+        profitChance = ITEMS.filter(it => typeof it.price === 'number' && it.price > cost).length * jesterChancePercent(ITEMS);
+      } else {
+        profitChance = ITEMS.reduce((s, it) => (typeof it.price === 'number' && it.price > cost) ? s + (typeof it.chance === 'number' ? it.chance : 0) : s, 0);
+      }
+      profitEl.textContent = `${profitChance.toFixed(2)}%`;
+      profitEl.style.color = profitChance > 0 ? 'var(--good)' : 'var(--muted)';
+    }
+    const hintEl = document.getElementById("jesterHint");
+    if(hintEl){
+      hintEl.textContent = jesterMode
+        ? `Tryb Jester aktywny: każdy z ${ITEMS.length} przedmiotów ma ${jesterChancePercent(ITEMS).toFixed(3)}% szans.`
+        : `Tryb Jester: równe szanse (${jesterChancePercent(ITEMS).toFixed(3)}% na przedmiot), cena ${fmt(JESTER_PRICE)}.`;
+    }
+  }
+
+  // expose for debugging if needed
+  window.computeExpectedValue = computeExpectedValue;
+  window.updateExpected = updateExpected;
+  updateExpected();
+})();
+(function(){
+  const slot = document.getElementById("caseHeroImg");
+  if(CASE_IMAGE){
+    const img = document.createElement("img");
+    img.src = CASE_IMAGE;
+    img.alt = CASE_NAME;
+    img.onerror = () => { slot.innerHTML = `<div class="fallback">SKRZYNKA</div>`; };
+    slot.innerHTML = "";
+    slot.appendChild(img);
+  }
+})();
+
+function renderBalance(){
+  const count = Number(openCount.value);
+  const totalCost = currentCasePrice() * count;
+  balanceEl.textContent = fmt(balance);
+  balanceEl.classList.toggle("low", balance < totalCost);
+  openBtn.disabled = balance < totalCost || spinning;
+  saveState();
+}
+
+function updateOpenButtonText(){
+  const count = Number(openCount.value);
+  openBtn.textContent = count === 1 ? "Otwórz skrzynkę" : `Otwórz ${count} skrzynki`;
+}
+
+function updateOpenCost(){
+  const count = Number(openCount.value);
+  openCostEl.textContent = `Koszt: ${fmt(currentCasePrice() * count)}`;
+}
+
+const jesterToggle = document.getElementById("jesterToggle");
+jesterToggle.onchange = () => {
+  jesterMode = jesterToggle.checked;
+  jesterToggle.closest(".jester-toggle").classList.toggle("active-jester", jesterMode);
+  window.updateExpected();
+  updateOpenCost();
+  renderBalance();
+  updateContentsChances();
+};
+
+openCount.onchange = () => {
+  updateOpenButtonText();
+  updateOpenCost();
+  renderBalance();
+};
+
+updateOpenButtonText();
+updateOpenCost();
+
+function itemNode(it, cls){
+  const div = document.createElement("div");
+  div.className = cls;
+  div.style.setProperty("--rarity", rarityColor(it));
+
+  const slot = document.createElement("div");
+  slot.className = "img-slot";
+  const itImg = getSkinImage(it);
+  if(itImg){
+    const img = document.createElement("img");
+    img.src = itImg;
+    img.alt = it.weapon + " " + it.skin;
+    img.onerror = () => { slot.innerHTML = `<div class="fallback">${it.weapon}</div>`; };
+    slot.appendChild(img);
+  } else {
+    slot.innerHTML = `<div class="fallback">${it.weapon}</div>`;
+  }
+  div.appendChild(slot);
+
+  const wp = document.createElement("div");
+  wp.className = "wp";
+  wp.textContent = it.weapon;
+  div.appendChild(wp);
+
+  const nm = document.createElement("div");
+  nm.className = "nm";
+  nm.textContent = `${it.skin} (${it.wear})`;
+  div.appendChild(nm);
+
+  return div;
+}
+
+function log(msg){}
+
+function addToInventory(it){
+  invCounter++;
+  inventory.push({...it, _id: invCounter});
+  window.SteamAuth.recordPull(it);
+  window.SteamAuth.recordCasesOpened(1);
+}
+
+function commitResults(){
+  console.log('commitResults called', !!pendingResults);
+  if(!pendingResults){
+    document.getElementById("resultFlash").classList.remove("show");
+    spinning = false;
+    renderBalance();
+    return;
+  }
+  pendingResults.forEach(it => {
+    addToInventory(it);
+    log(`Otwarto skrzynkę → ${it.weapon} | ${it.skin} (${it.wear}) — ${fmt(it.price)}`);
+  });
+  pendingResults = null;
+  spinning = false;
+  renderBalance();
+  document.getElementById("resultFlash").classList.remove("show");
+}
+
+document.getElementById("inventoryBtn").onclick = () => { window.location.href = "/equipment"; };
+
+/* ---- shared top-nav widgets: settings dropdown + daily bonus (24h cooldown) ---- */
+document.querySelectorAll("[data-soon]").forEach(el => {
+  el.addEventListener("click", () => log("Wkrótce dostępne!"));
+});
+const settingsBtn = document.getElementById("settingsBtn");
+const settingsMenu = document.getElementById("settingsMenu");
+settingsBtn.onclick = (e) => { e.stopPropagation(); settingsMenu.classList.toggle("open"); };
+document.addEventListener("click", () => settingsMenu.classList.remove("open"));
+function fmtCountdown(ms){
+  const total = Math.max(0, Math.ceil(ms / 1000));
+  const h = String(Math.floor(total / 3600)).padStart(2,"0");
+  const m = String(Math.floor((total % 3600) / 60)).padStart(2,"0");
+  const s = String(total % 60).padStart(2,"0");
+  return `${h}:${m}:${s}`;
+}
+function renderDailyBonusBtn(){
+  const btn = document.getElementById("dailyBonusBtn");
+  if(!(window.__STEAM_AUTH__ && window.__STEAM_AUTH__.loggedIn)){ btn.disabled = false; btn.textContent = "🎁 Daily Bonus"; return; }
+  const left = DAILY_BONUS_COOLDOWN_MS - (Date.now() - Number(localStorage.getItem(DAILY_BONUS_KEY) || 0));
+  if(left > 0){ btn.disabled = true; btn.textContent = `🎁 ${fmtCountdown(left)}`; }
+  else { btn.disabled = false; btn.textContent = "🎁 Daily Bonus"; }
+}
+document.getElementById("dailyBonusBtn").onclick = () => {
+  if(!window.SteamAuth.requireLogin()) return;
+  const now = Date.now();
+  if(now - Number(localStorage.getItem(DAILY_BONUS_KEY) || 0) < DAILY_BONUS_COOLDOWN_MS) return;
+  window.SteamAuth.openDailyBonusModal((reward) => {
+    balance += reward;
+    renderBalance();
+    renderDailyBonusBtn();
+    log(`Daily Bonus: +${fmt(reward)}!`);
+  });
+};
+setInterval(renderDailyBonusBtn, 1000);
+renderDailyBonusBtn();
+
+/* ---------------- reel build & spin ---------------- */
+const ITEM_W = 132; // width + margins of .reel-item
+
+function buildReel(winner){
+  const outer = document.createElement("div");
+  outer.className = "reel-outer";
+
+  const pointer = document.createElement("div");
+  pointer.className = "pointer";
+  outer.appendChild(pointer);
+
+  const track = document.createElement("div");
+  track.className = "reel-track";
+  outer.appendChild(track);
+
+  track.style.transition = "none";
+  track.style.transform = "translateX(0px)";
+
+  const REEL_LENGTH = 60; // number of random items before the winner
+  const winnerIndex = REEL_LENGTH; // winner is appended right after them, at this index
+
+  for(let i=0; i<REEL_LENGTH; i++){
+    const randomItem = ITEMS[Math.floor(Math.random()*ITEMS.length)];
+    track.appendChild(itemNode(randomItem, "reel-item"));
+  }
+  track.appendChild(itemNode(winner, "reel-item")); // winner at winnerIndex
+  for(let i=0; i<8; i++){
+    const randomItem = ITEMS[Math.floor(Math.random()*ITEMS.length)];
+    track.appendChild(itemNode(randomItem, "reel-item"));
+  }
+
+  reelsContainer.appendChild(outer);
+  return {track, winnerIndex};
+}
+
+function spinTo(track, winnerIndex, fast){
+  const outer = track.parentElement;
+  const outerWidth = outer.clientWidth;
+  // small random offset within the item so it doesn't always land dead-center
+  const jitter = (Math.random() - 0.5) * (ITEM_W * 0.25);
+  const targetX = -(winnerIndex * ITEM_W + ITEM_W/2 - outerWidth/2) + jitter;
+
+  requestAnimationFrame(() => {
+    track.style.transition = fast
+      ? "transform 0.6s cubic-bezier(.12,.85,.15,1)"
+      : "transform 5.2s cubic-bezier(.08,.82,.1,1)";
+    track.style.transform = `translateX(${targetX}px)`;
+  });
+}
+
+function flashResult(it, count){
+  const flash = document.getElementById("resultFlash");
+  const card = document.getElementById("resultCard");
+  card.style.setProperty("--rarity", rarityColor(it));
+
+  const slot = document.getElementById("resultImgSlot");
+  slot.innerHTML = "";
+  const itImg = getSkinImage(it);
+  if(itImg){
+    const img = document.createElement("img");
+    img.src = itImg;
+    img.onerror = () => { slot.innerHTML = `<div class="fallback">${it.weapon}</div>`; };
+    slot.appendChild(img);
+  } else {
+    slot.innerHTML = `<div class="fallback">${it.weapon}</div>`;
+  }
+
+  document.getElementById("resultWeapon").textContent = it.weapon;
+  document.getElementById("resultSkin").textContent = `${it.skin} (${it.wear})`;
+  document.getElementById("resultPrice").textContent = fmt(it.price);
+  document.getElementById("resultOdds").textContent = `Szansa: ${jesterMode ? jesterChancePercent(ITEMS).toFixed(3) : it.chance}%`;
+
+  const multiNote = document.getElementById("resultMultiNote");
+  if(count > 1){
+    multiNote.textContent = "Najdroższy skin z wypadniętych";
+    multiNote.style.display = "block";
+  } else {
+    multiNote.style.display = "none";
+  }
+  flash.classList.add("show");
+}
+
+document.getElementById("resultClose").onclick = () => { console.log('resultClose clicked'); commitResults(); };
+
+openBtn.onclick = () => {
+  if(!window.SteamAuth.requireLogin()) return;
+  const count = Number(openCount.value);
+  const totalCost = currentCasePrice() * count;
+  if(spinning || balance < totalCost) return;
+  spinning = true;
+  openBtn.disabled = true;
+
+  balance -= totalCost;
+  window.SteamAuth.recordCaseSpend(totalCost);
+  xp += totalCost * window.SteamAuth.xpPerZl;
+  level = window.SteamAuth.effectiveLevel(xp);
+  renderBalance();
+  window.SteamAuth.refreshLevelBadge();
+
+  reelsContainer.innerHTML = "";
+  const results = Array.from({length: count}, () => rollItem());
+  const fast = fastToggle.checked;
+  const duration = fast ? 650 : 5300;
+
+  const reelData = results.map(winner => buildReel(winner));
+  reelData.forEach(({track, winnerIndex}) => spinTo(track, winnerIndex, fast));
+  playSpinSound(duration);
+
+  pendingResults = results;
+  setTimeout(() => {
+    const best = results.reduce((top, item) => item.price > top.price ? item : top, results[0]);
+    playWinSound();
+    flashResult(best, count);
+    if(count > 1){
+      log(`Otwarto ${count} skrzynki za ${fmt(totalCost)}`);
+    }
+  }, duration);
+};
+
+/* ---------------- "Zawartość skrzynki" grid ---------------- */
+const contentsGrid = document.getElementById("contentsGrid");
+const contentsSorted = ITEMS.slice().sort((a,b) => b.price - a.price);
+contentsSorted.forEach(it => {
+  const card = document.createElement("div");
+  card.className = "content-card";
+  card.style.setProperty("--rarity", rarityColor(it));
+  const img = getSkinImage(it);
+  card.innerHTML = `
+    <span class="cc-wear">${it.wear}</span>
+    <span class="cc-chance">${it.chance}%</span>
+    <div class="cc-img">${img ? `<img src="${img}" alt="${it.weapon}" onerror="this.parentElement.innerHTML='<div class=&quot;fallback&quot;>${it.weapon}</div>'">` : `<div class="fallback">${it.weapon}</div>`}</div>
+    <div class="cc-wp">${it.weapon}</div>
+    <div class="cc-nm">${it.skin}</div>
+    <div class="cc-pr">${fmt(it.price)}</div>
+  `;
+  contentsGrid.appendChild(card);
+});
+function updateContentsChances(){
+  const chanceEls = contentsGrid.querySelectorAll(".cc-chance");
+  contentsSorted.forEach((it, i) => {
+    chanceEls[i].textContent = jesterMode ? `${jesterChancePercent(ITEMS).toFixed(3)}%` : `${it.chance}%`;
+  });
+}
+
+/* init */
+renderBalance();
+log("Symulacja gotowa. Powodzenia.");
+</script>
+</body>
+</html>

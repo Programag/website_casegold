@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel admina // Casegold</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+  :root{
+    --bg:#0b0d12;
+    --panel:#141821;
+    --panel-2:#1b202b;
+    --line:#262c3a;
+    --text:#e9ecf3;
+    --muted:#7d879b;
+    --hazard:#ff9500;
+    --hazard-dim:#3a2712;
+    --good:#3ddc84;
+    --bad:#ff5a5a;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg); color:var(--text); font-family:'Inter',Arial,sans-serif;
+    min-height:100vh;
+  }
+  .wrap{max-width:980px; margin:0 auto; padding:32px 20px 60px;}
+  h1{font-size:22px; text-transform:uppercase; letter-spacing:1px; margin:0 0 6px;}
+  .sub{color:var(--muted); font-size:13px; margin:0 0 28px;}
+  .state-box{
+    background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:24px; text-align:center; color:var(--muted); font-size:14px;
+  }
+  .state-box a{color:var(--hazard);}
+  table{width:100%; border-collapse:collapse; background:var(--panel); border:1px solid var(--line); border-radius:12px; overflow:hidden;}
+  thead th{
+    text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--muted);
+    padding:12px 14px; border-bottom:1px solid var(--line); background:var(--panel-2);
+  }
+  tbody td{padding:10px 14px; border-bottom:1px solid var(--line); font-size:13.5px; vertical-align:middle;}
+  tbody tr:last-child td{border-bottom:none;}
+  .player-cell{display:flex; align-items:center; gap:10px;}
+  .player-cell img{width:32px; height:32px; border-radius:50%; background:var(--panel-2);}
+  .player-name{font-weight:600;}
+  .player-id{color:var(--muted); font-size:11px; font-family:'JetBrains Mono',monospace;}
+  input.edit-num{
+    width:90px; background:var(--panel-2); border:1px solid var(--line); border-radius:7px;
+    color:var(--text); padding:6px 8px; font-family:'JetBrains Mono',monospace; font-size:13px;
+  }
+  input.edit-num:focus{outline:none; border-color:var(--hazard);}
+  input.edit-text{
+    width:150px; background:var(--panel-2); border:1px solid var(--line); border-radius:7px;
+    color:var(--text); padding:6px 8px; font-family:'JetBrains Mono',monospace; font-size:12px;
+  }
+  input.edit-text:focus{outline:none; border-color:var(--hazard);}
+  .save-btn{
+    background:var(--hazard); color:#181000; border:none; border-radius:7px; padding:7px 14px;
+    font-weight:700; font-size:12.5px; cursor:pointer;
+  }
+  .save-btn:hover{opacity:.9;}
+  .save-btn:disabled{opacity:.5; cursor:not-allowed;}
+  .reset-quests-btn{
+    background:var(--panel-2); color:var(--bad); border:1px solid var(--bad); border-radius:7px; padding:7px 14px;
+    font-weight:700; font-size:12.5px; cursor:pointer; margin-left:6px;
+  }
+  .reset-quests-btn:hover{background:var(--bad); color:#1a0505;}
+  .reset-quests-btn:disabled{opacity:.5; cursor:not-allowed;}
+  .row-status{font-size:11px; color:var(--good); margin-left:8px;}
+  .boost-btn{
+    background:var(--panel-2); color:var(--muted); border:1px solid var(--line); border-radius:7px; padding:7px 12px;
+    font-weight:700; font-size:12.5px; cursor:pointer; white-space:nowrap;
+  }
+  .boost-btn:hover{opacity:.9;}
+  .boost-btn:disabled{opacity:.5; cursor:not-allowed;}
+  .boost-btn.active{background:var(--hazard); color:#181000; border-color:var(--hazard);}
+  .empty{padding:30px; text-align:center; color:var(--muted);}
+  .maintenance-panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:16px 20px; margin-bottom:20px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  }
+  .clear-daily-top-btn{
+    background:var(--panel-2); color:var(--bad); border:1px solid var(--bad); border-radius:7px; padding:9px 16px;
+    font-weight:700; font-size:12.5px; cursor:pointer;
+  }
+  .clear-daily-top-btn:hover{background:var(--bad); color:#1a0505;}
+  .clear-daily-top-btn:disabled{opacity:.5; cursor:not-allowed;}
+  .maintenance-status{font-size:11.5px; color:var(--muted);}
+  .top-row{display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:10px;}
+  .back-link{color:var(--muted); text-decoration:none; font-size:13px;}
+  .back-link:hover{color:var(--hazard);}
+
+  /* ---------------- mobile: table -> stacked cards ---------------- */
+  @media (max-width:700px){
+    .wrap{padding:20px 12px 50px;}
+    table{display:block; border:none; background:none; border-radius:0;}
+    thead{display:none;}
+    tbody{display:block;}
+    tbody tr{
+      display:block; background:var(--panel); border:1px solid var(--line); border-radius:12px;
+      padding:14px; margin-bottom:12px;
+    }
+    tbody tr:last-child{margin-bottom:0;}
+    tbody td{display:block; border-bottom:1px solid var(--line); padding:10px 0;}
+    tbody td:first-child{padding-top:0;}
+    tbody td:last-child{border-bottom:none; padding-bottom:0;}
+    tbody td:not(:first-child):not(:last-child){
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+    }
+    tbody td:not(:first-child):not(:last-child)::before{
+      content:attr(data-label); color:var(--muted); font-size:11px;
+      text-transform:uppercase; letter-spacing:.5px; flex:none;
+    }
+    input.edit-num{width:130px;}
+    input.edit-text{width:150px; max-width:60%;}
+    td:last-child{display:flex; flex-wrap:wrap; align-items:center; gap:8px;}
+    .save-btn, .reset-quests-btn{margin-left:0; flex:1 1 auto; text-align:center;}
+    .row-status{margin-left:0; flex-basis:100%;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top-row">
+    <div>
+      <h1>🛠 Panel admina</h1>
+      <p class="sub">Podgląd i ręczna edycja salda / poziomu graczy.</p>
+    </div>
+    <a class="back-link" href="/">‹ Wróć do strony</a>
+  </div>
+  <div id="content">
+    <div class="state-box">Sprawdzam dostęp…</div>
+  </div>
+</div>
+
+<script>
+function fmt(n){
+  return Number(n).toLocaleString("pl-PL", {minimumFractionDigits:2, maximumFractionDigits:2}) + " zł";
+}
+
+async function loadMe(){
+  const res = await fetch("/api/me", { credentials: "same-origin" });
+  return res.json();
+}
+
+async function loadUsers(){
+  const res = await fetch("/api/admin/users", { credentials: "same-origin" });
+  if(!res.ok) return null;
+  return res.json();
+}
+
+function userRow(u){
+  const tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td>
+      <div class="player-cell">
+        <img src="${u.avatar || ''}" alt="">
+        <div>
+          <div class="player-name">${u.displayName || "?"}</div>
+          <div class="player-id">${u.steamid}</div>
+        </div>
+      </div>
+    </td>
+    <td data-label="Saldo"><input class="edit-num" data-field="balance" type="number" step="0.01" value="${Number(u.balance || 0).toFixed(2)}"></td>
+    <td data-label="Poziom"><input class="edit-num" data-field="level" type="number" step="1" value="${Number(u.level || 0)}"></td>
+    <td data-label="EXP"><input class="edit-num" data-field="xp" type="number" step="1" value="${Number(u.xp || 0)}"></td>
+    <td data-label="Przedmioty">${u.invCount ?? 0}</td>
+    <td data-label="Nagrody (poziomy)"><input class="edit-text" data-field="claimedLevelRewards" type="text" placeholder="np. 1,2,3" value="${(Array.isArray(u.claimedLevelRewards) ? u.claimedLevelRewards : []).join(',')}"></td>
+    <td data-label="Podkręcony drop">
+      <button class="boost-btn${u.boostedDrop ? ' active' : ''}">${u.boostedDrop ? '🔥 Włączony' : '🔥 Podkręcony drop'}</button>
+    </td>
+    <td>
+      <button class="save-btn">Zapisz</button>
+      <button class="reset-quests-btn">Resetuj zadania</button>
+      <span class="row-status"></span>
+    </td>
+  `;
+  const btn = tr.querySelector(".save-btn");
+  const resetBtn = tr.querySelector(".reset-quests-btn");
+  const boostBtn = tr.querySelector(".boost-btn");
+  const status = tr.querySelector(".row-status");
+  boostBtn.onclick = async () => {
+    const next = !boostBtn.classList.contains("active");
+    boostBtn.disabled = true;
+    status.textContent = "";
+    try{
+      const res = await fetch(`/api/admin/users/${encodeURIComponent(u.steamid)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ boostedDrop: next })
+      });
+      if(res.ok){
+        u.boostedDrop = next;
+        boostBtn.classList.toggle("active", next);
+        boostBtn.textContent = next ? "🔥 Włączony" : "🔥 Podkręcony drop";
+        status.textContent = next ? "Podkręcono ✓" : "Wyłączono ✓";
+        status.style.color = "var(--good)";
+      } else {
+        status.textContent = "Błąd"; status.style.color = "var(--bad)";
+      }
+    }catch(e){
+      status.textContent = "Błąd sieci"; status.style.color = "var(--bad)";
+    }
+    boostBtn.disabled = false;
+    setTimeout(() => { status.textContent = ""; }, 2500);
+  };
+  btn.onclick = async () => {
+    btn.disabled = true;
+    status.textContent = "";
+    const payload = {};
+    tr.querySelectorAll("input.edit-num").forEach(inp => {
+      payload[inp.dataset.field] = Number(inp.value);
+    });
+    const claimedInp = tr.querySelector('input[data-field="claimedLevelRewards"]');
+    if(claimedInp){
+      payload.claimedLevelRewards = claimedInp.value.split(",").map(s => s.trim()).filter(s => s !== "").map(Number).filter(n => Number.isFinite(n));
+    }
+    try{
+      const res = await fetch(`/api/admin/users/${encodeURIComponent(u.steamid)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify(payload)
+      });
+      if(res.ok){ status.textContent = "Zapisano ✓"; }
+      else { status.textContent = "Błąd"; status.style.color = "var(--bad)"; }
+    }catch(e){
+      status.textContent = "Błąd sieci";
+      status.style.color = "var(--bad)";
+    }
+    btn.disabled = false;
+    setTimeout(() => { status.textContent = ""; }, 2500);
+  };
+  resetBtn.onclick = async () => {
+    if(!confirm(`Zresetować WSZYSTKIE zadania dla ${u.displayName || u.steamid}? To kasuje odebrane poziomy ORAZ postęp w ich licznikach (otwarte skrzynki, wydane kwoty, bitwy...) - gracz zaczyna zdobywać je całkowicie od nowa. Już wypłacone saldo z wcześniej odebranych nagród NIE jest cofane.`)) return;
+    resetBtn.disabled = true;
+    status.textContent = "";
+    try{
+      const res = await fetch(`/api/admin/users/${encodeURIComponent(u.steamid)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ resetQuests: true })
+      });
+      if(res.ok){ status.textContent = "Zadania zresetowane ✓"; status.style.color = "var(--good)"; }
+      else { status.textContent = "Błąd"; status.style.color = "var(--bad)"; }
+    }catch(e){
+      status.textContent = "Błąd sieci";
+      status.style.color = "var(--bad)";
+    }
+    resetBtn.disabled = false;
+    setTimeout(() => { status.textContent = ""; }, 2500);
+  };
+  return tr;
+}
+
+async function init(){
+  const content = document.getElementById("content");
+  const me = await loadMe();
+  if(!me.loggedIn){
+    content.innerHTML = `<div class="state-box">Musisz się zalogować przez Steam, żeby zobaczyć ten panel.<br><br><a href="/auth/steam">Zaloguj przez Steam</a></div>`;
+    return;
+  }
+  if(!me.isAdmin){
+    content.innerHTML = `<div class="state-box">Brak dostępu — to konto nie ma uprawnień administratora.</div>`;
+    return;
+  }
+  const data = await loadUsers();
+  content.innerHTML = "";
+
+  const maintenancePanel = document.createElement("div");
+  maintenancePanel.className = "maintenance-panel";
+  maintenancePanel.innerHTML = `
+    <button class="clear-daily-top-btn" id="clearDailyTopBtn">🗑 Wyczyść ranking "Codzienne najlepsze bitwy"</button>
+    <span class="maintenance-status" id="clearDailyTopStatus"></span>
+  `;
+  content.appendChild(maintenancePanel);
+  const clearDailyTopBtn = document.getElementById("clearDailyTopBtn");
+  const clearDailyTopStatus = document.getElementById("clearDailyTopStatus");
+  clearDailyTopBtn.onclick = async () => {
+    if(!confirm("Na pewno wyczyścić dzisiejszy ranking 'Codzienne najlepsze bitwy'? Nieodwracalne.")) return;
+    clearDailyTopBtn.disabled = true;
+    clearDailyTopStatus.textContent = "Czyszczę…";
+    try{
+      const res = await fetch("/api/admin/daily-top/clear", { method: "POST", credentials: "same-origin" });
+      clearDailyTopStatus.textContent = res.ok ? "Wyczyszczono." : "Błąd.";
+    }catch(e){
+      clearDailyTopStatus.textContent = "Błąd.";
+    }
+    clearDailyTopBtn.disabled = false;
+  };
+
+  if(!data || !Array.isArray(data.users) || data.users.length === 0){
+    const empty = document.createElement("div");
+    empty.className = "state-box";
+    empty.textContent = "Brak zarejestrowanych kont (jeszcze nikt się nie zalogował przez Steam).";
+    content.appendChild(empty);
+    return;
+  }
+  const table = document.createElement("table");
+  table.innerHTML = `
+    <thead>
+      <tr>
+        <th>Gracz</th>
+        <th>Saldo</th>
+        <th>Poziom</th>
+        <th>EXP</th>
+        <th>Przedmioty</th>
+        <th>Odebrane nagrody (poziomy)</th>
+        <th>Podkręcony drop</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  `;
+  const tbody = table.querySelector("tbody");
+  data.users.forEach(u => tbody.appendChild(userRow(u)));
+  content.appendChild(table);
+}
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<script src="/steam-auth.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CASEGOLD // Mój profil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0d12;
+    --panel:#141821;
+    --panel-2:#1b202b;
+    --line:#262c3a;
+    --text:#e9ecf3;
+    --muted:#7d879b;
+    --hazard:#ff9500;
+    --hazard-dim:#3a2712;
+    --good:#3ddc84;
+    --bad:#ff5a5a;
+    --r-milspec:#4b69ff;
+    --r-restricted:#8847ff;
+    --r-classified:#d32ce6;
+    --r-covert:#eb4b4b;
+    --r-gold:#ffd700;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 500px at 50% -10%, #1a2030 0%, transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+  }
+  .page-body{padding:24px 16px 60px;}
+  .hazard-bar{
+    height:8px;
+    background:repeating-linear-gradient(135deg,var(--hazard) 0 14px,#111 14px 28px);
+    opacity:.9;
+  }
+  .wrap{max-width:1100px;margin:0 auto;}
+
+  /* ---------------- top navigation (shared across pages) ---------------- */
+  .topnav{
+    display:flex; align-items:center; gap:14px;
+    padding:14px 20px; border-bottom:1px solid var(--line);
+    background:rgba(11,13,18,.8); backdrop-filter:blur(10px);
+    position:sticky; top:0; z-index:50; flex-wrap:wrap;
+  }
+  .brand{
+    display:flex; align-items:center; gap:8px; white-space:nowrap;
+    font-family:'Oswald',sans-serif; font-weight:700; letter-spacing:1px; text-transform:uppercase; font-size:18px;
+  }
+  .brand-icon{width:32px; height:32px; display:flex; align-items:center; justify-content:center; font-size:16px;}
+  .brand-icon img{width:100%; height:100%; object-fit:contain; animation:logo-glow 2.4s ease-in-out infinite;}
+  @keyframes logo-glow{
+    0%,100%{filter:drop-shadow(0 0 4px #ffd700) drop-shadow(0 0 9px rgba(255,215,0,.55));}
+    50%{filter:drop-shadow(0 0 7px #ffd700) drop-shadow(0 0 16px rgba(255,215,0,.85));}
+  }
+  .brand .accent{color:var(--hazard);}
+  .brand-socials{display:flex; gap:8px; color:var(--muted); font-size:15px;}
+  .brand-socials span, .brand-socials a{cursor:pointer; display:flex; align-items:center; justify-content:center; color:inherit; text-decoration:none;}
+  .brand-socials span:hover, .brand-socials a:hover{color:var(--text);}
+  .brand-socials svg{width:16px; height:16px; fill:currentColor; display:block;}
+  .nav-links{
+    display:flex; align-items:center; gap:14px; flex:1; flex-wrap:wrap;
+  }
+  .nav-link{
+    text-decoration:none; color:var(--muted); font-size:13.5px; font-weight:500;
+    text-transform:uppercase; letter-spacing:.5px; font-family:'Oswald',sans-serif;
+    padding-bottom:16px; margin-bottom:-15px; border-bottom:2px solid transparent;
+    display:flex; align-items:center; gap:6px; white-space:nowrap; cursor:pointer;
+    background:none; border-top:none; border-left:none; border-right:none;
+  }
+  .nav-link:hover{color:var(--text);}
+  .nav-link.active{color:var(--hazard); border-bottom-color:var(--hazard);}
+  .beta-tag{
+    font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700;
+    background:rgba(136,71,255,.14); color:var(--r-restricted);
+    padding:2px 5px; border-radius:4px; letter-spacing:.5px;
+  }
+  .nav-right{display:flex; align-items:center; gap:8px;}
+  .daily-btn{
+    background:var(--panel-2); border:1px solid var(--hazard-dim); color:var(--text);
+    padding:8px 11px; border-radius:9px; cursor:pointer; font-size:12.5px; font-weight:600;
+    display:flex; align-items:center; gap:6px; white-space:nowrap; font-family:'Inter',sans-serif;
+  }
+  .daily-btn:hover{border-color:var(--hazard); color:var(--hazard);}
+  .daily-btn:disabled{opacity:.5; cursor:not-allowed;}
+  .wallet-chip{
+    display:flex; align-items:center; gap:6px;
+    background:var(--panel-2); border:1px solid var(--line);
+    padding:6px 6px 6px 12px; border-radius:9px;
+  }
+  .wallet-chip .wc-amount{font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--good); font-size:14.5px; white-space:nowrap;}
+  .icon-btn{
+    width:34px; height:34px; border-radius:9px; background:var(--panel-2); border:1px solid var(--line);
+    color:var(--muted); cursor:pointer; font-size:16px; position:relative;
+  }
+  .icon-btn:hover{color:var(--hazard); border-color:var(--hazard);}
+  .settings-wrap{position:relative;}
+  .settings-menu{
+    display:none; position:absolute; top:calc(100% + 8px); right:0; z-index:60;
+    background:var(--panel); border:1px solid var(--line); border-radius:10px; overflow:hidden;
+    min-width:180px; box-shadow:0 12px 30px -10px rgba(0,0,0,.6);
+  }
+  .settings-menu.open{display:block;}
+  .settings-menu button{
+    display:block; width:100%; text-align:left; background:none; border:none; color:var(--text);
+    padding:10px 14px; font-size:13px; cursor:pointer; font-family:'Inter',sans-serif;
+  }
+  .settings-menu button:hover{background:var(--panel-2); color:var(--hazard);}
+  .avatar-wrap{position:relative; display:flex;}
+  .avatar{
+    width:34px; height:34px; border-radius:50%; background:var(--panel-2); border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center; font-size:17px;
+  }
+  .lvl-badge{
+    position:absolute; bottom:-4px; right:-4px; background:var(--r-gold); color:#3a2a00;
+    font-size:9px; font-weight:800; padding:1px 5px; border-radius:8px; border:2px solid var(--bg);
+    font-family:'JetBrains Mono',monospace;
+  }
+  @media (max-width:760px){
+    .topnav .nav-links{flex:1 1 100%; flex-wrap:nowrap; gap:3px; justify-content:space-between;}
+    .topnav .nav-link{gap:0; padding:0 0 10px; margin-bottom:0; font-size:10px; letter-spacing:0; white-space:nowrap;}
+  }
+  @media (max-width:400px){
+    .topnav .nav-link{font-size:8.5px;}
+  }
+
+  /* ---------------- page content ---------------- */
+  .page-title{margin-bottom:26px;}
+  h1{font-family:'Oswald',sans-serif;font-weight:700;letter-spacing:2px;text-transform:uppercase;font-size:clamp(28px,4vw,42px);margin:0;line-height:1;}
+  h1 span{color:var(--hazard);}
+  .sub{color:var(--muted);font-size:13px;letter-spacing:.5px;margin-top:6px;}
+
+  .profile-card{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    padding:32px 24px; text-align:center; margin-bottom:26px;
+  }
+  .profile-avatar{
+    width:88px; height:88px; border-radius:50%; object-fit:cover;
+    border:2px solid var(--hazard); margin-bottom:14px; background:var(--panel-2);
+    box-shadow:0 0 24px -6px var(--hazard);
+  }
+  .profile-name{font-family:'Oswald',sans-serif; font-weight:700; font-size:22px; text-transform:uppercase; letter-spacing:1px;}
+  .profile-steam-link{font-size:12px; color:var(--muted); text-decoration:none; display:inline-block; margin-top:8px;}
+  .profile-steam-link:hover{color:var(--hazard);}
+
+  .stat-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px; margin-bottom:30px;}
+  .stat-card{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px 18px;}
+  .stat-label{font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:var(--muted); margin-bottom:6px;}
+  .stat-value{font-family:'JetBrains Mono',monospace; font-size:20px; font-weight:700; color:var(--text);}
+
+  .section-title{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:1.5px;font-size:16px;margin:0 0 12px;}
+
+  .best-pull-card{
+    background:var(--panel); border:1px solid var(--line); border-top:3px solid var(--rarity, var(--r-gold));
+    border-radius:12px; padding:22px; display:flex; align-items:center; gap:22px; flex-wrap:wrap;
+  }
+  .best-pull-card .bp-img{width:100px; height:80px; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .best-pull-card .bp-img img{max-width:100%; max-height:100%; object-fit:contain;}
+  .best-pull-card .bp-img .fallback{font-size:10px; color:var(--muted); font-family:'JetBrains Mono',monospace; text-align:center;}
+  .best-pull-card .bp-info{flex:1; min-width:160px;}
+  .best-pull-card .bp-weapon{font-family:'Oswald',sans-serif; font-weight:600; font-size:17px; text-transform:uppercase;}
+  .best-pull-card .bp-skin{color:var(--muted); font-size:13px; margin-top:2px;}
+  .best-pull-card .bp-price{font-family:'JetBrains Mono',monospace; font-size:22px; font-weight:700; color:var(--good); margin-top:8px;}
+  .best-pull-card .bp-date{font-size:11px; color:var(--muted); margin-top:4px;}
+  .empty-note{color:var(--muted); font-size:13px; padding:14px; border:1px dashed var(--line); border-radius:10px; text-align:center; width:100%;}
+
+  footer{text-align:center;color:var(--muted);font-size:11px;margin-top:30px;letter-spacing:.5px;}
+</style>
+</head>
+<body>
+
+<div class="hazard-bar"></div>
+
+<nav class="topnav">
+  <div class="brand"><span class="brand-icon"><img src="/casegold_logo.PNG" alt="Casegold" onerror="this.outerHTML='📦';"></span>Case<span class="accent">gold</span></div>
+  <div class="brand-socials">
+    <a href="https://discord.gg/CGmvDMAsnK" title="Discord" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg></a><span title="Instagram"><svg viewBox="0 0 24 24"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.72 3.72 0 01-1.38-.9 3.72 3.72 0 01-.9-1.38c-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.17 8.8 2.16 12 2.16zM12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.3-1.46.72-2.13 1.38C1.35 2.68.93 3.35.63 4.14c-.3.76-.5 1.63-.56 2.91C.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.28.26 2.15.56 2.91.3.79.72 1.46 1.38 2.13.67.67 1.34 1.08 2.13 1.38.76.3 1.63.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.28-.06 2.15-.26 2.91-.56.79-.3 1.46-.72 2.13-1.38.67-.67 1.08-1.34 1.38-2.13.3-.76.5-1.63.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.28-.26-2.15-.56-2.91a5.88 5.88 0 00-1.38-2.13A5.88 5.88 0 0019.86.63c-.76-.3-1.63-.5-2.91-.56C15.67.01 15.26 0 12 0zm0 5.84A6.16 6.16 0 1012 18.16 6.16 6.16 0 0012 5.84zm0 10.16A4 4 0 1112 8a4 4 0 010 8zm6.41-10.4a1.44 1.44 0 11-2.88 0 1.44 1.44 0 012.88 0z"/></svg></span><span title="TikTok"><svg viewBox="0 0 24 24"><path d="M16.6 5.82c-1.12-1.08-1.67-2.64-1.75-4.17H11.9c-.02.04-.02.09-.02.13.02 4.01.01 8.03.01 12.05-.01.4-.22.96-.41 1.29-.58.95-1.65 1.6-2.77 1.61-1.68.15-3.26-1.23-3.5-2.87-.01-.54-.07-1.1.14-1.61.25-.71.73-1.34 1.36-1.75.87-.6 2.03-.69 3.02-.37 0-1.48.06-2.96.04-4.44-2.17-.41-4.49.28-6.15 1.72-1.46 1.24-2.4 3.06-2.58 4.96-.02.49-.01.99.01 1.49.21 2.34 1.63 4.52 3.65 5.71 1.22.72 2.65 1.11 4.08 1.03 2.33-.04 4.6-1.29 5.91-3.21.81-1.15 1.27-2.54 1.35-3.94.03-2.91.01-5.83.02-8.75.52.34 1.05.67 1.62.93 1.31.62 2.76.92 4.2.97V6.34c-1.4-.15-2.85-.63-3.83-1.5-.09-.01-.09-.01 0 0z"/></svg></span>
+  </div>
+  <div class="nav-links">
+    <a class="nav-link" href="/">Skrzynki</a>
+    <a class="nav-link" href="/darmowe">Darmowe</a>
+    <a class="nav-link" href="/battle">Case Battle</a>
+    <a class="nav-link" href="/upgrade">Upgrader</a>
+    <a class="nav-link" href="/zadania">Zadania</a>
+    <a class="nav-link" href="/equipment">Ekwipunek</a>
+  </div>
+  <div class="nav-right">
+    <button class="daily-btn" id="dailyBonusBtn">🎁 Daily Bonus</button>
+    <div class="wallet-chip">
+      <span class="wc-amount" id="balance">50,00 zł</span>
+    </div>
+    <div class="settings-wrap">
+      <button class="icon-btn" id="settingsBtn">⚙</button>
+      <div class="settings-menu" id="settingsMenu">
+        <button id="inventoryBtn">Ekwipunek</button>
+      </div>
+    </div>
+    <div class="avatar-wrap">
+      <div class="avatar">🙂</div>
+      <span class="lvl-badge">4</span>
+    </div>
+  </div>
+</nav>
+
+<div class="page-body">
+<div class="wrap">
+
+  <div class="page-title">
+    <h1 id="pageH1">Mój profil <span>//</span> Casegold</h1>
+    <div class="sub" id="pageSub">Twoje dane konta i statystyki.</div>
+  </div>
+
+  <div id="profileContent">
+    <div class="profile-card">
+      <img class="profile-avatar" id="profAvatar" src="" alt="">
+      <div class="profile-name" id="profName">—</div>
+      <a class="profile-steam-link" id="profSteamLink" href="#" target="_blank" rel="noopener">Zobacz profil Steam ↗</a>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-label">Dołączył</div>
+        <div class="stat-value" id="statJoined">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Ostatnio aktywny</div>
+        <div class="stat-value" id="statLastActive">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Poziom</div>
+        <div class="stat-value" id="statLevel">—</div>
+      </div>
+      <div class="stat-card" id="statBalanceRow">
+        <div class="stat-label">Saldo</div>
+        <div class="stat-value" id="statBalance">—</div>
+      </div>
+    </div>
+
+    <div class="section-title">🏆 Najlepszy drop</div>
+    <div class="best-pull-card" id="bestPullCard">
+      <div class="empty-note">Brak jeszcze żadnych dropów. Otwórz skrzynkę, żeby coś zdobyć!</div>
+    </div>
+  </div>
+
+  <footer>Symulacja edukacyjna / rozrywkowa — fikcyjna waluta, brak realnych transakcji.</footer>
+</div>
+</div>
+
+<script src="/rarity-data.js"></script>
+<script src="/skin-images.js"></script>
+<script src="/nav-i18n.js"></script>
+<script>
+const STORAGE_KEY = "cs2sim_state_v1";
+const DAILY_BONUS_KEY = "cs2sim_daily_bonus_at";
+const DAILY_BONUS_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+function fmt(n){
+  return n.toLocaleString("pl-PL", {minimumFractionDigits:2, maximumFractionDigits:2}) + " zł";
+}
+function loadLocalState(){
+  if(!(window.__STEAM_AUTH__ && window.__STEAM_AUTH__.loggedIn)) return {balance:0, inventory:[], invCounter:0, level:0, xp:0, bestPull:null, upgradeClicks:0, casesOpened:0};
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return {balance:50, inventory:[], invCounter:0, level:0, xp:0, bestPull:null, upgradeClicks:0, casesOpened:0};
+    const parsed = JSON.parse(raw);
+    return {
+      balance: typeof parsed.balance === "number" ? parsed.balance : 50,
+      inventory: Array.isArray(parsed.inventory) ? parsed.inventory : [],
+      invCounter: typeof parsed.invCounter === "number" ? parsed.invCounter : 0,
+      level: typeof parsed.level === "number" ? parsed.level : 0,
+      xp: typeof parsed.xp === "number" ? parsed.xp : 0,
+      bestPull: parsed.bestPull || null,
+      upgradeClicks: typeof parsed.upgradeClicks === "number" ? parsed.upgradeClicks : 0,
+      casesOpened: typeof parsed.casesOpened === "number" ? parsed.casesOpened : 0,
+    };
+  }catch(e){
+    return {balance:50, inventory:[], invCounter:0, level:0, xp:0, bestPull:null, upgradeClicks:0, casesOpened:0};
+  }
+}
+let balance = loadLocalState().balance;
+const balanceEl = document.getElementById("balance");
+function renderBalance(){
+  balanceEl.textContent = fmt(balance);
+}
+function rarityColorFor(it){
+  const known = getSkinRarityColor(it.weapon, it.skin);
+  if(known) return known;
+  const price = it.price;
+  if(price < 2) return "var(--r-milspec)";
+  if(price < 4) return "var(--r-restricted)";
+  if(price < 10) return "var(--r-classified)";
+  if(price < 100) return "var(--r-covert)";
+  return "var(--r-gold)";
+}
+
+function slugFromPath(){
+  const m = window.location.pathname.match(/^\/profile\/([^/]+)\/?$/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+function renderIdentity(p){
+  document.getElementById("profAvatar").src = p.avatar || "";
+  document.getElementById("profAvatar").alt = p.displayName || "Steam";
+  document.getElementById("profName").textContent = p.displayName || "Gracz";
+  const steamLink = document.getElementById("profSteamLink");
+  if(p.profileUrl){ steamLink.href = p.profileUrl; steamLink.style.display = ""; }
+  else { steamLink.style.display = "none"; }
+}
+
+function renderBestPullCard(bp){
+  const card = document.getElementById("bestPullCard");
+  if(!bp){
+    card.style.removeProperty("--rarity");
+    card.innerHTML = `<div class="empty-note">Brak jeszcze żadnych dropów. Otwórz skrzynkę, żeby coś zdobyć!</div>`;
+    return;
+  }
+  card.style.setProperty("--rarity", rarityColorFor(bp));
+  const img = getSkinImage(bp);
+  const when = bp.at ? new Date(bp.at).toLocaleDateString("pl-PL", {day:"numeric", month:"long", year:"numeric"}) : "";
+  card.innerHTML = `
+    <div class="bp-img">${img ? `<img src="${img}" alt="${bp.weapon}" onerror="this.parentElement.innerHTML='<div class=&quot;fallback&quot;>${bp.weapon}</div>'">` : `<div class="fallback">${bp.weapon}</div>`}</div>
+    <div class="bp-info">
+      <div class="bp-weapon">${bp.weapon}</div>
+      <div class="bp-skin">${bp.skin} (${bp.wear})</div>
+      <div class="bp-price">${fmt(bp.price)}</div>
+      ${when ? `<div class="bp-date">Zdobyto: ${when}</div>` : ""}
+    </div>
+  `;
+}
+
+function pluralPl(n, one, few, many){
+  if(n === 1) return one;
+  const mod10 = n % 10, mod100 = n % 100;
+  if(mod10 >= 2 && mod10 <= 4 && !(mod100 >= 12 && mod100 <= 14)) return few;
+  return many;
+}
+/* "Ostatnio aktywny" - ts to updatedAt z ostatniego zapisu stanu na serwer
+   (dzieje się przy niemal każdej akcji w grze, patrz PUT /api/state), więc
+   to najlepsze dostępne przybliżenie faktycznej ostatniej aktywności. */
+function fmtLastActive(ts){
+  if(!ts) return "—";
+  const diffMs = Date.now() - ts;
+  if(diffMs < 60000) return "przed chwilą";
+  const diffMin = Math.floor(diffMs / 60000);
+  if(diffMin < 60) return `${diffMin} min temu`;
+  const diffH = Math.floor(diffMin / 60);
+  if(diffH < 24) return `${diffH} ${pluralPl(diffH, "godzinę", "godziny", "godzin")} temu`;
+  const diffD = Math.floor(diffH / 24);
+  if(diffD === 1) return "wczoraj";
+  if(diffD < 7) return `${diffD} dni temu`;
+  return new Date(ts).toLocaleDateString("pl-PL", {day:"numeric", month:"long", year:"numeric"});
+}
+
+function renderOwnProfile(u){
+  document.getElementById("pageH1").innerHTML = `Mój profil <span>//</span> Casegold`;
+  document.getElementById("pageSub").textContent = "Twoje dane konta i statystyki.";
+  document.getElementById("statBalanceRow").style.display = "";
+
+  const s = loadLocalState();
+  balance = s.balance;
+  renderBalance();
+  renderIdentity(u);
+
+  const joined = u.createdAt ? new Date(u.createdAt) : null;
+  document.getElementById("statJoined").textContent = joined
+    ? joined.toLocaleDateString("pl-PL", {day:"numeric", month:"long", year:"numeric"})
+    : "—";
+  document.getElementById("statLastActive").textContent = fmtLastActive(u.state && u.state.updatedAt);
+  document.getElementById("statLevel").textContent = String(window.SteamAuth.effectiveLevel(s.xp));
+  document.getElementById("statBalance").textContent = fmt(s.balance);
+  renderBestPullCard(s.bestPull);
+}
+
+function renderPublicProfile(p){
+  document.getElementById("pageH1").innerHTML = `Profil gracza <span>//</span> Casegold`;
+  document.getElementById("pageSub").textContent = "Statystyki i najlepszy drop.";
+  document.getElementById("statBalanceRow").style.display = "none";
+
+  renderIdentity(p);
+  const joined = p.createdAt ? new Date(p.createdAt) : null;
+  document.getElementById("statJoined").textContent = joined
+    ? joined.toLocaleDateString("pl-PL", {day:"numeric", month:"long", year:"numeric"})
+    : "—";
+  document.getElementById("statLastActive").textContent = fmtLastActive(p.updatedAt);
+  document.getElementById("statLevel").textContent = String(p.level);
+  renderBestPullCard(p.bestPull);
+}
+
+function renderNotFound(slug){
+  document.getElementById("pageH1").innerHTML = `Profil gracza <span>//</span> Casegold`;
+  document.getElementById("pageSub").textContent = "Nie znaleziono takiego gracza.";
+  const content = document.getElementById("profileContent");
+  content.innerHTML = "";
+  const note = document.createElement("div");
+  note.className = "empty-note";
+  note.textContent = `Nie ma gracza o profilu „${slug}”.`;
+  content.appendChild(note);
+}
+
+async function init(){
+  document.getElementById("inventoryBtn").onclick = () => { window.location.href = "/equipment"; };
+  const me = window.__STEAM_AUTH__ || {loggedIn:false};
+  const urlSlug = slugFromPath();
+  const ownSlug = me.loggedIn && me.user ? me.user.slug : null;
+  const isOwnProfile = !urlSlug || (ownSlug && urlSlug === ownSlug);
+
+  if(isOwnProfile){
+    if(!me.loggedIn || !me.user){
+      window.SteamAuth.requireLogin();
+      return;
+    }
+    renderOwnProfile(me.user);
+    return;
+  }
+
+  // /profile/<slug> dla kogoś innego - publiczny widok, logowanie niewymagane
+  try{
+    const res = await fetch(`/api/profile/${encodeURIComponent(urlSlug)}`);
+    const data = await res.json();
+    if(!data.found){ renderNotFound(urlSlug); return; }
+    renderPublicProfile(data.profile);
+  }catch(e){
+    renderNotFound(urlSlug);
+  }
+}
+init();
+
+/* ---- shared top-nav widgets: settings dropdown + daily bonus (24h cooldown) ---- */
+document.querySelectorAll("[data-soon]").forEach(el => {
+  el.addEventListener("click", () => {});
+});
+const settingsBtn = document.getElementById("settingsBtn");
+const settingsMenu = document.getElementById("settingsMenu");
+settingsBtn.onclick = (e) => { e.stopPropagation(); settingsMenu.classList.toggle("open"); };
+document.addEventListener("click", () => settingsMenu.classList.remove("open"));
+function fmtCountdown(ms){
+  const total = Math.max(0, Math.ceil(ms / 1000));
+  const h = String(Math.floor(total / 3600)).padStart(2,"0");
+  const m = String(Math.floor((total % 3600) / 60)).padStart(2,"0");
+  const s = String(total % 60).padStart(2,"0");
+  return `${h}:${m}:${s}`;
+}
+function renderDailyBonusBtn(){
+  const btn = document.getElementById("dailyBonusBtn");
+  if(!(window.__STEAM_AUTH__ && window.__STEAM_AUTH__.loggedIn)){ btn.disabled = false; btn.textContent = "🎁 Daily Bonus"; return; }
+  const left = DAILY_BONUS_COOLDOWN_MS - (Date.now() - Number(localStorage.getItem(DAILY_BONUS_KEY) || 0));
+  if(left > 0){ btn.disabled = true; btn.textContent = `🎁 ${fmtCountdown(left)}`; }
+  else { btn.disabled = false; btn.textContent = "🎁 Daily Bonus"; }
+}
+document.getElementById("dailyBonusBtn").onclick = () => {
+  if(!window.SteamAuth.requireLogin()) return;
+  const now = Date.now();
+  if(now - Number(localStorage.getItem(DAILY_BONUS_KEY) || 0) < DAILY_BONUS_COOLDOWN_MS) return;
+  window.SteamAuth.openDailyBonusModal((reward) => {
+    balance += reward;
+    renderBalance();
+    renderDailyBonusBtn();
+  });
+};
+setInterval(renderDailyBonusBtn, 1000);
+renderDailyBonusBtn();
+</script>
+</body>
+</html>

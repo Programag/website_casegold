@@ -1,0 +1,1640 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<script src="steam-auth.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CASEGOLD // Ulepszenia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0d12;
+    --panel:#141821;
+    --panel-2:#1b202b;
+    --line:#262c3a;
+    --text:#e9ecf3;
+    --muted:#7d879b;
+    --hazard:#ff9500;
+    --hazard-dim:#3a2712;
+    --good:#3ddc84;
+    --good-dim:#123822;
+    --bad:#ff5a5a;
+    --bad-dim:#3a1414;
+    --accent:#3ec8ff;
+    --r-milspec:#4b69ff;
+    --r-restricted:#8847ff;
+    --r-classified:#d32ce6;
+    --r-covert:#eb4b4b;
+    --r-gold:#ffd700;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 500px at 50% -10%, #1a2030 0%, transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+  }
+  .page-body{padding:24px 16px 60px;}
+  .hazard-bar{
+    height:8px;
+    background:repeating-linear-gradient(135deg,var(--hazard) 0 14px,#111 14px 28px);
+    opacity:.9;
+  }
+  .wrap{max-width:1300px;margin:0 auto;}
+
+  /* ---------------- top navigation (shared across pages) ---------------- */
+  .topnav{
+    display:flex; align-items:center; gap:14px;
+    padding:14px 20px; border-bottom:1px solid var(--line);
+    background:rgba(11,13,18,.8); backdrop-filter:blur(10px);
+    position:sticky; top:0; z-index:50; flex-wrap:wrap;
+  }
+  .brand{
+    display:flex; align-items:center; gap:8px; white-space:nowrap;
+    font-family:'Oswald',sans-serif; font-weight:700; letter-spacing:1px; text-transform:uppercase; font-size:18px;
+  }
+  .brand-icon{width:32px; height:32px; display:flex; align-items:center; justify-content:center; font-size:16px;}
+  .brand-icon img{width:100%; height:100%; object-fit:contain; animation:logo-glow 2.4s ease-in-out infinite;}
+  @keyframes logo-glow{
+    0%,100%{filter:drop-shadow(0 0 4px #ffd700) drop-shadow(0 0 9px rgba(255,215,0,.55));}
+    50%{filter:drop-shadow(0 0 7px #ffd700) drop-shadow(0 0 16px rgba(255,215,0,.85));}
+  }
+  .brand .accent{color:var(--hazard);}
+  .brand-socials{display:flex; gap:8px; color:var(--muted); font-size:15px;}
+  .brand-socials span, .brand-socials a{cursor:pointer; display:flex; align-items:center; justify-content:center; color:inherit; text-decoration:none;}
+  .brand-socials span:hover, .brand-socials a:hover{color:var(--text);}
+  .brand-socials svg{width:16px; height:16px; fill:currentColor; display:block;}
+  .nav-links{
+    display:flex; align-items:center; gap:14px; flex:1; flex-wrap:wrap;
+  }
+  .nav-link{
+    text-decoration:none; color:var(--muted); font-size:13.5px; font-weight:500;
+    text-transform:uppercase; letter-spacing:.5px; font-family:'Oswald',sans-serif;
+    padding-bottom:16px; margin-bottom:-15px; border-bottom:2px solid transparent;
+    display:flex; align-items:center; gap:6px; white-space:nowrap; cursor:pointer;
+    background:none; border-top:none; border-left:none; border-right:none;
+  }
+  .nav-link:hover{color:var(--text);}
+  .nav-link.active{color:var(--hazard); border-bottom-color:var(--hazard);}
+  .beta-tag{
+    font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700;
+    background:rgba(136,71,255,.14); color:var(--r-restricted);
+    padding:2px 5px; border-radius:4px; letter-spacing:.5px;
+  }
+  .nav-right{display:flex; align-items:center; gap:8px;}
+  .daily-btn{
+    background:var(--panel-2); border:1px solid var(--hazard-dim); color:var(--text);
+    padding:8px 11px; border-radius:9px; cursor:pointer; font-size:12.5px; font-weight:600;
+    display:flex; align-items:center; gap:6px; white-space:nowrap; font-family:'Inter',sans-serif;
+  }
+  .daily-btn:hover{border-color:var(--hazard); color:var(--hazard);}
+  .daily-btn:disabled{opacity:.5; cursor:not-allowed;}
+  .wallet-chip{
+    display:flex; align-items:center; gap:6px;
+    background:var(--panel-2); border:1px solid var(--line);
+    padding:6px 6px 6px 12px; border-radius:9px;
+  }
+  .wallet-chip .wc-amount{font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--good); font-size:14.5px; white-space:nowrap;}
+  .wallet-chip .wc-add{
+    width:26px; height:26px; border-radius:7px; border:none; cursor:pointer;
+    background:var(--hazard); color:#181000; font-weight:800; font-size:15px; line-height:1;
+  }
+  .icon-btn{
+    width:34px; height:34px; border-radius:9px; background:var(--panel-2); border:1px solid var(--line);
+    color:var(--muted); cursor:pointer; font-size:16px; position:relative;
+  }
+  .icon-btn:hover{color:var(--hazard); border-color:var(--hazard);}
+  .settings-wrap{position:relative;}
+  .settings-menu{
+    display:none; position:absolute; top:calc(100% + 8px); right:0; z-index:60;
+    background:var(--panel); border:1px solid var(--line); border-radius:10px; overflow:hidden;
+    min-width:180px; box-shadow:0 12px 30px -10px rgba(0,0,0,.6);
+  }
+  .settings-menu.open{display:block;}
+  .settings-menu button{
+    display:block; width:100%; text-align:left; background:none; border:none; color:var(--text);
+    padding:10px 14px; font-size:13px; cursor:pointer; font-family:'Inter',sans-serif;
+  }
+  .settings-menu button:hover{background:var(--panel-2); color:var(--hazard);}
+  .avatar-wrap{position:relative; display:flex;}
+  .avatar{
+    width:34px; height:34px; border-radius:50%; background:var(--panel-2); border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center; font-size:17px;
+  }
+  .lvl-badge{
+    position:absolute; bottom:-4px; right:-4px; background:var(--r-gold); color:#3a2a00;
+    font-size:9px; font-weight:800; padding:1px 5px; border-radius:8px; border:2px solid var(--bg);
+    font-family:'JetBrains Mono',monospace;
+  }
+  @media (max-width:760px){
+    .topnav .nav-links{flex:1 1 100%; flex-wrap:nowrap; gap:3px; justify-content:space-between;}
+    .topnav .nav-link{gap:0; padding:0 0 10px; margin-bottom:0; font-size:10px; letter-spacing:0; white-space:nowrap;}
+  }
+  @media (max-width:400px){
+    .topnav .nav-link{font-size:8.5px;}
+  }
+  .page-title{margin-bottom:26px;}
+
+  header{
+    display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:16px; margin-bottom:26px;
+  }
+  h1{font-family:'Oswald',sans-serif;font-weight:700;letter-spacing:2px;text-transform:uppercase;font-size:clamp(28px,4vw,42px);margin:0;line-height:1;}
+  h1 span{color:var(--hazard);}
+  .sub{color:var(--muted);font-size:13px;letter-spacing:.5px;margin-top:6px;}
+  .wallet{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 18px;text-align:right;min-width:230px;}
+  .wallet .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;}
+  .wallet .amount{font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;color:var(--good);}
+  .wallet .amount.low{color:var(--bad);}
+  .wallet-actions{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
+  .mini-btn{flex:1;background:var(--panel-2);border:1px solid var(--line);color:var(--text);font-size:11px;padding:6px 8px;border-radius:6px;cursor:pointer;font-family:'Inter',sans-serif;text-decoration:none;text-align:center;white-space:nowrap;}
+  .mini-btn:hover{border-color:var(--hazard);color:var(--hazard);}
+  .mini-btn.active{border-color:var(--hazard);color:var(--hazard);background:var(--hazard-dim);}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:24px;margin-bottom:22px;}
+
+  /* ---------------- Upgrade panel: 3 columns ---------------- */
+  .upgrade-grid{display:grid;grid-template-columns:1fr 1.05fr 1fr;gap:26px;align-items:start;}
+  .upgrade-grid > div{min-width:0;}
+  @media (max-width:920px){.upgrade-grid{grid-template-columns:1fr;}}
+
+  .col-title{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:1px;font-size:14.5px;text-align:center;margin-bottom:2px;}
+  .col-title .stitle-sub{display:block;font-family:'Inter',sans-serif;text-transform:none;letter-spacing:0;font-size:11.5px;color:var(--muted);font-weight:400;margin-top:2px;}
+
+  .slot-box{
+    height:110px;margin-top:14px;
+    border:1.5px dashed var(--line);border-radius:12px;
+    background:var(--panel-2);
+    display:flex;align-items:center;justify-content:center;gap:10px;padding:8px;
+  }
+  .slot-box .empty-hint{color:var(--muted);font-size:11.5px;font-family:'JetBrains Mono',monospace;text-align:center;flex:none;}
+  /* input slot can hold many chips at once — scroll horizontally instead of
+     wrapping, so it never grows past its box and spills out of the panel */
+  #inputSlot{
+    justify-content:flex-start;
+    overflow-x:auto; overflow-y:hidden; flex-wrap:nowrap;
+    min-width:0; max-width:100%;
+    scrollbar-width:thin; scrollbar-color:var(--hazard) var(--panel-2);
+  }
+  #inputSlot::-webkit-scrollbar{height:6px;}
+  #inputSlot::-webkit-scrollbar-track{background:var(--panel-2); border-radius:4px;}
+  #inputSlot::-webkit-scrollbar-thumb{background:var(--line); border-radius:4px;}
+  #inputSlot::-webkit-scrollbar-thumb:hover{background:var(--hazard);}
+  .slot-chip{
+    width:74px;height:74px;background:var(--panel);border:1px solid var(--line);
+    border-top:3px solid var(--rarity,var(--r-milspec));border-radius:8px;
+    display:flex;align-items:center;justify-content:center;position:relative;
+    flex:none;
+  }
+  .slot-chip img{max-width:80%;max-height:80%;object-fit:contain;}
+  .slot-chip .fb{font-size:8px;color:var(--muted);font-family:'JetBrains Mono',monospace;text-align:center;padding:0 4px;}
+
+  .funds-row{margin-top:14px;}
+  .funds-label{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin-bottom:8px;flex-wrap:wrap;}
+  .funds-label b{color:var(--text);font-family:'JetBrains Mono',monospace;font-weight:600;}
+  .funds-label .fmax{margin-left:auto;background:var(--panel-2);border:1px solid var(--line);color:var(--accent);font-size:10.5px;padding:3px 8px;border-radius:5px;cursor:pointer;font-family:'JetBrains Mono',monospace;}
+  .funds-label .fmax:hover{border-color:var(--accent);}
+  input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:3px;background:var(--line);outline:none;cursor:pointer;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--good);border:2px solid var(--panel);box-shadow:0 0 0 1px var(--good);cursor:pointer;}
+  input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--good);border:2px solid var(--panel);cursor:pointer;}
+
+  .total-row{margin-top:14px;font-size:13px;color:var(--muted);text-align:center;}
+  .total-row b{color:var(--text);font-family:'JetBrains Mono',monospace;}
+
+  /* ---------------- Wheel (center column) ---------------- */
+  .wheel-wrap{position:relative;width:210px;height:210px;margin:6px auto 0;}
+  .wheel-dial{
+    width:100%;height:100%;border-radius:50%;
+    position:relative;
+    box-shadow:0 0 0 1px var(--line), inset 0 0 30px rgba(0,0,0,.35);
+  }
+  .wheel-colors{
+    position:absolute;inset:0;border-radius:50%;
+    background:conic-gradient(var(--good) 0deg var(--win-deg,324deg), var(--bad) var(--win-deg,324deg) 360deg);
+    transform:rotate(var(--wheel-rotate,0deg));
+    transform-origin:50% 50%;
+    transition:transform .25s ease;
+  }
+  .wheel-dial::after{
+    content:"";position:absolute;inset:16px;border-radius:50%;
+    background:radial-gradient(circle at 50% 40%, #171c27 0%, #0f1219 100%);
+    box-shadow:inset 0 0 20px rgba(0,0,0,.6);
+    z-index:1;
+  }
+  .wheel-needle{
+    position:absolute;left:50%;top:50%;width:3px;height:88px;
+    background:linear-gradient(to top, var(--text), #fff);
+    transform-origin:bottom center;
+    transform:translate(-50%,-100%) rotate(0deg);
+    border-radius:2px;
+    z-index:3;
+    box-shadow:0 0 6px rgba(255,255,255,.5);
+  }
+  .wheel-needle::after{
+    content:"";position:absolute;left:50%;bottom:-6px;width:12px;height:12px;
+    background:var(--text);border-radius:50%;transform:translateX(-50%);
+    box-shadow:0 0 8px rgba(255,255,255,.6);
+  }
+  .wheel-center-text{
+    position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    z-index:2;pointer-events:none;
+  }
+  .chance-value{font-family:'Oswald',sans-serif;font-size:28px;font-weight:700;letter-spacing:.5px;}
+  .chance-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px;}
+
+  .values-row{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:16px;font-family:'JetBrains Mono',monospace;font-size:13.5px;}
+  .values-row .slash{color:var(--muted);}
+  #randomizeBtn{background:var(--panel-2);border:1px solid var(--line);color:var(--muted);width:26px;height:26px;border-radius:6px;cursor:pointer;font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;}
+  #randomizeBtn:hover{color:var(--hazard);border-color:var(--hazard);}
+
+  .preset-row{display:flex;gap:8px;justify-content:center;margin-top:16px;flex-wrap:wrap;}
+  .preset-btn, .chance-btn{
+    background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+    font-family:'JetBrains Mono',monospace;font-size:12.5px;font-weight:700;
+    padding:9px 12px;border-radius:8px;cursor:pointer;min-width:46px;text-align:center;
+  }
+  .preset-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .chance-btn.risky{color:var(--bad);}
+  .chance-btn.mid{color:var(--hazard);}
+  .chance-btn.safe{color:var(--good);}
+  .chance-btn.risky:hover{border-color:var(--bad);}
+  .chance-btn.mid:hover{border-color:var(--hazard);}
+  .chance-btn.safe:hover{border-color:var(--good);}
+  .chance-btn.selected.risky{background:var(--bad-dim);border-color:var(--bad);}
+  .chance-btn.selected.mid{background:var(--hazard-dim);border-color:var(--hazard);}
+  .chance-btn.selected.safe{background:var(--good-dim);border-color:var(--good);}
+
+  .chance-slider-row{margin-top:16px;padding:0 4px;}
+
+  .upgrade-btn{
+    display:block;width:100%;margin-top:20px;
+    font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:1.5px;font-size:16px;font-weight:600;
+    background:linear-gradient(180deg, var(--accent), #1a9fd8);
+    color:#04202b;border:none;padding:14px 20px;border-radius:8px;cursor:pointer;
+    box-shadow:0 4px 0 #157fae;transition:transform .1s ease, box-shadow .1s ease;
+  }
+  .upgrade-btn:hover:not(:disabled){transform:translateY(-1px);}
+  .upgrade-btn:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 #157fae;}
+  .upgrade-btn:disabled{opacity:.4;cursor:not-allowed;box-shadow:none;}
+
+  .outcome-banner{
+    margin-top:16px;text-align:center;font-family:'Oswald',sans-serif;text-transform:uppercase;
+    letter-spacing:1px;font-size:14px;padding:10px;border-radius:8px;display:none;
+  }
+  .outcome-banner.show{display:block;}
+  .outcome-banner.win{background:var(--good-dim);color:var(--good);border:1px solid var(--good);}
+  .outcome-banner.lose{background:var(--bad-dim);color:var(--bad);border:1px solid var(--bad);}
+
+  /* ---------------- Lower browse panels ---------------- */
+  .browse-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  @media (max-width:820px){.browse-grid{grid-template-columns:1fr;}}
+  .browse-panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;}
+  .browse-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
+  .browse-head h3{font-family:'Oswald',sans-serif;text-transform:uppercase;letter-spacing:1px;font-size:15px;margin:0;}
+  .browse-head h3 span{color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:12px;margin-left:6px;}
+  .sort-btn{background:var(--panel-2);border:1px solid var(--line);color:var(--muted);font-size:11.5px;padding:6px 10px;border-radius:6px;cursor:pointer;font-family:'JetBrains Mono',monospace;}
+  .sort-btn:hover{color:var(--hazard);border-color:var(--hazard);}
+  .search-row{display:flex;gap:8px;margin-bottom:12px;}
+  .search-row input[type=text]{
+    flex:1;background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+    padding:9px 12px;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;
+  }
+  .search-row input[type=text]:focus{outline:none;border-color:var(--accent);}
+  .search-row input[type=number]{
+    width:100px;background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+    padding:9px 10px;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:12.5px;
+  }
+  .browse-grid-items{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;
+    max-height:420px;overflow-y:auto;padding-right:4px;
+  }
+  .empty-note{color:var(--muted);font-size:13px;padding:14px;border:1px dashed var(--line);border-radius:10px;text-align:center;grid-column:1/-1;}
+  .browse-item{
+    background:var(--panel-2);border:1px solid var(--line);border-top:3px solid var(--rarity,var(--r-milspec));
+    border-radius:8px;padding:8px;display:flex;flex-direction:column;align-items:center;cursor:pointer;
+    transition:border-color .12s ease, transform .08s ease;
+  }
+  .browse-item:hover{transform:translateY(-2px);}
+  .browse-item.selected{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);}
+  .browse-item.disabled{opacity:.35;cursor:not-allowed;filter:grayscale(.6);}
+  .browse-item.disabled:hover{transform:none;}
+  .browse-item .img-slot{height:58px;width:100%;display:flex;align-items:center;justify-content:center;margin-bottom:4px;}
+  .browse-item img{max-height:54px;max-width:90%;object-fit:contain;}
+  .browse-item .fallback{font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace;text-align:center;}
+  .browse-item .wp{font-size:10.5px;font-weight:600;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+  .browse-item .nm{font-size:9px;color:var(--muted);text-align:center;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+  .browse-item .pr{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--hazard);}
+
+  .log{margin-top:22px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);max-height:120px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;padding:10px 14px;background:var(--panel);}
+  .log div{padding:2px 0;border-bottom:1px solid var(--line);}
+  .log div:last-child{border-bottom:none;}
+  footer{text-align:center;color:var(--muted);font-size:11px;margin-top:34px;letter-spacing:.5px;}
+</style>
+</head>
+<body>
+
+<div class="hazard-bar"></div>
+
+<nav class="topnav">
+  <div class="brand"><span class="brand-icon"><img src="casegold_logo.PNG" alt="Casegold" onerror="this.outerHTML='📦';"></span>Case<span class="accent">gold</span></div>
+  <div class="brand-socials">
+    <a href="https://discord.gg/CGmvDMAsnK" title="Discord" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg></a><span title="Instagram"><svg viewBox="0 0 24 24"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.72 3.72 0 01-1.38-.9 3.72 3.72 0 01-.9-1.38c-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.17 8.8 2.16 12 2.16zM12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.3-1.46.72-2.13 1.38C1.35 2.68.93 3.35.63 4.14c-.3.76-.5 1.63-.56 2.91C.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.28.26 2.15.56 2.91.3.79.72 1.46 1.38 2.13.67.67 1.34 1.08 2.13 1.38.76.3 1.63.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.28-.06 2.15-.26 2.91-.56.79-.3 1.46-.72 2.13-1.38.67-.67 1.08-1.34 1.38-2.13.3-.76.5-1.63.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.28-.26-2.15-.56-2.91a5.88 5.88 0 00-1.38-2.13A5.88 5.88 0 0019.86.63c-.76-.3-1.63-.5-2.91-.56C15.67.01 15.26 0 12 0zm0 5.84A6.16 6.16 0 1012 18.16 6.16 6.16 0 0012 5.84zm0 10.16A4 4 0 1112 8a4 4 0 010 8zm6.41-10.4a1.44 1.44 0 11-2.88 0 1.44 1.44 0 012.88 0z"/></svg></span><span title="TikTok"><svg viewBox="0 0 24 24"><path d="M16.6 5.82c-1.12-1.08-1.67-2.64-1.75-4.17H11.9c-.02.04-.02.09-.02.13.02 4.01.01 8.03.01 12.05-.01.4-.22.96-.41 1.29-.58.95-1.65 1.6-2.77 1.61-1.68.15-3.26-1.23-3.5-2.87-.01-.54-.07-1.1.14-1.61.25-.71.73-1.34 1.36-1.75.87-.6 2.03-.69 3.02-.37 0-1.48.06-2.96.04-4.44-2.17-.41-4.49.28-6.15 1.72-1.46 1.24-2.4 3.06-2.58 4.96-.02.49-.01.99.01 1.49.21 2.34 1.63 4.52 3.65 5.71 1.22.72 2.65 1.11 4.08 1.03 2.33-.04 4.6-1.29 5.91-3.21.81-1.15 1.27-2.54 1.35-3.94.03-2.91.01-5.83.02-8.75.52.34 1.05.67 1.62.93 1.31.62 2.76.92 4.2.97V6.34c-1.4-.15-2.85-.63-3.83-1.5-.09-.01-.09-.01 0 0z"/></svg></span>
+  </div>
+  <div class="nav-links">
+    <a class="nav-link" href="/">Skrzynki</a>
+    <a class="nav-link" href="/darmowe">Darmowe</a>
+    <a class="nav-link" href="/battle">Case Battle</a>
+    <a class="nav-link active" href="/upgrade">Upgrader</a>
+    <a class="nav-link" href="/zadania">Zadania</a>
+    <a class="nav-link" href="/equipment">Ekwipunek</a>
+  </div>
+  <div class="nav-right">
+    <button class="daily-btn" id="dailyBonusBtn">🎁 Daily Bonus</button>
+    <div class="wallet-chip">
+      <span class="wc-amount" id="balance">50,00 zł</span>
+    </div>
+    <div class="settings-wrap">
+      <button class="icon-btn" id="settingsBtn">⚙</button>
+      <div class="settings-menu" id="settingsMenu">
+        <button id="muteBtn">🔊 Dźwięk</button>
+        <button id="inventoryBtn">Ekwipunek</button>
+      </div>
+    </div>
+    <div class="avatar-wrap">
+      <div class="avatar">🙂</div>
+      <span class="lvl-badge">4</span>
+    </div>
+  </div>
+</nav>
+
+<div class="page-body">
+<div class="wrap">
+
+  <div class="page-title">
+    <h1>Ulepszenia <span>//</span> Skrzynki</h1>
+    <div class="sub">Wirtualna waluta. Zero realnej wartości. Tylko dla zabawy.</div>
+  </div>
+
+  <!-- ===================== UPGRADE PANEL ===================== -->
+  <div class="panel">
+    <div class="upgrade-grid">
+
+      <!-- LEFT: your item -->
+      <div>
+        <div class="col-title">Wybierz swoje przedmioty<span class="stitle-sub">Przedmioty do ulepszenia</span></div>
+        <div class="slot-box" id="inputSlot"><div class="empty-hint">Wybierz przedmiot<br>z ekwipunku poniżej</div></div>
+        <div class="funds-row">
+          <div class="funds-label">
+            <span>💰 Użyj środków</span>
+            <b id="fundsUsedLabel">0,00</b> / <span id="fundsMaxLabel">0,00 zł</span>
+            <button class="fmax" id="fundsMaxBtn">MAX</button>
+          </div>
+          <input type="range" id="fundsSlider" min="0" max="0" step="0.01" value="0">
+        </div>
+        <div class="total-row">Łącznie: <b id="inputTotalLabel">0,00 zł</b> (<span id="inputCountLabel">0</span> skiny)</div>
+      </div>
+
+      <!-- CENTER: wheel + controls -->
+      <div>
+        <div class="wheel-wrap">
+          <div class="wheel-dial" id="wheelDial">
+            <div class="wheel-colors" id="wheelColors"></div>
+            <div class="wheel-needle" id="wheelNeedle"></div>
+          </div>
+          <div class="wheel-center-text">
+            <div class="chance-value" id="chanceValue">0%</div>
+            <div class="chance-label">szansa na wygraną</div>
+          </div>
+        </div>
+        <div class="values-row">
+          <span id="valLeftShow">0,00 zł</span>
+          <span class="slash">/</span>
+          <span id="valRightShow">0,00 zł</span>
+          <button id="randomizeBtn" title="Losowy cel">⟳</button>
+        </div>
+        <div class="preset-row">
+          <button class="preset-btn" data-mult="2">x2</button>
+          <button class="preset-btn" data-mult="4">x4</button>
+          <button class="preset-btn" data-mult="8">x8</button>
+          <button class="chance-btn mid" data-chance="35">35%</button>
+          <button class="chance-btn risky" data-chance="5">5%</button>
+          <button class="chance-btn safe" data-chance="75">75%</button>
+        </div>
+        <div class="chance-slider-row">
+          <input type="range" id="chanceSlider" min="0" max="360" step="1" value="0">
+        </div>
+        <button class="upgrade-btn" id="upgradeBtn" disabled>Ulepsz</button>
+        <div class="outcome-banner" id="outcomeBanner"></div>
+      </div>
+
+      <!-- RIGHT: target item -->
+      <div>
+        <div class="col-title">Wybierz przedmioty<span class="stitle-sub">Które chcesz otrzymać</span></div>
+        <div class="slot-box" id="targetSlot"><div class="empty-hint">Wybierz przedmiot<br>z listy poniżej</div></div>
+        <div class="total-row">Łącznie: <b id="targetTotalLabel">0,00 zł</b> (<span id="targetCountLabel">0</span> skiny)</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===================== BROWSE PANELS ===================== -->
+  <div class="browse-grid">
+    <div class="browse-panel">
+      <div class="browse-head">
+        <h3>Mój ekwipunek <span id="invSelectedLabel">0 wybrano</span></h3>
+        <button class="sort-btn" id="invSortBtn">Cena ↓</button>
+      </div>
+      <div class="search-row">
+        <input type="text" id="invSearch" placeholder="🔍 Szukaj">
+      </div>
+      <div class="browse-grid-items" id="invGrid"></div>
+    </div>
+
+    <div class="browse-panel">
+      <div class="browse-head">
+        <h3>Przedmioty do otrzymania <span id="targetCountAll">(0)</span> <span id="targetSelectedLabel">0 wybrano</span></h3>
+        <button class="sort-btn" id="targetSortBtn">Cena ↑</button>
+      </div>
+      <div class="search-row">
+        <input type="text" id="targetSearch" placeholder="🔍 Szukaj">
+        <input type="number" id="targetMaxPrice" placeholder="Cena do">
+      </div>
+      <div class="browse-grid-items" id="targetGrid"></div>
+    </div>
+  </div>
+
+  <div class="log" id="log"></div>
+  <footer>Symulacja edukacyjna / rozrywkowa — fikcyjna waluta, brak realnych transakcji.</footer>
+</div>
+</div>
+
+<script src="skin-images.js"></script>
+<script src="rarity-data.js"></script>
+<script src="nav-i18n.js"></script>
+<script>
+/* =========================================================================
+   PULA PRZEDMIOTÓW DO OTRZYMANIA — połączone pule wszystkich skrzynek
+   (te same przedmioty co w skrzynkach / bitwach), posortowane po cenie.
+   ========================================================================= */
+const UPGRADE_TARGET_ITEMS = [
+  {weapon:"MP9", skin:"Sand Dashed", wear:"FT", price:0.06},
+  {weapon:"P250", skin:"Sand Dune", wear:"FT", price:0.06},
+  {weapon:"MP9", skin:"Buff Blue", wear:"WW", price:0.06},
+  {weapon:"SG 553", skin:"Waves Perforated", wear:"BS", price:0.06},
+  {weapon:"SCAR-20", skin:"Contractor", wear:"FT", price:0.24},
+  {weapon:"MP5-SD", skin:"Savannah Halftone", wear:"WW", price:0.26},
+  {weapon:"MP5-SD", skin:"Liquidation", wear:"WW", price:0.32},
+  {weapon:"Glock-18", skin:"Ocean Topo", wear:"WW", price:0.32},
+  {weapon:"MAC-10", skin:"Ensnared", wear:"WW", price:0.32},
+  {weapon:"AUG", skin:"Condemned", wear:"FT", price:0.4},
+  {weapon:"MP9", skin:"Black Sand", wear:"FT", price:0.83},
+  {weapon:"Sticker", skin:"Vice Cursor", wear:"-", price:0.83},
+  {weapon:"MAC-10", skin:"Oceanic", wear:"BS", price:0.9},
+  {weapon:"MP5-SD", skin:"Co-Processor", wear:"MW", price:0.92},
+  {weapon:"Glock-18", skin:"Off World", wear:"WW", price:0.96},
+  {weapon:"P90", skin:"Off World", wear:"FT", price:1.02},
+  {weapon:"P90", skin:"Grim", wear:"FT", price:1.12},
+  {weapon:"XM1014", skin:"Gum Wall Camo", wear:"FN", price:1.15},
+  {weapon:"AUG", skin:"Triqua", wear:"FT", price:1.16},
+  {weapon:"Tec-9", skin:"Fubar", wear:"FT", price:1.2},
+  {weapon:"Glock-18", skin:"Off World", wear:"FT", price:1.24},
+  {weapon:"UMP-45", skin:"Labyrinth", wear:"FT", price:1.28},
+  {weapon:"USP-S", skin:"Check Engine", wear:"FT", price:1.32},
+  {weapon:"P90", skin:"Facility Negative", wear:"MW", price:1.4},
+  {weapon:"FAMAS", skin:"Survivor Z", wear:"FT", price:1.56},
+  {weapon:"MAC-10", skin:"Classic Crate", wear:"FT", price:1.6},
+  {weapon:"Five-SeveN", skin:"Capillary", wear:"BS", price:1.6},
+  {weapon:"G3SG1", skin:"Orange Crash", wear:"FT", price:1.64},
+  {weapon:"Five-SeveN", skin:"Capillary", wear:"FT", price:1.64},
+  {weapon:"MAC-10", skin:"Oceanic", wear:"FT", price:1.66},
+  {weapon:"P250", skin:"Valence", wear:"FT", price:1.68},
+  {weapon:"SSG 08", skin:"Abyss", wear:"FT", price:1.72},
+  {weapon:"Desert Eagle", skin:"Oxide Blaze", wear:"FT", price:1.72},
+  {weapon:"Desert Eagle", skin:"Urban Rubble", wear:"FT", price:1.84},
+  {weapon:"SG 553", skin:"Aerial", wear:"WW", price:1.84},
+  {weapon:"MP7", skin:"Akoben", wear:"FT", price:1.88},
+  {weapon:"SCAR-20", skin:"Blueprint", wear:"MW", price:1.88},
+  {weapon:"P2000", skin:"Oceanic", wear:"MW", price:1.92},
+  {weapon:"PP-Bizon", skin:"Jungle Slipstream", wear:"FT", price:1.96},
+  {weapon:"MAG-7", skin:"Wildwood", wear:"FT", price:1.98},
+  {weapon:"AUG", skin:"Amber Slipstream", wear:"FT", price:2.05},
+  {weapon:"M249", skin:"Downtown", wear:"BS", price:2.05},
+  {weapon:"UMP-45", skin:"Arctic Wolf", wear:"FT", price:2.16},
+  {weapon:"M4A1-S", skin:"Nitro", wear:"FT", price:2.16},
+  {weapon:"G3SG1", skin:"Orange Crash", wear:"FN", price:2.2},
+  {weapon:"M249", skin:"System Lock", wear:"WW", price:2.2},
+  {weapon:"UMP-45", skin:"Briefing", wear:"MW", price:2.32},
+  {weapon:"MP7", skin:"Urban Hazard", wear:"FN", price:2.32},
+  {weapon:"MAG-7", skin:"SWAG-7", wear:"FT", price:2.32},
+  {weapon:"Glock-18", skin:"Catacombs", wear:"FT", price:2.36},
+  {weapon:"Desert Eagle", skin:"Urban Rubble", wear:"WW", price:2.64},
+  {weapon:"Glock-18", skin:"Warhawk", wear:"MW", price:2.72},
+  {weapon:"USP-S", skin:"Tropical Breeze", wear:"FT", price:2.75},
+  {weapon:"Glock-18", skin:"Ocean Topo", wear:"FN", price:2.82},
+  {weapon:"P250", skin:"X-Ray", wear:"MW", price:2.82},
+  {weapon:"Tec-9", skin:"Ice Cap", wear:"MW", price:2.84},
+  {weapon:"Five-SeveN", skin:"Scumbria", wear:"BS", price:2.92},
+  {weapon:"Sticker", skin:"Zeusception (Holo)", wear:"-", price:3.06},
+  {weapon:"P2000", skin:"Oceanic", wear:"FT", price:3.16},
+  {weapon:"MP7", skin:"Cirrus", wear:"FT", price:3.2},
+  {weapon:"USP-S", skin:"Torque", wear:"FT", price:3.2},
+  {weapon:"Tec-9", skin:"Jambiya", wear:"FT", price:3.28},
+  {weapon:"Sticker", skin:"Ribbon Tie", wear:"-", price:3.57},
+  {weapon:"Sticker", skin:"Gold Web", wear:"-", price:3.7},
+  {weapon:"Sticker", skin:"Merietta (Holo)", wear:"-", price:3.7},
+  {weapon:"R8 Revolver", skin:"Crimson Web", wear:"BS", price:3.84},
+  {weapon:"Galil AR", skin:"Rocket Pop", wear:"WW", price:3.91},
+  {weapon:"AWP", skin:"Pit Viper", wear:"FT", price:3.92},
+  {weapon:"Glock-18", skin:"Moonrise", wear:"FT", price:4.04},
+  {weapon:"CZ75-Auto", skin:"Tacticat", wear:"FT", price:4.08},
+  {weapon:"UMP-45", skin:"Exposure", wear:"FT", price:4.08},
+  {weapon:"Sticker", skin:"Nelu the Bear", wear:"-", price:4.27},
+  {weapon:"Sticker", skin:"Get Smoked (Holo)", wear:"-", price:4.27},
+  {weapon:"Glock-18", skin:"Bunsen Burner", wear:"FT", price:4.32},
+  {weapon:"USP-S", skin:"Royal Guard", wear:"FT", price:4.42},
+  {weapon:"Zeus x27", skin:"Earth Mandala", wear:"FT", price:4.55},
+  {weapon:"Galil AR", skin:"Rocket Pop", wear:"FT", price:5},
+  {weapon:"Glock-18", skin:"Weasel", wear:"FT", price:5.28},
+  {weapon:"CZ75-Auto", skin:"Pole Position", wear:"FT", price:5.4},
+  {weapon:"Dual Berettas", skin:"Flora Carnivora", wear:"FT", price:5.76},
+  {weapon:"Negev", skin:"Loudmouth", wear:"FT", price:5.83},
+  {weapon:"SSG 08", skin:"Ghost Crusader", wear:"FT", price:6.04},
+  {weapon:"Sticker", skin:"Cheongsam (Holo)", wear:"-", price:6.05},
+  {weapon:"Negev", skin:"Power Loader", wear:"WW", price:6.08},
+  {weapon:"FAMAS", skin:"Neural Net", wear:"FT", price:6.21},
+  {weapon:"AK-47", skin:"Elite Build", wear:"WW", price:6.4},
+  {weapon:"AWP", skin:"Pit Viper", wear:"MW", price:6.52},
+  {weapon:"Sticker", skin:"Clavis (Holo)", wear:"-", price:6.56},
+  {weapon:"P2000", skin:"Handgun", wear:"WW", price:6.59},
+  {weapon:"PP-Bizon", skin:"Cobalt Halftone", wear:"FT", price:6.6},
+  {weapon:"MAC-10", skin:"Last Dive", wear:"MW", price:6.6},
+  {weapon:"MP7", skin:"Special Delivery", wear:"FT", price:6.66},
+  {weapon:"SG 553", skin:"Triarch", wear:"FT", price:6.79},
+  {weapon:"MP7", skin:"Amberline", wear:"FT", price:6.79},
+  {weapon:"Sticker", skin:"Lorena (Holo)", wear:"-", price:6.82},
+  {weapon:"Galil AR", skin:"Sky Mandala", wear:"FT", price:6.91},
+  {weapon:"Glock-18", skin:"Moonrise", wear:"MW", price:7},
+  {weapon:"SSG 08", skin:"Slashed", wear:"WW", price:7.36},
+  {weapon:"MP9", skin:"Ruby Poison Dart", wear:"FT", price:7.36},
+  {weapon:"MP9", skin:"Urban Sovereign", wear:"MW", price:7.56},
+  {weapon:"P90", skin:"Elite Build", wear:"FT", price:7.76},
+  {weapon:"Five-SeveN", skin:"Buddy", wear:"FT", price:7.87},
+  {weapon:"UMP-45", skin:"Scaffold", wear:"BS", price:7.87},
+  {weapon:"P90", skin:"Chopper", wear:"MW", price:8.04},
+  {weapon:"M249", skin:"Emerald Poison Dart", wear:"FT", price:8.32},
+  {weapon:"Glock-18", skin:"Weasel", wear:"MW", price:8.36},
+  {weapon:"AK-47", skin:"Elite Build", wear:"FT", price:8.48},
+  {weapon:"FAMAS", skin:"Hexane", wear:"FT", price:8.52},
+  {weapon:"P90", skin:"Chopper", wear:"FT", price:8.6},
+  {weapon:"PP-Bizon", skin:"Embargo", wear:"FT", price:8.8},
+  {weapon:"Desert Eagle", skin:"Firebreathing", wear:"MW", price:8.84},
+  {weapon:"Tec-9", skin:"Mummy's Rot", wear:"FT", price:8.96},
+  {weapon:"P2000", skin:"Royal Baroque", wear:"FN", price:9.09},
+  {weapon:"M4A1-S", skin:"Liquidation", wear:"WW", price:9.09},
+  {weapon:"M4A1-S", skin:"Solitude", wear:"WW", price:9.28},
+  {weapon:"Sticker", skin:"Sherry (Holo)", wear:"-", price:9.37},
+  {weapon:"CZ75-Auto", skin:"Tigris", wear:"FT", price:9.44},
+  {weapon:"P250", skin:"Supernova", wear:"FT", price:9.64},
+  {weapon:"CZ75-Auto", skin:"Pole Position", wear:"MW", price:10},
+  {weapon:"Five-SeveN", skin:"Fraise Crane", wear:"MW", price:10.18},
+  {weapon:"AWP", skin:"Worm God", wear:"FT", price:10.2},
+  {weapon:"UMP-45", skin:"Moonrise", wear:"FN", price:10.2},
+  {weapon:"AWP", skin:"Phobos", wear:"FT", price:10.44},
+  {weapon:"Five-SeveN", skin:"Urban Hazard", wear:"MW", price:10.84},
+  {weapon:"Nova", skin:"Koi", wear:"FT", price:11.12},
+  {weapon:"Desert Eagle", skin:"Mint Fan", wear:"FT", price:11.2},
+  {weapon:"MAC-10", skin:"Ultraviolet", wear:"FT", price:11.48},
+  {weapon:"AWP", skin:"Worm God", wear:"MW", price:12},
+  {weapon:"Galil AR", skin:"Stone Cold", wear:"FT", price:12.08},
+  {weapon:"Sawed-Off", skin:"Serenity", wear:"BS", price:12.29},
+  {weapon:"Sticker", skin:"Wildcard (Gold) | Shanghai 2024", wear:"-", price:13.41},
+  {weapon:"CZ75-Auto", skin:"Tigris", wear:"MW", price:13.6},
+  {weapon:"Sticker", skin:"Unicorn (Holo)", wear:"-", price:14.02},
+  {weapon:"Sticker", skin:"Hobbit (H)", wear:"-", price:14.04},
+  {weapon:"AK-47", skin:"Emerald Pinstripe", wear:"FT", price:14.24},
+  {weapon:"USP-S", skin:"Guardian", wear:"MW", price:14.4},
+  {weapon:"Tec-9", skin:"Sandstorm", wear:"MW", price:14.64},
+  {weapon:"AK-47", skin:"Elite Build", wear:"MW", price:14.84},
+  {weapon:"M4A4", skin:"Evil Daimyo", wear:"FT", price:15.76},
+  {weapon:"M4A1-S", skin:"Flashback", wear:"WW", price:15.76},
+  {weapon:"USP-S", skin:"Cyrex", wear:"FT", price:15.96},
+  {weapon:"Sticker", skin:"Blue Gem (Glitter)", wear:"-", price:16.12},
+  {weapon:"M4A1-S", skin:"Flashback", wear:"FT", price:16.52},
+  {weapon:"P250", skin:"Vino Primo", wear:"FT", price:18.63},
+  {weapon:"M4A1-S", skin:"Briefing", wear:"FT", price:19},
+  {weapon:"P250", skin:"Wingshot", wear:"FT", price:19.59},
+  {weapon:"Sticker", skin:"ZywOo (H)", wear:"-", price:20.2},
+  {weapon:"Glock-18", skin:"Vogue", wear:"FT", price:20.62},
+  {weapon:"Zeus x27", skin:"Olympus", wear:"WW", price:20.68},
+  {weapon:"Sawed-Off", skin:"Kiss♥Love", wear:"FT", price:20.74},
+  {weapon:"M4A4", skin:"Griffin", wear:"FT", price:20.76},
+  {weapon:"USP-S", skin:"Cyrex", wear:"MW", price:21.32},
+  {weapon:"MAG-7", skin:"Sand Dune", wear:"BS", price:22.47},
+  {weapon:"M4A1-S", skin:"Blood Tiger", wear:"MW", price:23.52},
+  {weapon:"Galil AR", skin:"Galigator", wear:"FT", price:24.12},
+  {weapon:"Sticker", skin:"Kawaii CT (Holo)", wear:"-", price:24.47},
+  {weapon:"CZ75-Auto", skin:"Hexane", wear:"FN", price:24.56},
+  {weapon:"Tec-9", skin:"Isaac", wear:"MW", price:24.72},
+  {weapon:"Sticker", skin:"V For Victory (Holo)", wear:"-", price:26.12},
+  {weapon:"AK-47", skin:"Ice Coaled", wear:"FT", price:27.15},
+  {weapon:"Desert Eagle", skin:"Mecha Industries", wear:"FT", price:27.32},
+  {weapon:"AK-47", skin:"Searing Rage", wear:"FT", price:27.59},
+  {weapon:"Sticker", skin:"Loving Eyes (Holo)", wear:"-", price:27.78},
+  {weapon:"Zeus x27", skin:"Olympus", wear:"MW", price:29.19},
+  {weapon:"MP9", skin:"Mount Fuji", wear:"BS", price:29.58},
+  {weapon:"M249", skin:"Emerald Poison Dart", wear:"FN", price:30.41},
+  {weapon:"G3SG1", skin:"Dream Glade", wear:"FT", price:30.67},
+  {weapon:"FAMAS", skin:"Eye of Athena", wear:"FT", price:30.73},
+  {weapon:"Sticker", skin:"Lotus (Glitter)", wear:"-", price:31.67},
+  {weapon:"Sticker", skin:"Imperial Esports (H)", wear:"-", price:32.24},
+  {weapon:"Sticker", skin:"Kawaii T (Holo)", wear:"-", price:33.58},
+  {weapon:"USP-S", skin:"Guardian", wear:"FN", price:33.84},
+  {weapon:"PP-Bizon", skin:"Antique", wear:"FT", price:34.38},
+  {weapon:"G3SG1", skin:"Flux", wear:"FT", price:34.48},
+  {weapon:"Dual Berettas", skin:"Urban Shock", wear:"FN", price:36.96},
+  {weapon:"Sticker", skin:"m0NESY (H)", wear:"-", price:38.96},
+  {weapon:"MAC-10", skin:"Saibā Oni", wear:"FT", price:39.95},
+  {weapon:"M249", skin:"Nebula Crusader", wear:"FN", price:41.36},
+  {weapon:"M4A1-S", skin:"Basilisk", wear:"FT", price:41.44},
+  {weapon:"MP7", skin:"Nemesis", wear:"MW", price:43.47},
+  {weapon:"USP-S", skin:"Jawbreaker", wear:"MW", price:44.18},
+  {weapon:"M4A1-S", skin:"Basilisk", wear:"MW", price:45.36},
+  {weapon:"Sticker", skin:"sk0R (G)", wear:"-", price:46.04},
+  {weapon:"AK-47", skin:"Predator", wear:"FT", price:48.48},
+  {weapon:"P90", skin:"ScaraB Rush", wear:"WW", price:50.26},
+  {weapon:"M4A1-S", skin:"Nightmare", wear:"WW", price:50.64},
+  {weapon:"M4A1-S", skin:"Black Lotus", wear:"FT", price:51.03},
+  {weapon:"M4A1-S", skin:"Black Lotus", wear:"MW", price:51.03},
+  {weapon:"Desert Eagle", skin:"Crimson Web", wear:"FT", price:56.72},
+  {weapon:"AK-47", skin:"Nouveau Rouge", wear:"WW", price:57.43},
+  {weapon:"MAG-7", skin:"Core Breach", wear:"FN", price:57.52},
+  {weapon:"FAMAS", skin:"Djinn", wear:"WW", price:58.32},
+  {weapon:"Five-SeveN", skin:"Monkey Business", wear:"FT", price:60.76},
+  {weapon:"Glock-18", skin:"Ramese's Reach", wear:"FT", price:60.89},
+  {weapon:"Sticker", skin:"ropz (H)", wear:"-", price:61.48},
+  {weapon:"Tec-9", skin:"Fuel Injector", wear:"BS", price:61.78},
+  {weapon:"AUG", skin:"Fleet Flock", wear:"MW", price:63.64},
+  {weapon:"AK-47", skin:"Jungle Spray", wear:"FT", price:66.52},
+  {weapon:"Five-SeveN", skin:"Case Hardened", wear:"FT", price:66.84},
+  {weapon:"SG 553", skin:"Colony IV", wear:"FT", price:67.03},
+  {weapon:"MAC-10", skin:"Nuclear Garden", wear:"BS", price:67.4},
+  {weapon:"Sticker", skin:"Ninjas in Pyjamas | Katowice 2015", wear:"-", price:72.7},
+  {weapon:"AK-47", skin:"Blue Laminate", wear:"FT", price:75.92},
+  {weapon:"MAC-10", skin:"Amber Fade", wear:"MW", price:76.32},
+  {weapon:"Desert Eagle", skin:"Heirloom", wear:"WW", price:84.58},
+  {weapon:"MAC-10", skin:"Toybox", wear:"FT", price:84.77},
+  {weapon:"Sticker", skin:"Rare Atom (Holo) | Shanghai 2024", wear:"-", price:87.29},
+  {weapon:"Five-SeveN", skin:"Copper Galaxy", wear:"FT", price:87.39},
+  {weapon:"AWP", skin:"Acheron", wear:"FN", price:87.84},
+  {weapon:"AK-47", skin:"Point Disarray", wear:"FT", price:90.21},
+  {weapon:"Sticker", skin:"Toxic Flow (Holo)", wear:"-", price:91.81},
+  {weapon:"FAMAS", skin:"Styx", wear:"FT", price:94.18},
+  {weapon:"SSG 08", skin:"Big Iron", wear:"FT", price:94.18},
+  {weapon:"Galil AR", skin:"Sandstorm", wear:"FT", price:96.42},
+  {weapon:"AK-47", skin:"Point Disarray", wear:"WW", price:97.76},
+  {weapon:"Sticker", skin:"Virtus.pro | Katowice 2015", wear:"-", price:98.06},
+  {weapon:"USP-S", skin:"Overgrowth", wear:"FT", price:101.48},
+  {weapon:"Desert Eagle", skin:"Conspiracy", wear:"MW", price:102.4},
+  {weapon:"Five-SeveN", skin:"Fowl Play", wear:"MW", price:106.64},
+  {weapon:"Sticker", skin:"Fnatic | Katowice 2015", wear:"-", price:107.29},
+  {weapon:"Sticker", skin:"s1mple (H)", wear:"-", price:108.32},
+  {weapon:"M4A1-S", skin:"Blood Tiger", wear:"FN", price:112.28},
+  {weapon:"AK-47", skin:"Frontside Misty", wear:"BS", price:112.55},
+  {weapon:"M4A1-S", skin:"Decimator", wear:"FN", price:113},
+  {weapon:"Glock-18", skin:"Water Elemental", wear:"MW", price:114.41},
+  {weapon:"AK-47", skin:"Frontside Misty", wear:"WW", price:115.75},
+  {weapon:"CZ75-Auto", skin:"The Fuschia Is Now", wear:"FT", price:116.78},
+  {weapon:"AWP", skin:"Corticera", wear:"MW", price:123.32},
+  {weapon:"AK-47", skin:"Orbit Mk01", wear:"FT", price:125.28},
+  {weapon:"Tec-9", skin:"Toxic", wear:"FT", price:126.84},
+  {weapon:"Desert Eagle", skin:"Midnight Storm", wear:"BS", price:128.05},
+  {weapon:"Desert Eagle", skin:"Conspiracy", wear:"FN", price:141.48},
+  {weapon:"Sticker", skin:"NQZ (H)", wear:"-", price:144.88},
+  {weapon:"FAMAS", skin:"Styx", wear:"MW", price:148.8},
+  {weapon:"G3SG1", skin:"Flux", wear:"FN", price:155.2},
+  {weapon:"AWP", skin:"Hyper Beast", wear:"WW", price:161.52},
+  {weapon:"MP7", skin:"Ocean Foam", wear:"MW", price:162.68},
+  {weapon:"AWP", skin:"Corticera", wear:"FT", price:162.88},
+  {weapon:"M4A4", skin:"Faded Zebra", wear:"MW", price:164.92},
+  {weapon:"Sticker", skin:"Natus Vincere | Katowice 2015", wear:"-", price:166.68},
+  {weapon:"AWP", skin:"Pink DDPAT", wear:"FT", price:169.2},
+  {weapon:"Sticker", skin:"Counter Logic Gaming | Katowice 2015", wear:"-", price:170.31},
+  {weapon:"Five-SeveN", skin:"Fairy Tale", wear:"FT", price:171.24},
+  {weapon:"Sticker", skin:"Liquid Fire (Holo)", wear:"-", price:176.87},
+  {weapon:"MP9", skin:"Setting Sun", wear:"FT", price:177.08},
+  {weapon:"M4A4", skin:"Hellish", wear:"FT", price:182.66},
+  {weapon:"M4A1-S", skin:"Bright Water", wear:"FT", price:184.16},
+  {weapon:"Sticker", skin:"Keyd Stars | Katowice 2015", wear:"-", price:186.17},
+  {weapon:"Sticker", skin:"Cloud9 G2A | Katowice 2015", wear:"-", price:192.23},
+  {weapon:"M4A4", skin:"Temukau", wear:"FT", price:197.26},
+  {weapon:"FAMAS", skin:"Commemoration", wear:"FT", price:201.55},
+  {weapon:"AK-47", skin:"Blue Laminate", wear:"FN", price:203.52},
+  {weapon:"Desert Eagle", skin:"Printstream", wear:"FT", price:221.2},
+  {weapon:"USP-S", skin:"Printstream", wear:"FT", price:223.63},
+  {weapon:"Sticker", skin:"Avangar (F)", wear:"-", price:227.8},
+  {weapon:"Sticker", skin:"CeRq (G)", wear:"-", price:234.64},
+  {weapon:"Glock-18", skin:"Brass", wear:"WW", price:243.87},
+  {weapon:"Sticker", skin:"Flipsid3 Tactics | Katowice 2015", wear:"-", price:260.72},
+  {weapon:"AWP", skin:"Wildfire", wear:"BS", price:264.03},
+  {weapon:"Sticker", skin:"Bravado Gaming", wear:"-", price:268.16},
+  {weapon:"AK-47", skin:"Inheritance", wear:"FT", price:275.88},
+  {weapon:"Desert Eagle", skin:"Printstream", wear:"MW", price:282.47},
+  {weapon:"Bowie Knife", skin:"Bright Water", wear:"FT", price:286.16},
+  {weapon:"Sticker", skin:"Doppler Poison Frog (Foil)", wear:"-", price:289.33},
+  {weapon:"AWP", skin:"Printstream", wear:"FT", price:290.48},
+  {weapon:"CZ75-Auto", skin:"Emerald", wear:"FN", price:291.18},
+  {weapon:"Sticker", skin:"Happy (F)", wear:"-", price:296.4},
+  {weapon:"Sticker", skin:"FalleN (H)", wear:"-", price:305.28},
+  {weapon:"Huntsman Knife", skin:"Bright Water", wear:"FT", price:308.68},
+  {weapon:"FAMAS", skin:"Djinn", wear:"FN", price:309.4},
+  {weapon:"Gut Knife", skin:"Black Laminate", wear:"FT", price:309.88},
+  {weapon:"Bowie Knife", skin:"Ultraviolet", wear:"FT", price:321.96},
+  {weapon:"Sticker", skin:"Hobbit (G)", wear:"-", price:326.4},
+  {weapon:"M4A1-S", skin:"Dark Water", wear:"FT", price:326.68},
+  {weapon:"Huntsman Knife", skin:"Ultraviolet", wear:"FT", price:327.92},
+  {weapon:"USP-S", skin:"Purple DDPAT", wear:"FN", price:335.56},
+  {weapon:"Dual Berettas", skin:"Emerald", wear:"FN", price:340.99},
+  {weapon:"M4A4", skin:"The Emperor", wear:"FT", price:343.23},
+  {weapon:"USP-S", skin:"Orange Anolis", wear:"FT", price:357.83},
+  {weapon:"AK-47", skin:"Nightwish", wear:"MW", price:369.48},
+  {weapon:"USP-S", skin:"Printstream", wear:"MW", price:375.24},
+  {weapon:"AWP", skin:"Green Energy", wear:"FN", price:376.97},
+  {weapon:"Desert Eagle", skin:"Ocean Drive", wear:"WW", price:381.84},
+  {weapon:"P250", skin:"Apep's Curse", wear:"FT", price:383.5},
+  {weapon:"Five-SeveN", skin:"Fairy Tale", wear:"MW", price:384.21},
+  {weapon:"Sticker", skin:"HellRaisers | Katowice 2015", wear:"-", price:390.57},
+  {weapon:"MAC-10", skin:"Gold Brick", wear:"FT", price:396.95},
+  {weapon:"Navaja Knife", skin:"Case Hardened", wear:"BS", price:402.24},
+  {weapon:"M4A1-S", skin:"Golden Coil", wear:"FT", price:406.81},
+  {weapon:"Five-SeveN", skin:"Crimson Blossom", wear:"MW", price:433.52},
+  {weapon:"Glock-18", skin:"Gamma Doppler Phase 4", wear:"WW", price:444.68},
+  {weapon:"AK-47", skin:"Neon Rider", wear:"MW", price:449.64},
+  {weapon:"Galil AR", skin:"Phoenix Blacklight", wear:"FT", price:462.17},
+  {weapon:"M4A4", skin:"Royal Paladin", wear:"FT", price:468.91},
+  {weapon:"AWP", skin:"Printstream", wear:"MW", price:469.42},
+  {weapon:"CZ75-Auto", skin:"Victoria", wear:"WW", price:470.83},
+  {weapon:"Sawed-Off", skin:"The Kraken", wear:"MW", price:478.32},
+  {weapon:"P2000", skin:"Fire Elemental", wear:"FT", price:482.16},
+  {weapon:"FAMAS", skin:"Prime Conspiracy", wear:"MW", price:489.12},
+  {weapon:"Huntsman Knife", skin:"Damascus Steel", wear:"MW", price:499.56},
+  {weapon:"Gut Knife", skin:"Autotronic", wear:"FT", price:506.4},
+  {weapon:"AK-47", skin:"Jaguar", wear:"FN", price:510.4},
+  {weapon:"Shadow Daggers", skin:"Marble Fade", wear:"FN", price:510.44},
+  {weapon:"Sticker", skin:"Titan | Katowice 2015", wear:"-", price:525.83},
+  {weapon:"Gut Knife", skin:"Lore", wear:"MW", price:529.12},
+  {weapon:"Sticker", skin:"London Conspiracy (H)", wear:"-", price:530.84},
+  {weapon:"Bowie Knife", skin:"Damascus Steel", wear:"FN", price:541.96},
+  {weapon:"USP-S", skin:"Ancient Visions", wear:"FN", price:545.67},
+  {weapon:"M4A4", skin:"Neo-Noir", wear:"FN", price:547.32},
+  {weapon:"MAC-10", skin:"Fade", wear:"FN", price:556.28},
+  {weapon:"AK-47", skin:"Aquamarine Revenge", wear:"FN", price:584.97},
+  {weapon:"Gut Knife", skin:"Marble Fade", wear:"FN", price:593.2},
+  {weapon:"Bowie Knife", skin:"Crimson Web", wear:"WW", price:598.28},
+  {weapon:"Sticker", skin:"EliGE (F)", wear:"-", price:610.08},
+  {weapon:"Hand Wraps", skin:"Desert Shamagh", wear:"FN", price:615.84},
+  {weapon:"Tec-9", skin:"Terrace", wear:"FT", price:631.76},
+  {weapon:"USP-S", skin:"Kill Confirmed", wear:"MW", price:635.63},
+  {weapon:"Glock-18", skin:"AXIA", wear:"FN", price:645.04},
+  {weapon:"Flip Knife", skin:"Black Laminate", wear:"MW", price:670.84},
+  {weapon:"M4A1-S", skin:"Chantico's Fire", wear:"FT", price:676.6},
+  {weapon:"Bowie Knife", skin:"Tiger Tooth", wear:"FN", price:679.28},
+  {weapon:"Survival Knife", skin:"Tiger Tooth", wear:"FN", price:684.41},
+  {weapon:"P2000", skin:"Ocean Foam", wear:"FN", price:696.57},
+  {weapon:"Shadow Daggers", skin:"Doppler", wear:"FN", price:698.52},
+  {weapon:"Sticker", skin:"3DMAX | Katowice 2015", wear:"-", price:698.69},
+  {weapon:"P90", skin:"Emerald Dragon", wear:"FT", price:714.89},
+  {weapon:"Sticker", skin:"LGB eSports | Katowice 2015", wear:"-", price:722.33},
+  {weapon:"Shadow Daggers", skin:"Fade", wear:"FN", price:727.16},
+  {weapon:"M4A1-S", skin:"Master Piece", wear:"BS", price:731.22},
+  {weapon:"Sticker", skin:"HellRaisers (H)", wear:"-", price:775.36},
+  {weapon:"Huntsman Knife", skin:"Tiger Tooth", wear:"FN", price:800.08},
+  {weapon:"Flip Knife", skin:"Lore", wear:"FT", price:804.4},
+  {weapon:"Sticker", skin:"rox (Holo) | Antwerp 2022", wear:"-", price:810.06},
+  {weapon:"MAG-7", skin:"Counter Terrace", wear:"MW", price:811.72},
+  {weapon:"Sticker", skin:"Ninjas in Pyjamas (Holo) | Katowice 2015", wear:"-", price:818.02},
+  {weapon:"Hand Wraps", skin:"CAUTION!", wear:"FT", price:828.66},
+  {weapon:"Gut Knife", skin:"Gamma Doppler", wear:"FN", price:829.84},
+  {weapon:"Flip Knife", skin:"Autotronic", wear:"FT", price:831.28},
+  {weapon:"Galil AR", skin:"Aqua Terrace", wear:"FT", price:842.52},
+  {weapon:"Gut Knife", skin:"Fade", wear:"FN", price:866.31},
+  {weapon:"AK-47", skin:"Case Hardened", wear:"BS", price:867.2},
+  {weapon:"Flip Knife", skin:"Crimson Web", wear:"FT", price:869.28},
+  {weapon:"Bowie Knife", skin:"Marble Fade", wear:"FN", price:880.88},
+  {weapon:"AWP", skin:"Graphite", wear:"FN", price:942.16},
+  {weapon:"Sticker", skin:"Fnatic (Holo) | Katowice 2015", wear:"-", price:959.28},
+  {weapon:"AWP", skin:"Containment Breach", wear:"FN", price:969.9},
+  {weapon:"Huntsman Knife", skin:"Slaughter", wear:"FT", price:975.24},
+  {weapon:"Huntsman Knife", skin:"Marble Fade", wear:"FN", price:980.04},
+  {weapon:"AWP", skin:"Silk Tiger", wear:"BS", price:994.6},
+  {weapon:"AK-47", skin:"Panthera onca", wear:"BS", price:998.76},
+  {weapon:"Sticker", skin:"kennyS (G)", wear:"-", price:1017.48},
+  {weapon:"Gut Knife", skin:"Gamma Doppler Phase 1", wear:"FN", price:1035.33},
+  {weapon:"Bayonet", skin:"Ultraviolet", wear:"MW", price:1051.24},
+  {weapon:"Sticker", skin:"Keyd Stars (H)", wear:"-", price:1064.88},
+  {weapon:"Bowie Knife", skin:"Fade", wear:"FN", price:1094.8},
+  {weapon:"Bowie Knife", skin:"Slaughter", wear:"FT", price:1101.92},
+  {weapon:"FAMAS", skin:"Waters of Nephthys", wear:"FT", price:1130.02},
+  {weapon:"Bayonet", skin:"Case Hardened", wear:"FT", price:1141.48},
+  {weapon:"AK-47", skin:"Black Laminate", wear:"FN", price:1166.6},
+  {weapon:"M4A1-S", skin:"Printstream", wear:"FT", price:1167.67},
+  {weapon:"Bayonet", skin:"Lore", wear:"FT", price:1197.2},
+  {weapon:"Hand Wraps", skin:"Cobalt Skulls", wear:"WW", price:1204.41},
+  {weapon:"Sticker", skin:"GeT_RiGhT (G)", wear:"-", price:1208.32},
+  {weapon:"Flip Knife", skin:"Slaughter", wear:"FT", price:1216.28},
+  {weapon:"Huntsman Knife", skin:"Fade", wear:"FN", price:1230.04},
+  {weapon:"Flip Knife", skin:"Marble Fade", wear:"FN", price:1262.92},
+  {weapon:"Bayonet", skin:"Autotronic", wear:"FT", price:1379.48},
+  {weapon:"Shadow Daggers", skin:"Gamma Doppler Emerald", wear:"FN", price:1393.67},
+  {weapon:"AK-47", skin:"B the Monster", wear:"MW", price:1412.49},
+  {weapon:"Huntsman Knife", skin:"Doppler", wear:"FN", price:1429.84},
+  {weapon:"Bayonet", skin:"Slaughter", wear:"FT", price:1484.48},
+  {weapon:"Galil AR", skin:"Phoenix Blacklight", wear:"FN", price:1506.67},
+  {weapon:"AWP", skin:"Printstream", wear:"FN", price:1534.91},
+  {weapon:"Sticker", skin:"3DMAX (Holo) | Katowice 2015", wear:"-", price:1538.95},
+  {weapon:"Flip Knife", skin:"Doppler", wear:"FN", price:1547.56},
+  {weapon:"Flip Knife", skin:"Fade", wear:"FN", price:1568.16},
+  {weapon:"Sport Gloves", skin:"Violet Beadwork", wear:"FN", price:1599.89},
+  {weapon:"Nomad Knife", skin:"Fade", wear:"FN", price:1622.2},
+  {weapon:"M4A1-S", skin:"Printstream", wear:"MW", price:1694.96},
+  {weapon:"Sticker", skin:"LGB eSports (F)", wear:"-", price:1720.08},
+  {weapon:"Classic Knife", skin:"Fade", wear:"FN", price:1730.31},
+  {weapon:"M9 Bayonet", skin:"Bright Water", wear:"FT", price:1733.44},
+  {weapon:"AUG", skin:"Flame Jörmungandr", wear:"FN", price:1750.76},
+  {weapon:"M4A1-S", skin:"Fade", wear:"FN", price:1787.29},
+  {weapon:"Bayonet", skin:"Marble Fade", wear:"FN", price:1798.6},
+  {weapon:"Sticker", skin:"Virtus.pro (Holo) | Katowice 2015", wear:"-", price:1865.55},
+  {weapon:"M4A4", skin:"Eye of Horus", wear:"FN", price:1882.36},
+  {weapon:"Desert Eagle", skin:"Golden Koi", wear:"FN", price:1883.32},
+  {weapon:"AWP", skin:"Silk Tiger", wear:"MW", price:1889.72},
+  {weapon:"Flip Knife", skin:"Gamma Doppler", wear:"FN", price:1970.48},
+  {weapon:"SSG 08", skin:"Dragonfire", wear:"FN", price:1976.09},
+  {weapon:"Sticker", skin:"Cloud9 G2A (Holo) | Katowice 2015", wear:"-", price:1989.6},
+  {weapon:"M9 Bayonet", skin:"Crimson Web", wear:"BS", price:2009.68},
+  {weapon:"Bayonet", skin:"Doppler", wear:"FN", price:2047.92},
+  {weapon:"Karambit", skin:"Urban Masked", wear:"FT", price:2123.72},
+  {weapon:"Stiletto Knife", skin:"Fade", wear:"FN", price:2125.6},
+  {weapon:"AWP", skin:"Oni Taiji", wear:"MW", price:2193.58},
+  {weapon:"MAG-7", skin:"Cinquedea", wear:"BS", price:2210.2},
+  {weapon:"M9 Bayonet", skin:"Damascus Steel", wear:"FT", price:2224.08},
+  {weapon:"Sticker", skin:"Counter Logic Gaming (Holo) | Katowice 2015", wear:"-", price:2230.5},
+  {weapon:"Sticker", skin:"Keyd Stars (Holo) | Katowice 2015", wear:"-", price:2238.85},
+  {weapon:"Karambit", skin:"Ultraviolet", wear:"BS", price:2247.16},
+  {weapon:"Karambit", skin:"Bright Water", wear:"FT", price:2275.6},
+  {weapon:"Karambit", skin:"Night", wear:"FT", price:2533.48},
+  {weapon:"Glock-18", skin:"Synth Leaf", wear:"FT", price:2542.51},
+  {weapon:"Skeleton Knife", skin:"Case Hardened", wear:"FN", price:2557.6},
+  {weapon:"M9 Bayonet", skin:"Lore", wear:"FT", price:2564.68},
+  {weapon:"M4A4", skin:"Hellfire", wear:"FN", price:2608.39},
+  {weapon:"M9 Bayonet", skin:"Black Laminate", wear:"FT", price:2613.12},
+  {weapon:"Bayonet", skin:"Gamma Doppler", wear:"FN", price:2613.84},
+  {weapon:"CZ75-Auto", skin:"Chalice", wear:"FN", price:2635.64},
+  {weapon:"Karambit", skin:"Crimson Web", wear:"BS", price:2642.36},
+  {weapon:"Skeleton Knife", skin:"Slaughter", wear:"FN", price:2721.39},
+  {weapon:"Bayonet", skin:"Fade", wear:"MW", price:2733.92},
+  {weapon:"Desert Eagle", skin:"Sunset Storm 弐", wear:"FT", price:2778.76},
+  {weapon:"Sticker", skin:"LGB eSports (Holo) | Katowice 2015", wear:"-", price:2796.34},
+  {weapon:"Desert Eagle", skin:"Hand Cannon", wear:"FN", price:2804.72},
+  {weapon:"Survival Knife", skin:"Doppler Black Pearl", wear:"FN", price:2843.47},
+  {weapon:"Sticker", skin:"Skadoodle (G)", wear:"-", price:2916.44},
+  {weapon:"Karambit", skin:"Lore", wear:"FT", price:2964.76},
+  {weapon:"Butterfly Knife", skin:"Ultraviolet", wear:"FT", price:3024.84},
+  {weapon:"Sticker", skin:"Flipsid3 Tactics (Holo) | Katowice 2015", wear:"-", price:3079.68},
+  {weapon:"Gut Knife", skin:"Gamma Doppler Emerald", wear:"FN", price:3095.61},
+  {weapon:"M4A1-S", skin:"Welcome to the Jungle", wear:"BS", price:3098.24},
+  {weapon:"Karambit", skin:"Black Laminate", wear:"BS", price:3155.48},
+  {weapon:"Bowie Knife", skin:"Gamma Doppler Emerald", wear:"FN", price:3202.15},
+  {weapon:"M9 Bayonet", skin:"Slaughter", wear:"FT", price:3222.84},
+  {weapon:"M4A1-S", skin:"Icarus Fell", wear:"FN", price:3314.78},
+  {weapon:"Butterfly Knife", skin:"Case Hardened", wear:"WW", price:3355.6},
+  {weapon:"AWP", skin:"Silk Tiger", wear:"FN", price:3358.36},
+  {weapon:"M9 Bayonet", skin:"Tiger Tooth", wear:"MW", price:3400.2},
+  {weapon:"Falchion Knife", skin:"Gamma Doppler Emerald", wear:"FN", price:3533.85},
+  {weapon:"Butterfly Knife", skin:"Autotronic", wear:"BS", price:3539.56},
+  {weapon:"Glock-18", skin:"Gamma Doppler Emerald", wear:"FN", price:3559.46},
+  {weapon:"Desert Eagle", skin:"Emerald Jörmungandr", wear:"FT", price:3575.41},
+  {weapon:"Sticker", skin:"Natus Vincere (Holo) | Katowice 2015", wear:"-", price:3611.25},
+  {weapon:"Desert Eagle", skin:"Emerald Jörmungandr", wear:"MW", price:3666.41},
+  {weapon:"M9 Bayonet", skin:"Autotronic", wear:"FT", price:3667.64},
+  {weapon:"AK-47", skin:"B the Monster", wear:"FN", price:3757.23},
+  {weapon:"Desert Eagle", skin:"Blaze", wear:"FN", price:3813.77},
+  {weapon:"Moto Gloves", skin:"Finish Line", wear:"FN", price:3839.2},
+  {weapon:"P90", skin:"Astral Jörmungandr", wear:"MW", price:3899.75},
+  {weapon:"Sticker", skin:"Titan (Holo) | Katowice 2015", wear:"-", price:3917.77},
+  {weapon:"Moto Gloves", skin:"POW!", wear:"FN", price:4036.76},
+  {weapon:"Huntsman Knife", skin:"Gamma Doppler Emerald", wear:"FN", price:4052.13},
+  {weapon:"M4A1-S", skin:"Blue Phosphor", wear:"MW", price:4086.76},
+  {weapon:"M9 Bayonet", skin:"Marble Fade", wear:"FN", price:4233.96},
+  {weapon:"Gut Knife", skin:"Doppler Black Pearl", wear:"FN", price:4266.79},
+  {weapon:"Sticker", skin:"Team Dignitas", wear:"-", price:4327.6},
+  {weapon:"Paracord Knife", skin:"Doppler Black Pearl", wear:"FN", price:4362.58},
+  {weapon:"Karambit", skin:"Slaughter", wear:"FT", price:4514.52},
+  {weapon:"Shadow Daggers", skin:"Doppler Black Pearl", wear:"FN", price:4741.44},
+  {weapon:"AWP", skin:"Fade", wear:"MW", price:4840},
+  {weapon:"Karambit", skin:"Tiger Tooth", wear:"FN", price:5366.53},
+  {weapon:"Karambit", skin:"Marble Fade", wear:"FN", price:5580.24},
+  {weapon:"Sport Gloves", skin:"Slingshot", wear:"MW", price:5734.74},
+  {weapon:"Navaja Knife", skin:"Doppler Black Pearl", wear:"FN", price:5879.95},
+  {weapon:"M9 Bayonet", skin:"Fade", wear:"FN", price:5998.39},
+  {weapon:"AWP", skin:"Fade", wear:"FN", price:6025.21},
+  {weapon:"Moto Gloves", skin:"Boom!", wear:"FN", price:6059.68},
+  {weapon:"Ursus Knife", skin:"Doppler Black Pearl", wear:"FN", price:6164.5},
+  {weapon:"Butterfly Knife", skin:"Slaughter", wear:"FT", price:6256.16},
+  {weapon:"Bowie Knife", skin:"Doppler Black Pearl", wear:"FN", price:6591.63},
+  {weapon:"Sticker", skin:"Team LDLC.com", wear:"-", price:6622.24},
+  {weapon:"Karambit", skin:"Doppler", wear:"FN", price:6912},
+  {weapon:"M9 Bayonet", skin:"Gamma Doppler", wear:"FN", price:6942.56},
+  {weapon:"Karambit", skin:"Lore", wear:"FN", price:7316.76},
+  {weapon:"M9 Bayonet", skin:"Lore", wear:"FN", price:7333.66},
+  {weapon:"AK-47", skin:"X-Ray", wear:"MW", price:7435.28},
+  {weapon:"Nomad Knife", skin:"Doppler Black Pearl", wear:"FN", price:7532.39},
+  {weapon:"Falchion Knife", skin:"Doppler Black Pearl", wear:"FN", price:7681.42},
+  {weapon:"Butterfly Knife", skin:"Autotronic", wear:"FN", price:7862.92},
+  {weapon:"Huntsman Knife", skin:"Doppler Black Pearl", wear:"FN", price:7887.19},
+  {weapon:"AWP", skin:"Desert Hydra", wear:"FN", price:8087.04},
+  {weapon:"Flip Knife", skin:"Gamma Doppler Emerald", wear:"FN", price:8408.22},
+  {weapon:"Glock-18", skin:"Fade", wear:"FN", price:8584.12},
+  {weapon:"M4A1-S", skin:"Knight", wear:"MW", price:10211.28},
+  {weapon:"Karambit", skin:"Fade", wear:"MW", price:10699.4},
+  {weapon:"Karambit", skin:"Gamma Doppler", wear:"FN", price:10755.2},
+  {weapon:"Karambit", skin:"Fade", wear:"FN", price:10963.11},
+  {weapon:"MP9", skin:"Wild Lily", wear:"BS", price:11026.2},
+  {weapon:"Bayonet", skin:"Gamma Doppler Emerald", wear:"FN", price:11412.42},
+  {weapon:"AWP", skin:"The Prince", wear:"MW", price:11985.52},
+  {weapon:"Stiletto Knife", skin:"Doppler Black Pearl", wear:"FN", price:12035.95},
+  {weapon:"AWP", skin:"The Prince", wear:"FT", price:12085.95},
+  {weapon:"Bayonet", skin:"Doppler Black Pearl", wear:"FN", price:12471.28},
+  {weapon:"Butterfly Knife", skin:"Lore", wear:"FN", price:12578.82},
+  {weapon:"Butterfly Knife", skin:"Fade", wear:"FN", price:12849.79},
+  {weapon:"Flip Knife", skin:"Doppler Black Pearl", wear:"FN", price:13273.13},
+  {weapon:"M4A1-S", skin:"Hot Rod", wear:"FN", price:13703.12},
+  {weapon:"Skeleton Knife", skin:"Doppler Black Pearl", wear:"FN", price:14027.95},
+  {weapon:"Sport Gloves", skin:"Hedge Maze", wear:"BS", price:14277.2},
+  {weapon:"Sport Gloves", skin:"Amphibious", wear:"FN", price:14445.44},
+  {weapon:"AK-47", skin:"Gold Arabesque", wear:"FN", price:15175.81},
+  {weapon:"Butterfly Knife", skin:"Gamma Doppler Phase 2", wear:"FN", price:15402.29},
+  {weapon:"Negev", skin:"Mjölnir", wear:"FN", price:16743.85},
+  {weapon:"MP9", skin:"Wild Lily", wear:"FN", price:16893.98},
+  {weapon:"AK-47", skin:"X-Ray", wear:"FN", price:16914.16},
+  {weapon:"Talon Knife", skin:"Doppler Ruby", wear:"FN", price:17062.91},
+  {weapon:"Talon Knife", skin:"Doppler Black Pearl", wear:"FN", price:17433.16},
+  {weapon:"Sport Gloves", skin:"Hedge Maze", wear:"WW", price:19638.3},
+  {weapon:"AK-47", skin:"Wild Lotus", wear:"BS", price:22285.72},
+  {weapon:"Sport Gloves", skin:"Hedge Maze", wear:"FT", price:23129.47},
+  {weapon:"AK-47", skin:"Hydroponic", wear:"FN", price:31002.3},
+  {weapon:"AWP", skin:"Dragon Lore", wear:"FT", price:31312.8},
+  {weapon:"M4A4", skin:"Howl", wear:"FN", price:37641.28},
+  {weapon:"Moto Gloves", skin:"Spearmint", wear:"FN", price:37865.12},
+  {weapon:"AK-47", skin:"Wild Lotus", wear:"FT", price:38130.24},
+  {weapon:"Sport Gloves", skin:"Hedge Maze", wear:"MW", price:40887.06},
+  {weapon:"Sport Gloves", skin:"Vice", wear:"FN", price:41515.62},
+  {weapon:"M9 Bayonet", skin:"Gamma Doppler Emerald", wear:"FN", price:42715.69},
+  {weapon:"Karambit", skin:"Gamma Doppler Emerald", wear:"FN", price:45380.13},
+  {weapon:"Butterfly Knife", skin:"Gamma Doppler Emerald", wear:"FN", price:47266.68},
+  {weapon:"M9 Bayonet", skin:"Doppler Black Pearl", wear:"FN", price:54300.72},
+  {weapon:"AK-47", skin:"Wild Lotus", wear:"MW", price:54305.2},
+  {weapon:"M9 Bayonet (ST)", skin:"Crimson Web", wear:"FN", price:66337.28},
+  {weapon:"AWP", skin:"Dragon Lore", wear:"FN", price:68893.35},
+  {weapon:"AWP", skin:"Gungnir", wear:"FN", price:70092.13},
+  {weapon:"Karambit", skin:"Doppler Black Pearl", wear:"FN", price:70592.15},
+  {weapon:"AK-47", skin:"Wild Lotus", wear:"FN", price:75307.72},
+  {weapon:"Butterfly Knife", skin:"Doppler Black Pearl", wear:"FN", price:77831.44},
+];;;;
+UPGRADE_TARGET_ITEMS.forEach((it, i) => it._key = it.weapon+"|"+it.skin+"|"+it.wear+"|"+i);
+
+const STORAGE_KEY = "cs2sim_state_v1";
+const DAILY_BONUS_KEY = "cs2sim_daily_bonus_at";
+const DAILY_BONUS_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+const START_BALANCE = 50.00;
+const HOUSE_EDGE = 0.08;   // 8% cięcie domu — im bliżej wartości, tym mniejsza szansa niż 100%
+const MIN_CHANCE = 2;
+const MAX_CHANCE = 95;
+const MAX_SELECTABLE_CHANCE = 92; // you can never lock in a bet worth more than 92% odds
+const SPIN_MS = 3600;
+
+function fmt(n){
+  return n.toLocaleString("pl-PL", {minimumFractionDigits:2, maximumFractionDigits:2}) + " zł";
+}
+function rarityColor(it){
+  const known = getSkinRarityColor(it.weapon, it.skin);
+  if(known) return known;
+  const price = it.price;
+  if(price < 2) return "var(--r-milspec)";
+  if(price < 4) return "var(--r-restricted)";
+  if(price < 10) return "var(--r-classified)";
+  if(price < 100) return "var(--r-covert)";
+  return "var(--r-gold)";
+}
+function loadState(){
+  if(!(window.__STEAM_AUTH__ && window.__STEAM_AUTH__.loggedIn)) return {balance: 0, inventory: [], invCounter: 0, level: 0, xp: 0};
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return {balance: START_BALANCE, inventory: [], invCounter: 0, level: 0, xp: 0};
+    const parsed = JSON.parse(raw);
+    return {
+      balance: typeof parsed.balance === "number" ? parsed.balance : START_BALANCE,
+      inventory: Array.isArray(parsed.inventory) ? parsed.inventory : [],
+      invCounter: typeof parsed.invCounter === "number" ? parsed.invCounter : 0,
+      level: typeof parsed.level === "number" ? parsed.level : 0,
+      xp: typeof parsed.xp === "number" ? parsed.xp : 0
+    };
+  }catch(e){
+    return {balance: START_BALANCE, inventory: [], invCounter: 0, level: 0, xp: 0};
+  }
+}
+function saveState(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({balance, inventory, invCounter, ...window.SteamAuth.readPersistentExtras()})); window.SteamAuth.schedulePush(); }catch(e){}
+}
+
+const s0 = loadState();
+let balance = s0.balance;
+let inventory = s0.inventory;
+let invCounter = s0.invCounter;
+
+const balanceEl = document.getElementById("balance");
+const logEl = document.getElementById("log");
+function log(msg){
+  const d = document.createElement("div");
+  d.textContent = msg;
+  logEl.prepend(d);
+  while(logEl.children.length > 40) logEl.removeChild(logEl.lastChild);
+}
+function renderBalance(){
+  balanceEl.textContent = fmt(balance);
+  balanceEl.classList.toggle("low", balance < 0);
+  saveState();
+}
+document.getElementById("inventoryBtn").onclick = () => { window.location.href = "/equipment"; };
+
+/* ---- shared top-nav widgets: settings dropdown + daily bonus (24h cooldown) ---- */
+document.querySelectorAll("[data-soon]").forEach(el => {
+  el.addEventListener("click", () => log("Wkrótce dostępne!"));
+});
+const settingsBtn = document.getElementById("settingsBtn");
+const settingsMenu = document.getElementById("settingsMenu");
+settingsBtn.onclick = (e) => { e.stopPropagation(); settingsMenu.classList.toggle("open"); };
+document.addEventListener("click", () => settingsMenu.classList.remove("open"));
+function fmtCountdown(ms){
+  const total = Math.max(0, Math.ceil(ms / 1000));
+  const h = String(Math.floor(total / 3600)).padStart(2,"0");
+  const m = String(Math.floor((total % 3600) / 60)).padStart(2,"0");
+  const s = String(total % 60).padStart(2,"0");
+  return `${h}:${m}:${s}`;
+}
+function renderDailyBonusBtn(){
+  const btn = document.getElementById("dailyBonusBtn");
+  if(!(window.__STEAM_AUTH__ && window.__STEAM_AUTH__.loggedIn)){ btn.disabled = false; btn.textContent = "🎁 Daily Bonus"; return; }
+  const left = DAILY_BONUS_COOLDOWN_MS - (Date.now() - Number(localStorage.getItem(DAILY_BONUS_KEY) || 0));
+  if(left > 0){ btn.disabled = true; btn.textContent = `🎁 ${fmtCountdown(left)}`; }
+  else { btn.disabled = false; btn.textContent = "🎁 Daily Bonus"; }
+}
+document.getElementById("dailyBonusBtn").onclick = () => {
+  if(!window.SteamAuth.requireLogin()) return;
+  const now = Date.now();
+  if(now - Number(localStorage.getItem(DAILY_BONUS_KEY) || 0) < DAILY_BONUS_COOLDOWN_MS) return;
+  window.SteamAuth.openDailyBonusModal((reward) => {
+    balance += reward;
+    renderBalance();
+    renderDailyBonusBtn();
+    log(`Daily Bonus: +${fmt(reward)}!`);
+  });
+};
+setInterval(renderDailyBonusBtn, 1000);
+renderDailyBonusBtn();
+
+/* ---------------- state ---------------- */
+let selectedInputIds = new Set();   // _ids of chosen inventory items (multi-select)
+let cashUsed = 0;              // extra balance thrown in
+let selectedTargetKey = null;  // _key of chosen target item
+let selectedChancePreset = null;
+let spinning = false;
+
+let invSort = "desc";     // Mój ekwipunek sort
+let targetSort = "asc";   // Przedmioty do otrzymania sort
+let invSearch = "";
+let targetSearch = "";
+let targetMaxPrice = null;
+
+function getInputItems(){
+  return inventory.filter(i => selectedInputIds.has(i._id));
+}
+function getTargetItem(){
+  return UPGRADE_TARGET_ITEMS.find(i => i._key === selectedTargetKey) || null;
+}
+function inputTotal(){
+  const itemsTotal = getInputItems().reduce((sum, it) => sum + it.price, 0);
+  return itemsTotal + cashUsed;
+}
+function computeChance(inputVal, targetVal){
+  if(targetVal <= 0) return 0;
+  const raw = (inputVal / targetVal) * (1 - HOUSE_EDGE) * 100;
+  // only cap the top end (MAX_CHANCE) — a long-shot upgrade must show its real,
+  // tiny probability instead of being floored up to MIN_CHANCE (that constant
+  // is only a lower bound for the quick chance-preset buttons, not for the
+  // actual odds of an arbitrary input/target pair).
+  return Math.min(MAX_CHANCE, raw);
+}
+/* price such that computeChance(inputVal, price) ≈ desiredChance */
+function priceForChance(inputVal, desiredChance){
+  const c = Math.max(MIN_CHANCE, Math.min(MAX_CHANCE, desiredChance)) / 100;
+  return (inputVal * (1 - HOUSE_EDGE)) / c;
+}
+/* the cheapest target price still allowed for a given input value —
+   anything below this would break the 92% cap */
+function minAllowedPrice(inputVal){
+  return priceForChance(inputVal, MAX_SELECTABLE_CHANCE);
+}
+/* the most input value (items + cash) allowed for a given target price
+   without breaking the 92% cap */
+function maxAllowedInput(targetVal){
+  return (MAX_SELECTABLE_CHANCE/100) * targetVal / (1 - HOUSE_EDGE);
+}
+function nearestTargetToPrice(price){
+  let best = null, bestDiff = Infinity;
+  UPGRADE_TARGET_ITEMS.forEach(it => {
+    const diff = Math.abs(it.price - price);
+    if(diff < bestDiff){ bestDiff = diff; best = it; }
+  });
+  return best;
+}
+/* same as nearestTargetToPrice, but never lands on an item whose chance
+   (given the current input total) would exceed the 92% cap */
+function nearestAllowedTarget(inputVal, desiredPrice){
+  const minPrice = minAllowedPrice(inputVal);
+  const candidates = UPGRADE_TARGET_ITEMS.filter(it => it.price >= minPrice - 1e-9);
+  const pool = candidates.length ? candidates : UPGRADE_TARGET_ITEMS;
+  let best = null, bestDiff = Infinity;
+  pool.forEach(it => {
+    const diff = Math.abs(it.price - desiredPrice);
+    if(diff < bestDiff){ bestDiff = diff; best = it; }
+  });
+  return best;
+}
+
+/* ---------------- rendering: slots & wheel ---------------- */
+const inputSlotEl = document.getElementById("inputSlot");
+const targetSlotEl = document.getElementById("targetSlot");
+const fundsSlider = document.getElementById("fundsSlider");
+const fundsUsedLabel = document.getElementById("fundsUsedLabel");
+const fundsMaxLabel = document.getElementById("fundsMaxLabel");
+const inputTotalLabel = document.getElementById("inputTotalLabel");
+const inputCountLabel = document.getElementById("inputCountLabel");
+const targetTotalLabel = document.getElementById("targetTotalLabel");
+const targetCountLabel = document.getElementById("targetCountLabel");
+const chanceValueEl = document.getElementById("chanceValue");
+const wheelDialEl = document.getElementById("wheelDial");
+const wheelColorsEl = document.getElementById("wheelColors");
+const wheelNeedleEl = document.getElementById("wheelNeedle");
+const valLeftShow = document.getElementById("valLeftShow");
+const valRightShow = document.getElementById("valRightShow");
+const chanceSlider = document.getElementById("chanceSlider");
+const upgradeBtn = document.getElementById("upgradeBtn");
+const outcomeBanner = document.getElementById("outcomeBanner");
+
+function slotChipHTML(it){
+  const img = getSkinImage(it);
+  return `<div class="slot-chip" style="--rarity:${rarityColor(it)}">
+    ${img ? `<img src="${img}" alt="${it.weapon}" onerror="this.parentElement.innerHTML='<div class=&quot;fb&quot;>${it.weapon}</div>'">` : `<div class="fb">${it.weapon}</div>`}
+  </div>`;
+}
+function cashChipHTML(amount){
+  return `<div class="slot-chip" style="--rarity:var(--good)">
+    <div class="fb" style="font-size:11px;color:var(--good);">💰<br>${fmt(amount)}</div>
+  </div>`;
+}
+function inputSlotHTML(items, cash){
+  const chips = items.map(slotChipHTML);
+  if(cash > 0) chips.push(cashChipHTML(cash));
+  if(!chips.length) return `<div class="empty-hint">Wybierz przedmioty<br>lub użyj gotówki poniżej</div>`;
+  return chips.join("");
+}
+
+function refreshFundsBounds(){
+  const tgIt = getTargetItem();
+  const itemsTotal = getInputItems().reduce((sum, it) => sum + it.price, 0);
+  let maxFunds = balance;
+  if(tgIt){
+    const capRoom = Math.max(0, maxAllowedInput(tgIt.price) - itemsTotal);
+    maxFunds = Math.min(balance, capRoom);
+  }
+  fundsSlider.max = maxFunds.toFixed(2);
+  if(cashUsed > maxFunds) cashUsed = maxFunds;
+  fundsSlider.value = cashUsed;
+  fundsMaxLabel.textContent = fmt(maxFunds);
+  fundsUsedLabel.textContent = cashUsed.toLocaleString("pl-PL", {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+function updateAll(){
+  const inItems = getInputItems();
+  const tgIt = getTargetItem();
+
+  inputSlotEl.innerHTML = inputSlotHTML(inItems, cashUsed);
+  targetSlotEl.innerHTML = tgIt ? slotChipHTML(tgIt) : `<div class="empty-hint">Wybierz przedmiot<br>z listy poniżej</div>`;
+
+  const inTotal = inputTotal();
+  inputTotalLabel.textContent = fmt(inTotal);
+  inputCountLabel.textContent = inItems.length;
+
+  targetTotalLabel.textContent = fmt(tgIt ? tgIt.price : 0);
+  targetCountLabel.textContent = tgIt ? 1 : 0;
+
+  valLeftShow.textContent = fmt(inTotal);
+  valRightShow.textContent = fmt(tgIt ? tgIt.price : 0);
+
+  const chance = tgIt ? computeChance(inTotal, tgIt.price) : 0;
+  const overCap = chance > MAX_SELECTABLE_CHANCE;
+  const notAnUpgrade = !!tgIt && tgIt.price <= inTotal;
+  chanceValueEl.textContent = tgIt ? `${chance.toFixed(2)}%` : "0%";
+  wheelDialEl.style.setProperty("--win-deg", (chance/100*360).toFixed(2)+"deg");
+  chanceValueEl.style.color = (overCap || notAnUpgrade) ? "var(--bad)" : (chance >= 50 ? "var(--good)" : (chance >= 20 ? "var(--hazard)" : "var(--bad)"));
+
+  upgradeBtn.disabled = spinning || !tgIt || inTotal <= 0 || tgIt.price <= 0 || overCap || notAnUpgrade;
+
+  document.querySelectorAll(".chance-btn").forEach(b => {
+    b.classList.toggle("selected", selectedChancePreset === Number(b.dataset.chance));
+  });
+}
+
+/* ---------------- funds slider ---------------- */
+fundsSlider.oninput = () => {
+  cashUsed = Math.max(0, Math.min(Number(fundsSlider.max), Number(fundsSlider.value)));
+  fundsUsedLabel.textContent = cashUsed.toLocaleString("pl-PL", {minimumFractionDigits:2, maximumFractionDigits:2});
+  renderInvGrid();
+  renderTargetGrid();
+  updateAll();
+};
+document.getElementById("fundsMaxBtn").onclick = () => {
+  cashUsed = Number(fundsSlider.max);
+  refreshFundsBounds();
+  renderInvGrid();
+  renderTargetGrid();
+  updateAll();
+};
+
+/* ---------------- quick multiplier / chance presets ---------------- */
+document.querySelectorAll(".preset-btn").forEach(btn => {
+  btn.onclick = () => {
+    if(spinning) return;
+    const inTotal = inputTotal();
+    if(inTotal <= 0) return;
+    const mult = Number(btn.dataset.mult);
+    const desired = inTotal * mult;
+    const nearest = nearestAllowedTarget(inTotal, desired);
+    selectedTargetKey = nearest._key;
+    selectedChancePreset = null;
+    refreshFundsBounds();
+    renderTargetGrid();
+    updateAll();
+  };
+});
+document.querySelectorAll(".chance-btn").forEach(btn => {
+  btn.onclick = () => {
+    if(spinning) return;
+    const inTotal = inputTotal();
+    if(inTotal <= 0) return;
+    const desiredChance = Math.min(Number(btn.dataset.chance), MAX_SELECTABLE_CHANCE);
+    const desiredPrice = priceForChance(inTotal, desiredChance);
+    const nearest = nearestAllowedTarget(inTotal, desiredPrice);
+    selectedTargetKey = nearest._key;
+    selectedChancePreset = Number(btn.dataset.chance);
+    refreshFundsBounds();
+    renderTargetGrid();
+    updateAll();
+  };
+});
+/* Pure cosmetic control: spins the green/red ring to any position on the
+   wheel (e.g. 180° puts the red zone on the opposite side). It does NOT
+   touch the actual win chance, the selected target, or pick any skin —
+   only where the colors sit. The spin math below reads this same offset
+   so the needle always lands honestly inside the correct color. */
+let wheelRotate = 0;
+function applyWheelRotate(){
+  wheelColorsEl.style.setProperty("--wheel-rotate", wheelRotate + "deg");
+}
+chanceSlider.oninput = () => {
+  wheelRotate = Number(chanceSlider.value);
+  applyWheelRotate();
+};
+document.getElementById("randomizeBtn").onclick = () => {
+  if(spinning) return;
+  const inTotal = inputTotal();
+  if(inTotal <= 0) return;
+  const mult = 1.15 + Math.random()*9;
+  const nearest = nearestAllowedTarget(inTotal, inTotal*mult);
+  selectedTargetKey = nearest._key;
+  selectedChancePreset = null;
+  refreshFundsBounds();
+  renderTargetGrid();
+  updateAll();
+};
+
+/* ---------------- inventory grid (input picker) ---------------- */
+const invGridEl = document.getElementById("invGrid");
+const invSelectedLabel = document.getElementById("invSelectedLabel");
+function toggleInputItem(it){
+  if(spinning) return;
+  if(selectedInputIds.has(it._id)){
+    selectedInputIds.delete(it._id);
+  } else {
+    const tgIt = getTargetItem();
+    if(tgIt){
+      const wouldBeTotal = inputTotal() + it.price;
+      if(computeChance(wouldBeTotal, tgIt.price) > MAX_SELECTABLE_CHANCE){
+        log(`Nie można dodać: ${it.weapon} | ${it.skin} — szansa przekroczyłaby ${MAX_SELECTABLE_CHANCE}%.`);
+        return;
+      }
+    }
+    selectedInputIds.add(it._id);
+  }
+  refreshFundsBounds();
+  renderInvGrid();
+  renderTargetGrid();
+  updateAll();
+}
+function renderInvGrid(){
+  let items = inventory.slice();
+  if(invSearch){
+    const q = invSearch.toLowerCase();
+    items = items.filter(it => (it.weapon+" "+it.skin).toLowerCase().includes(q));
+  }
+  items.sort((a,b) => invSort === "asc" ? a.price-b.price : b.price-a.price);
+
+  const tgIt = getTargetItem();
+  const curTotal = inputTotal();
+
+  invGridEl.innerHTML = "";
+  if(items.length === 0){
+    invGridEl.innerHTML = `<div class="empty-note">Brak przedmiotów w ekwipunku. Otwórz skrzynkę, żeby coś zdobyć.</div>`;
+  } else {
+    items.forEach(it => {
+      const isSelected = selectedInputIds.has(it._id);
+      const wouldExceed = !isSelected && tgIt && computeChance(curTotal + it.price, tgIt.price) > MAX_SELECTABLE_CHANCE;
+      invGridEl.appendChild(browseItemNode(it, isSelected, () => toggleInputItem(it), wouldExceed, wouldExceed ? `Szansa przekroczyłaby ${MAX_SELECTABLE_CHANCE}%` : ""));
+    });
+  }
+  invSelectedLabel.textContent = `${selectedInputIds.size} wybrano`;
+}
+document.getElementById("invSearch").oninput = (e) => { invSearch = e.target.value; renderInvGrid(); };
+document.getElementById("invSortBtn").onclick = (e) => {
+  invSort = invSort === "asc" ? "desc" : "asc";
+  e.target.textContent = invSort === "asc" ? "Cena ↑" : "Cena ↓";
+  renderInvGrid();
+};
+
+/* ---------------- target grid (target picker) ---------------- */
+const targetGridEl = document.getElementById("targetGrid");
+const targetSelectedLabel = document.getElementById("targetSelectedLabel");
+document.getElementById("targetCountAll").textContent = `(${UPGRADE_TARGET_ITEMS.length})`;
+function renderTargetGrid(){
+  let items = UPGRADE_TARGET_ITEMS.slice();
+  if(targetSearch){
+    const q = targetSearch.toLowerCase();
+    items = items.filter(it => (it.weapon+" "+it.skin).toLowerCase().includes(q));
+  }
+  if(targetMaxPrice != null && !isNaN(targetMaxPrice)){
+    items = items.filter(it => it.price <= targetMaxPrice);
+  }
+  items.sort((a,b) => targetSort === "asc" ? a.price-b.price : b.price-a.price);
+
+  const curTotal = inputTotal();
+
+  targetGridEl.innerHTML = "";
+  if(items.length === 0){
+    targetGridEl.innerHTML = `<div class="empty-note">Brak przedmiotów pasujących do filtrów.</div>`;
+  } else {
+    items.forEach(it => {
+      const isSelected = it._key === selectedTargetKey;
+      const notAnUpgrade = !isSelected && curTotal > 0 && it.price <= curTotal;
+      const wouldExceed = !isSelected && !notAnUpgrade && curTotal > 0 && computeChance(curTotal, it.price) > MAX_SELECTABLE_CHANCE;
+      const disabled = notAnUpgrade || wouldExceed;
+      const disabledReason = notAnUpgrade
+        ? "Cel musi być droższy niż to, co wstawiasz"
+        : (wouldExceed ? `Szansa przekroczyłaby ${MAX_SELECTABLE_CHANCE}%` : "");
+      targetGridEl.appendChild(browseItemNode(it, isSelected, () => {
+        if(spinning) return;
+        selectedTargetKey = (selectedTargetKey === it._key) ? null : it._key;
+        selectedChancePreset = null;
+        refreshFundsBounds();
+        renderTargetGrid();
+        updateAll();
+      }, disabled, disabledReason));
+    });
+  }
+  targetSelectedLabel.textContent = selectedTargetKey != null ? "1 wybrano" : "0 wybrano";
+}
+document.getElementById("targetSearch").oninput = (e) => { targetSearch = e.target.value; renderTargetGrid(); };
+document.getElementById("targetMaxPrice").oninput = (e) => {
+  targetMaxPrice = e.target.value === "" ? null : Number(e.target.value);
+  renderTargetGrid();
+};
+document.getElementById("targetSortBtn").onclick = (e) => {
+  targetSort = targetSort === "asc" ? "desc" : "asc";
+  e.target.textContent = targetSort === "asc" ? "Cena ↑" : "Cena ↓";
+  renderTargetGrid();
+};
+
+function browseItemNode(it, isSelected, onClick, disabled, disabledReason){
+  const div = document.createElement("div");
+  div.className = "browse-item" + (isSelected ? " selected" : "") + (disabled ? " disabled" : "");
+  div.style.setProperty("--rarity", rarityColor(it));
+  if(disabled && disabledReason) div.title = disabledReason;
+  const slot = document.createElement("div");
+  slot.className = "img-slot";
+  const img = getSkinImage(it);
+  if(img){
+    const imgEl = document.createElement("img");
+    imgEl.src = img;
+    imgEl.alt = it.weapon+" "+it.skin;
+    imgEl.onerror = () => { slot.innerHTML = `<div class="fallback">${it.weapon}</div>`; };
+    slot.appendChild(imgEl);
+  } else {
+    slot.innerHTML = `<div class="fallback">${it.weapon}</div>`;
+  }
+  div.appendChild(slot);
+  const wp = document.createElement("div"); wp.className = "wp"; wp.textContent = it.weapon; div.appendChild(wp);
+  const nm = document.createElement("div"); nm.className = "nm"; nm.textContent = `${it.skin} (${it.wear})`; div.appendChild(nm);
+  const pr = document.createElement("div"); pr.className = "pr"; pr.textContent = fmt(it.price); div.appendChild(pr);
+  div.onclick = disabled ? null : onClick;
+  return div;
+}
+
+/* ---------------- sound effects (synthesized, no external files) ---------------- */
+let soundOn = true;
+let audioCtx = null;
+let spinSoundStop = null;
+function getAudioCtx(){
+  if(!audioCtx){
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if(Ctx) audioCtx = new Ctx();
+  }
+  if(audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+  return audioCtx;
+}
+function playTone(freq, startTime, duration, {type="sine", gain=0.18, glideTo=null} = {}){
+  const ctx = getAudioCtx();
+  if(!ctx) return;
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, startTime);
+  if(glideTo != null) osc.frequency.exponentialRampToValueAtTime(Math.max(1,glideTo), startTime + duration);
+  g.gain.setValueAtTime(0, startTime);
+  g.gain.linearRampToValueAtTime(gain, startTime + 0.015);
+  g.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+  osc.connect(g).connect(ctx.destination);
+  osc.start(startTime);
+  osc.stop(startTime + duration + 0.02);
+}
+/* Ticking wheel sound: clicks that start fast and slow down over the spin
+   duration, like a roulette ball settling — stops when the wheel stops. */
+function playSpinSound(totalMs){
+  if(!soundOn) return;
+  const ctx = getAudioCtx();
+  if(!ctx) return;
+  let cancelled = false;
+  const start = ctx.currentTime + 0.02;
+  const totalSec = totalMs / 1000;
+  let t = 0, i = 0;
+  function scheduleTick(){
+    if(cancelled || t >= totalSec) return;
+    // ease-out spacing between ticks: fast at first, slower near the end
+    const progress = t / totalSec;
+    const interval = 0.045 + 0.16 * (progress*progress);
+    playTone(520, start + t, 0.045, {type:"square", gain:0.05});
+    t += interval;
+    i++;
+    setTimeout(scheduleTick, interval*1000);
+  }
+  scheduleTick();
+  spinSoundStop = () => { cancelled = true; };
+}
+function stopSpinSound(){
+  if(spinSoundStop){ spinSoundStop(); spinSoundStop = null; }
+}
+function playWinSound(){
+  if(!soundOn) return;
+  const ctx = getAudioCtx();
+  if(!ctx) return;
+  const start = ctx.currentTime + 0.02;
+  // cheerful ascending arpeggio
+  [523.25, 659.25, 783.99, 1046.5].forEach((f, idx) => {
+    playTone(f, start + idx*0.09, 0.28, {type:"triangle", gain:0.22});
+  });
+}
+function playLoseSound(){
+  if(!soundOn) return;
+  const ctx = getAudioCtx();
+  if(!ctx) return;
+  const start = ctx.currentTime + 0.02;
+  // descending buzzy tone
+  playTone(220, start, 0.5, {type:"sawtooth", gain:0.16, glideTo:80});
+}
+const muteBtn = document.getElementById("muteBtn");
+muteBtn.onclick = () => {
+  soundOn = !soundOn;
+  muteBtn.textContent = soundOn ? "🔊 Dźwięk" : "🔇 Wyciszono";
+  muteBtn.classList.toggle("active", !soundOn);
+  if(soundOn) getAudioCtx();
+};
+
+/* ---------------- spin the wheel ---------------- */
+function resetNeedleInstant(){
+  wheelNeedleEl.style.transition = "none";
+  wheelNeedleEl.style.transform = "translate(-50%,-100%) rotate(0deg)";
+  void wheelNeedleEl.offsetHeight; // force reflow
+}
+
+upgradeBtn.onclick = () => {
+  if(!window.SteamAuth.requireLogin()) return;
+  const inItems = getInputItems();
+  const tgIt = getTargetItem();
+  if(spinning || !tgIt) return;
+  const inTotal = inputTotal();
+  if(inTotal <= 0 || tgIt.price <= 0) return;
+
+  if(tgIt.price <= inTotal) return; // safety net: target must be worth more than what you're putting in
+  const chance = computeChance(inTotal, tgIt.price);
+  if(chance > MAX_SELECTABLE_CHANCE) return; // safety net, shouldn't happen via normal UI flow
+  const winDeg = chance/100*360;
+
+  window.SteamAuth.recordUpgradeClick();
+  window.SteamAuth.recordUpgradeSpend(inTotal);
+  spinning = true;
+  updateAll();
+  outcomeBanner.classList.remove("show", "win", "lose");
+  outcomeBanner.textContent = "";
+
+  const itemsLabel = inItems.map(it => `${it.weapon} | ${it.skin} (${it.wear})`).join(", ");
+
+  // spend: remove all input items from inventory + deduct cash used
+  const idsToRemove = new Set(inItems.map(it => it._id));
+  inventory = inventory.filter(i => !idsToRemove.has(i._id));
+  balance -= cashUsed;
+  renderBalance();
+
+  const won = Math.random()*100 < chance;
+
+  playSpinSound(SPIN_MS);
+
+  resetNeedleInstant();
+  requestAnimationFrame(() => {
+    const fullTurns = 6;
+    let landing;
+    if(won){
+      landing = winDeg * (0.06 + Math.random()*0.88);
+    } else {
+      landing = winDeg + (360-winDeg) * (0.06 + Math.random()*0.88);
+    }
+    // offset by the wheel's current rotation so the needle lands inside
+    // the correct color no matter where the red/green ring has been spun to
+    const total = fullTurns*360 + landing + wheelRotate;
+    wheelNeedleEl.style.transition = `transform ${SPIN_MS}ms cubic-bezier(.11,.7,.13,1)`;
+    wheelNeedleEl.style.transform = `translate(-50%,-100%) rotate(${total}deg)`;
+  });
+
+  setTimeout(() => {
+    spinning = false;
+    stopSpinSound();
+    if(won){
+      invCounter++;
+      inventory.push({ weapon:tgIt.weapon, skin:tgIt.skin, wear:tgIt.wear, price:tgIt.price, img:getSkinImage(tgIt), _id: invCounter });
+      window.SteamAuth.recordPull(tgIt);
+      outcomeBanner.classList.add("show", "win");
+      outcomeBanner.textContent = `Wygrana! Otrzymujesz ${tgIt.weapon} | ${tgIt.skin} (${tgIt.wear}) za ${fmt(tgIt.price)}`;
+      log(`Ulepszenie: sukces (${chance.toFixed(2)}%) → ${tgIt.weapon} | ${tgIt.skin} (${tgIt.wear})`);
+      playWinSound();
+    } else {
+      const lostParts = [];
+      if(itemsLabel) lostParts.push(itemsLabel);
+      if(cashUsed > 0) lostParts.push(`${fmt(cashUsed)} gotówki`);
+      const lostText = lostParts.join(" i ") || "zakład";
+      outcomeBanner.classList.add("show", "lose");
+      outcomeBanner.textContent = `Przegrana. Stracono ${lostText}.`;
+      log(`Ulepszenie: porażka (${chance.toFixed(2)}%) — stracono ${lostText}.`);
+      playLoseSound();
+    }
+    selectedInputIds.clear();
+    cashUsed = 0;
+    selectedTargetKey = null;
+    selectedChancePreset = null;
+    renderBalance();
+    refreshFundsBounds();
+    renderInvGrid();
+    renderTargetGrid();
+    updateAll();
+  }, SPIN_MS + 150);
+};
+
+/* ---------------- init ---------------- */
+applyWheelRotate();
+renderBalance();
+refreshFundsBounds();
+renderInvGrid();
+renderTargetGrid();
+updateAll();
+log("Panel ulepszeń gotowy. Wybierz przedmiot i cel.");
+</script>
+</body>
+</html>
