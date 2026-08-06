@@ -3406,6 +3406,7 @@ startBattleBtn.onclick = () => {
     const lobby = res.lobby;
     myLobbyObj = lobby;
     spendShared(cost); // host's own seat is paid for immediately
+    window.SteamAuth.flushPush(); // don't leave this behind the 500ms debounce — see finishConclusion() for why
 
     myLobbyId = lobby.id;
     sessionStorage.setItem("myLobbyId_v1", lobby.id);
@@ -3739,6 +3740,7 @@ function joinSlot(lobbyId, idx){
     const lobby = res.lobby;
     myLobbyObj = lobby;
     spendShared(lobby.cost);
+    window.SteamAuth.flushPush(); // don't leave this behind the 500ms debounce — see finishConclusion() for why
     myLobbyId = lobby.id;
     sessionStorage.setItem("myLobbyId_v1", lobby.id);
     animatingLobbyId = null;
@@ -4422,6 +4424,13 @@ function finishConclusion(lobby, outcome, mySlotIdx){
       item: historyItem ? { weapon: historyItem.weapon, skin: historyItem.skin, wear: historyItem.wear, price: historyItem.price } : null,
     });
     window.SteamAuth.recordBattleResult(historyOutcome === "win");
+    // Gracze zwykle klikają w inną zakładkę nawigacji od razu po zobaczeniu
+    // wyniku - zwykły 500ms debounce (schedulePush) potrafi nie zdążyć nawet
+    // wystartować przed odładowaniem strony, przez co ostatni zapis (nowe
+    // saldo/przedmioty/XP) nigdy nie trafia na serwer i po powrocie widać
+    // stan sprzed bitwy. Flush od razu, żeby request faktycznie wystartował
+    // (keepalive w środku dokończy go w tle nawet po nawigacji).
+    window.SteamAuth.flushPush();
   }
 
   // Reported by WHOEVER's tab first reaches the end of the animation, not just

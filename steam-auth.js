@@ -168,6 +168,21 @@
     clearTimeout(pushTimer);
     pushTimer = setTimeout(pushNow, 500);
   }
+  // Dla zdarzeń, po których gracz zwykle NATYCHMIAST nawiguje gdzie indziej
+  // (koniec bitwy -> klik w inną zakładkę nawigacji) zwykły 500ms debounce to
+  // za duże ryzyko: jeśli strona zdąży się odładować zanim timer w ogóle
+  // odpali pushNow(), fetch(..., {keepalive:true}) nigdy nawet nie wystartuje
+  // (w przeciwieństwie do beforeunload niżej, który łapie już ZAPLANOWANY
+  // push). Krytyczne miejsca (patrz finishConclusion w battle.html) wołają
+  // to zamiast schedulePush(), żeby request wystartował od razu - wtedy
+  // keepalive faktycznie ma szansę dokończyć zapis w tle nawet gdy strona
+  // zniknie milisekundę później.
+  function flushPush() {
+    if (!me.loggedIn) return;
+    clearTimeout(pushTimer);
+    pushTimer = null;
+    pushNow();
+  }
   function pushNow() {
     let state = {};
     try { state = JSON.parse(localStorage.getItem(STATE_KEY) || "{}"); } catch (e) {}
@@ -1017,6 +1032,7 @@
     readQuestClaims,
     claimQuestTier,
     schedulePush,
+    flushPush,
     xpPerZl: XP_PER_ZL,
     levelForXp,
     xpForLevel,
