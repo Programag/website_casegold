@@ -208,12 +208,23 @@
       freeCaseAt: Number(localStorage.getItem(FREE_CASE_KEY) || 0) || null,
       baseUpdatedAt: Number(localStorage.getItem(SERVER_BASE_KEY) || 0) || 0,
     };
+    const body = JSON.stringify(payload);
+    // Chromium ogranicza fetch(..., {keepalive:true}) do łącznie 64KiB ciała
+    // żądania na CAŁĄ kartę - powyżej tego limitu request jest po cichu
+    // odrzucany (bez błędu w konsoli), więc gracz z pokaźnym ekwipunkiem/
+    // historią bitew (payload rośnie z każdym przedmiotem i każdą rozegraną
+    // bitwą) tracił KAŻDY push bez wyjątku, nie tylko te tuż przed nawigacją -
+    // dokładnie objaw "saldo/przedmioty wracają do stanu sprzed bitwy" nawet
+    // po flushPush(). Nad tym limitem wysyłamy zwykły fetch (bez gwarancji
+    // przeżycia odładowania strony, ale to i tak lepsze niż pewna cicha
+    // porażka za każdym razem).
+    const useKeepalive = body.length < 60000;
     fetch("/api/state.php", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body,
       credentials: "same-origin",
-      keepalive: true,
+      keepalive: useKeepalive,
     })
       .then((res) => {
         if (res.status === 409) {
