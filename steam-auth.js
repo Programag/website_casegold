@@ -745,9 +745,23 @@
   // cichu ignorować nadpisanie localStorage.setItem, więc NIE polegamy już
   // wyłącznie na nim: saveState() na każdej stronie i funkcje powyżej wołają
   // schedulePush() jawnie. To tu zostaje tylko na wszelki wypadek.
+  //
+  // Zapis STATE_KEY jest tu jawnie BLOKOWANY, gdy nikt nie jest zalogowany.
+  // loadState() na KAŻDEJ podstronie (patrz np. battle.html) dla gościa i tak
+  // zawsze zwraca twarde {balance:0,...} bez czytania localStorage - więc ten
+  // zapis nie służy żadnej realnej funkcji gościa, jest czystym skutkiem
+  // ubocznym wywołania saveState()/renderBalance() na stronie, która
+  // przypadkiem nie jest już zalogowana (np. zaraz po wylogowaniu +
+  // location.reload()). Bez tej blokady ten "zerowy" zapis PRZY OKAZJI
+  // nadpisuje prawdziwe, zsynchronizowane saldo sprzed wylogowania świeższym
+  // znacznikiem czasu niż to, co ma serwer - więc przy KOLEJNYM logowaniu
+  // merge w fetchMeSync() (zasada "świeższy wygrywa") bierze to lokalne "0"
+  // zamiast prawdziwego salda z serwera, mimo że w topce/na serwerze cały
+  // czas widać prawdziwą kwotę.
   try {
     nativeSetItem = localStorage.setItem.bind(localStorage);
     localStorage.setItem = function (key, value) {
+      if (key === STATE_KEY && !me.loggedIn) return;
       nativeSetItem(key, value);
       if (key === STATE_KEY || key === DAILY_KEY || key === FREE_CASE_KEY) schedulePush();
     };
