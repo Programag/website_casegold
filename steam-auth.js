@@ -171,6 +171,18 @@
   // limicie 64KB - zwyczajnie czekamy, aż zapis faktycznie się skończy,
   // zamiast liczyć na to, że request przeżyje odładowanie strony.
   let pendingPush = null;
+  // Kolejka gwarantująca, że w danej chwili leci NAJWYŻEJ JEDEN push do
+  // /api/state.php - bez tego dwa pushe wystrzelone w odstępie > 500ms
+  // (więc NIE złapane przez debounce w schedulePush) mogły lecieć
+  // RÓWNOLEGLE i wrócić w innej kolejności, niż zostały wysłane. Późniejsza
+  // (nowsza) odpowiedź nadpisywała wtedy SERVER_BASE_KEY starszą wartością
+  // z wcześniejszego, wolniejszego requestu, co przy KOLEJNYM pushu (np.
+  // zaraz po końcu bitwy) wywoływało fałszywe 409 (serwer "widzi" nowszy
+  // stan niż ten push zakłada) - klient w odpowiedzi na 409 BEZWARUNKOWO
+  // ufa stanowi z serwera i nadpisuje nim swój lokalny, więc saldo/przedmioty
+  // cofały się do stanu z tego wcześniejszego, wygranego wyścigu requestu -
+  // bez żadnej nawigacji w tle, dokładnie to zgłoszone zachowanie.
+  let pushChain = Promise.resolve();
   function schedulePush() {
     if (!me.loggedIn) return;
     clearTimeout(pushTimer);
@@ -190,6 +202,19 @@
     return pushNow();
   }
   function pushNow() {
+    const result = pushChain.then(doPushOne, doPushOne);
+    // Łańcuch musi żyć dalej nawet po nieudanym pushu, inaczej JEDNA
+    // odrzucona/błędna odpowiedź trwale zablokowałaby WSZYSTKIE kolejne -
+    // stąd druga gałąź .then(doPushOne, doPushOne) wyżej (błąd nie
+    // przerywa kolejki) i catch(()=>{}) tu, żeby sam .catch nie został
+    // zwrócony jako pendingPush (musiałby czekać, aż i TEN handler się
+    // wykona, dodając zbędne opóźnienie).
+    pushChain = result.catch(() => {});
+    pendingPush = result;
+    result.finally(() => { if (pendingPush === result) pendingPush = null; });
+    return result;
+  }
+  function doPushOne() {
     let state = {};
     try { state = JSON.parse(localStorage.getItem(STATE_KEY) || "{}"); } catch (e) {}
     const payload = {
@@ -293,11 +318,7 @@
       })
       .catch((e) => {
         console.error("[cs2sim] push /api/state - błąd sieci:", e);
-      })
-      .finally(() => {
-        if (pendingPush === promise) pendingPush = null;
       });
-    pendingPush = promise;
     return promise;
   }
 
