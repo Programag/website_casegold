@@ -47,7 +47,19 @@ const socket = (function () {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload || {}),
     });
-    return res.json();
+    // Czytamy jako tekst, nie res.json() wprost - jeśli odpowiedź nie jest
+    // czystym JSON-em (np. jakiś tekst przed/po), chcemy TEN tekst zobaczyć
+    // w komunikacie błędu zamiast generycznego "network_error", które nic
+    // nie mówi o tym, co faktycznie przyszło z serwera.
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      const err = new Error('bad_json_response');
+      err.rawResponseText = text;
+      err.httpStatus = res.status;
+      throw err;
+    }
   }
 
   function emit(event, payload, ack) {
@@ -67,8 +79,12 @@ const socket = (function () {
         startLobbyPolling(res.lobby.id, (payload && payload.tabId) || null);
       }
     }).catch((e) => {
-      console.error('[battle-poll] emit błąd:', event, e);
-      if (typeof ack === 'function') ack({ ok: false, reason: 'network_error' });
+      console.error('[battle-poll] emit błąd:', event, e, e && e.rawResponseText);
+      if (typeof ack === 'function') {
+        ack(e && e.rawResponseText !== undefined
+          ? { ok: false, reason: 'bad_json_response', raw: e.rawResponseText, httpStatus: e.httpStatus }
+          : { ok: false, reason: 'network_error' });
+      }
     });
   }
 

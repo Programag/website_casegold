@@ -118,6 +118,18 @@ function battle_cleanup_old_finished(PDO $pdo): void {
     $cutoff = now_ms() - BATTLE_FINISHED_TTL_MS;
     $stmt = $pdo->prepare("DELETE FROM battle_lobbies WHERE status = 'finished' AND updated_at < ?");
     $stmt->execute([$cutoff]);
+
+    // Lobby, którego twórca nigdy nawet nie zaczął go odpytywać (np. klient
+    // dostał zniekształconą odpowiedź na battle:create mimo że zapis w bazie
+    // się powiódł - patrz naprawa display_errors w db.php), nigdy nie
+    // przechodzi przez battle_sweep_stale() w battle-get-lobby.php (to jedyne
+    // miejsce, które je sprząta), bo nikt go nigdy nie odpytuje - zostaje w
+    // liście otwartych bitew na zawsze. 10 minut to spory zapas nad
+    // BATTLE_DISCONNECT_GRACE_MS, żeby nie skasować lobby, które realnie
+    // czeka na znajomego z linkiem, tylko prawdziwe porzucone śmieci.
+    $abandonedCutoff = now_ms() - 10 * 60 * 1000;
+    $stmt2 = $pdo->prepare("DELETE FROM battle_lobbies WHERE status = 'lobby' AND updated_at < ?");
+    $stmt2->execute([$abandonedCutoff]);
 }
 
 /* ---- "Codzienne najlepsze bitwy" ---- */

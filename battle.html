@@ -3408,7 +3408,16 @@ startBattleBtn.onclick = () => {
       // w inc/auth.php) - zamiast wysyłać w kółko to samo, nieskuteczne
       // "spróbuj ponownie", od razu pokaż ekran logowania.
       if(res && res.reason === "not_logged_in"){ window.SteamAuth.requireLogin(); return; }
-      alert("Nie udało się utworzyć bitwy — spróbuj ponownie.");
+      // Tymczasowa diagnostyka: jeśli serwer nie zwrócił czystego JSON-a
+      // (patrz reason: "bad_json_response" w battle-poll-shim.js), pokaż
+      // dokładnie co przyszło - to jedyny sposób, żeby zobaczyć realny
+      // błąd serwera na hostingu bez bezpośredniego dostępu do jego logów.
+      if(res && res.reason === "bad_json_response"){
+        alert("Nie udało się utworzyć bitwy — błąd serwera:\n\n" + String(res.raw || "").slice(0, 500));
+        console.error("battle:create bad_json_response, http status:", res.httpStatus, "raw:", res.raw);
+        return;
+      }
+      alert("Nie udało się utworzyć bitwy — spróbuj ponownie." + (res && res.reason ? ` (${res.reason})` : ""));
       return;
     }
     const lobby = res.lobby;
