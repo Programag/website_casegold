@@ -3,7 +3,13 @@ require_once __DIR__ . '/db.php';
 
 const BATTLE_MAX_ROUNDS = 40;
 const BATTLE_MAX_PLAYERS = 4;
-const BATTLE_MAX_COST = 1000000;
+// Musi zostawić spory zapas nad realnym maksimum (Angel Case w trybie
+// Jester × BATTLE_MAX_ROUNDS ≈ 7,37 mln zł), bo to tylko zabezpieczenie
+// przed zniekształconym/złośliwym payloadem, a nie sensowny limit gry -
+// za niski próg (poprzednio 1 000 000) po cichu obcinał realny koszt
+// bitwy do 1 mln zł w battle-create.php, przez co drugi gracz płacił za
+// wejście za mało (lobby.cost), a zwrot przy remisie też był zaniżony.
+const BATTLE_MAX_COST = 50000000;
 // W Node wykrywał to sam Socket.IO (disconnect). HTTP polling nie ma
 // odpowiednika "rozłączenia" - sloty starsze niż ten limit bez żadnego
 // pollu z ich tabId są leniwie sprzątane przy najbliższym dotknięciu lobby
