@@ -214,10 +214,10 @@
     result.finally(() => { if (pendingPush === result) pendingPush = null; });
     return result;
   }
-  function doPushOne() {
+  function buildPushPayload() {
     let state = {};
     try { state = JSON.parse(localStorage.getItem(STATE_KEY) || "{}"); } catch (e) {}
-    const payload = {
+    return {
       balance: state.balance,
       inventory: state.inventory,
       invCounter: state.invCounter,
@@ -239,6 +239,9 @@
       freeCaseAt: Number(localStorage.getItem(FREE_CASE_KEY) || 0) || null,
       baseUpdatedAt: Number(localStorage.getItem(SERVER_BASE_KEY) || 0) || 0,
     };
+  }
+  function doPushOne() {
+    const payload = buildPushPayload();
     const body = JSON.stringify(payload);
     // Chromium ogranicza fetch(..., {keepalive:true}) do łącznie 64KiB ciała
     // żądania na CAŁĄ kartę - powyżej tego limitu request jest po cichu
@@ -751,17 +754,38 @@
   } catch (e) {
     console.error("[cs2sim] nadpisanie localStorage.setItem nie powiodło się:", e.message);
   }
-  window.addEventListener("beforeunload", () => { if (pushTimer) pushNow(); });
-  // Ostatnia linia obrony przed "saldo/przedmioty wracają do stanu sprzed
-  // bitwy" - flushPush() i keepalive dają push jak najlepsze szanse na
-  // przeżycie nawigacji, ale przy większym ekwipunku (payload nad limitem
-  // keepalive, patrz pushNow) i tak nic nie gwarantuje, że request zdąży się
-  // dokończyć, zanim przeglądarka odładuje stronę. Zamiast na to liczyć,
-  // przechwytujemy zwykłe kliknięcia w linki nawigacji (tej samej domeny) i
-  // jeśli jakiś push jeszcze trwa, WSTRZYMUJEMY nawigację do jego
-  // zakończenia (maksymalnie 2s, żeby nie zawiesić strony na trwałe przy
-  // martwym requeście) - to jedyny sposób gwarantujący zapis niezależny od
-  // rozmiaru payloadu czy limitów przeglądarki.
+  // Ostateczna siatka bezpieczeństwa: F5/odświeżenie, wpisanie adresu, przycisk
+  // wstecz i zamknięcie karty NIE przechodzą przez przechwytywanie kliknięć w
+  // linki niżej - beforeunload to jedyne zdarzenie, jakie wtedy w ogóle
+  // odpala. Zwykły fetch(...) (nawet z keepalive) w tym momencie i tak nie
+  // daje żadnej gwarancji: przy większym ekwipunku/historii bitew payload
+  // przekracza limit 64KB na keepalive (patrz komentarz w pushNow), więc
+  // request jest po cichu ubijany w połowie, gdy strona faktycznie się
+  // odładowuje - dokładnie objaw "saldo wraca do stanu sprzed bitwy po
+  // odświeżeniu". Synchroniczny XMLHttpRequest (ten sam trik co przy
+  // fetchMeSync() na starcie strony) BLOKUJE nawigację, aż zapis faktycznie
+  // się skończy, niezależnie od rozmiaru payloadu - to jedyny transport bez
+  // żadnego cichego okna na utratę danych w tym miejscu.
+  function pushSync() {
+    if (!me.loggedIn) return;
+    try {
+      const xhr = new XMLHttpRequest();
+      xhr.open("PUT", "/api/state.php", false); // synchroniczne - celowo, patrz komentarz wyżej
+      xhr.setRequestHeader("Content-Type", "application/json");
+      xhr.send(JSON.stringify(buildPushPayload()));
+    } catch (e) {
+      /* nic więcej nie da się tu zrobić - strona już się odładowuje */
+    }
+  }
+  window.addEventListener("beforeunload", () => { if (pushTimer || pendingPush) pushSync(); });
+  // Dodatkowa siatka - beforeunload nie zawsze odpala niezawodnie (zwłaszcza
+  // mobilny Safari przy przełączaniu kart/zamykaniu przeglądarki), pagehide
+  // odpala w tych samych sytuacjach ORAZ tam, gdzie beforeunload zawodzi.
+  window.addEventListener("pagehide", () => { if (pushTimer || pendingPush) pushSync(); });
+  // Przechwytywanie kliknięć w linki nawigacji (tej samej domeny) zostaje
+  // jako szybsza ścieżka dla NORMALNEJ nawigacji klikiem - czeka na już
+  // trwający async push zamiast dublować go synchronicznym XHR-em, więc
+  // zwykłe przejście między zakładkami nie blokuje się bez potrzeby.
   document.addEventListener("click", (e) => {
     if (!pendingPush) return;
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
