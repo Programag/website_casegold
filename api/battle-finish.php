@@ -6,16 +6,26 @@ header('Content-Type: application/json');
 $payload = json_decode(file_get_contents('php://input'), true);
 if (!is_array($payload)) $payload = [];
 $lobbyId = (string) ($payload['lobbyId'] ?? '');
-$tabId = (string) ($payload['tabId'] ?? '');
 $outcome = $payload['outcome'] ?? null;
 
 $pdo = db();
 $pdo->beginTransaction();
 try {
     $lobby = battle_load_for_update($pdo, $lobbyId);
-    if (!$lobby || $lobby['hostTabId'] !== $tabId) {
+    if (!$lobby) {
         $pdo->rollBack();
         echo json_encode(['ok' => false]);
+        exit;
+    }
+
+    // Zgłasza to KTOKOLWIEK, kto pierwszy dogląda bitwy do końca (nie tylko
+    // host - patrz komentarz przy battle:finish w battle.html), więc dwóch
+    // widzów może trafić tu prawie jednocześnie. Bez tej blokady drugie
+    // wywołanie nadpisałoby finishedAt i podwójnie zapisałoby wynik do
+    // codziennej topki (battle_record_daily_top).
+    if ($lobby['status'] === 'finished') {
+        $pdo->commit();
+        echo json_encode(['ok' => true, 'lobby' => $lobby]);
         exit;
     }
 

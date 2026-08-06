@@ -4424,11 +4424,15 @@ function finishConclusion(lobby, outcome, mySlotIdx){
     window.SteamAuth.recordBattleResult(historyOutcome === "win");
   }
 
-  // lobby lifecycle (telling the server this battle is over) stays host-only —
-  // that part has nothing to do with wallets, just who's allowed to close the room
-  if(lobby.hostTabId === myTabId){
-    socket.emit("battle:finish", { lobbyId: lobby.id, tabId: myTabId, outcome });
-  }
+  // Reported by WHOEVER's tab first reaches the end of the animation, not just
+  // the host — determineOutcome() is fully deterministic (seeded off lobby.id),
+  // so every viewer computes the exact same outcome. Restricting this to the
+  // host meant a lobby stayed stuck as "running" forever (and kept re-playing
+  // the last round's spin for every new viewer instead of showing the instant
+  // final state) whenever the host's tab closed before its own animation
+  // finished — see battle-finish.php for the idempotency guard that keeps
+  // multiple simultaneous reporters from double-recording the daily top.
+  socket.emit("battle:finish", { lobbyId: lobby.id, tabId: myTabId, outcome });
 }
 
 function renderInstantFinalState(lobby){
