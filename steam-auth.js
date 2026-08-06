@@ -163,6 +163,14 @@
   // ---- Push lokalnych zmian na serwer, gdy zalogowany ----
   let pushTimer = null;
   let nativeSetItem = null; // ustawiane niżej, przy instalacji monkey-patcha; używane do zapisu pomijającego auto-push
+  // Śledzi TRWAJĄCY push (jeśli jest), żeby nawigacja mogła na niego
+  // poczekać zamiast go po prostu ubić w połowie - patrz przechwytywanie
+  // kliknięć w linki nawigacji niżej. To jedyna metoda, która działa
+  // niezależnie od tego, JAK duży jest payload (np. wielkiego ekwipunku) i
+  // czy fetch(..., {keepalive:true}) w ogóle zdążyłby się zmieścić w swoim
+  // limicie 64KB - zwyczajnie czekamy, aż zapis faktycznie się skończy,
+  // zamiast liczyć na to, że request przeżyje odładowanie strony.
+  let pendingPush = null;
   function schedulePush() {
     if (!me.loggedIn) return;
     clearTimeout(pushTimer);
@@ -171,17 +179,15 @@
   // Dla zdarzeń, po których gracz zwykle NATYCHMIAST nawiguje gdzie indziej
   // (koniec bitwy -> klik w inną zakładkę nawigacji) zwykły 500ms debounce to
   // za duże ryzyko: jeśli strona zdąży się odładować zanim timer w ogóle
-  // odpali pushNow(), fetch(..., {keepalive:true}) nigdy nawet nie wystartuje
-  // (w przeciwieństwie do beforeunload niżej, który łapie już ZAPLANOWANY
-  // push). Krytyczne miejsca (patrz finishConclusion w battle.html) wołają
-  // to zamiast schedulePush(), żeby request wystartował od razu - wtedy
-  // keepalive faktycznie ma szansę dokończyć zapis w tle nawet gdy strona
-  // zniknie milisekundę później.
+  // odpali pushNow(), request nigdy nawet nie wystartuje. Krytyczne miejsca
+  // (patrz finishConclusion w battle.html) wołają to zamiast schedulePush(),
+  // żeby request wystartował od razu i (razem z przechwytywaniem kliknięć w
+  // linki niżej) faktycznie zdążył się dokończyć przed nawigacją.
   function flushPush() {
-    if (!me.loggedIn) return;
+    if (!me.loggedIn) return Promise.resolve();
     clearTimeout(pushTimer);
     pushTimer = null;
-    pushNow();
+    return pushNow();
   }
   function pushNow() {
     let state = {};
@@ -219,7 +225,7 @@
     // przeżycia odładowania strony, ale to i tak lepsze niż pewna cicha
     // porażka za każdym razem).
     const useKeepalive = body.length < 60000;
-    fetch("/api/state.php", {
+    const promise = fetch("/api/state.php", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body,
@@ -287,7 +293,12 @@
       })
       .catch((e) => {
         console.error("[cs2sim] push /api/state - błąd sieci:", e);
+      })
+      .finally(() => {
+        if (pendingPush === promise) pendingPush = null;
       });
+    pendingPush = promise;
+    return promise;
   }
 
   // ---- EXP / poziomy ----
@@ -720,6 +731,29 @@
     console.error("[cs2sim] nadpisanie localStorage.setItem nie powiodło się:", e.message);
   }
   window.addEventListener("beforeunload", () => { if (pushTimer) pushNow(); });
+  // Ostatnia linia obrony przed "saldo/przedmioty wracają do stanu sprzed
+  // bitwy" - flushPush() i keepalive dają push jak najlepsze szanse na
+  // przeżycie nawigacji, ale przy większym ekwipunku (payload nad limitem
+  // keepalive, patrz pushNow) i tak nic nie gwarantuje, że request zdąży się
+  // dokończyć, zanim przeglądarka odładuje stronę. Zamiast na to liczyć,
+  // przechwytujemy zwykłe kliknięcia w linki nawigacji (tej samej domeny) i
+  // jeśli jakiś push jeszcze trwa, WSTRZYMUJEMY nawigację do jego
+  // zakończenia (maksymalnie 2s, żeby nie zawiesić strony na trwałe przy
+  // martwym requeście) - to jedyny sposób gwarantujący zapis niezależny od
+  // rozmiaru payloadu czy limitów przeglądarki.
+  document.addEventListener("click", (e) => {
+    if (!pendingPush) return;
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const a = e.target.closest("a[href]");
+    if (!a || a.target === "_blank") return;
+    let url;
+    try { url = new URL(a.href, location.href); } catch (err) { return; }
+    if (url.origin !== location.origin) return;
+    e.preventDefault();
+    const dest = a.href;
+    const go = () => { location.href = dest; };
+    Promise.race([pendingPush, new Promise((resolve) => setTimeout(resolve, 2000))]).then(go, go);
+  });
 
   // ---- UI: avatar + przycisk logowania w menu ustawień ----
   const DICT = {
