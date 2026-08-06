@@ -3402,7 +3402,15 @@ startBattleBtn.onclick = () => {
     hostSlotIdx: chosenIdx
   };
   socket.emit("battle:create", cfg, (res) => {
-    if(!res || !res.ok){ alert("Nie udało się utworzyć bitwy — spróbuj ponownie."); return; }
+    if(!res || !res.ok){
+      // Sesja mogła wygasnąć po stronie serwera mimo że ta karta wciąż
+      // uważa się za zalogowaną (patrz komentarz przy session.gc_maxlifetime
+      // w inc/auth.php) - zamiast wysyłać w kółko to samo, nieskuteczne
+      // "spróbuj ponownie", od razu pokaż ekran logowania.
+      if(res && res.reason === "not_logged_in"){ window.SteamAuth.requireLogin(); return; }
+      alert("Nie udało się utworzyć bitwy — spróbuj ponownie.");
+      return;
+    }
     const lobby = res.lobby;
     myLobbyObj = lobby;
     spendShared(cost); // host's own seat is paid for immediately

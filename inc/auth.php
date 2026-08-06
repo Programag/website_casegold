@@ -5,8 +5,19 @@ require_once __DIR__ . '/users.php';
 function cs2_session_start(): void {
     if (session_status() === PHP_SESSION_NONE) {
         $secure = str_starts_with(cs2_config()['site_url'], 'https://');
+        $lifetime = 90 * 24 * 60 * 60; // 90 dni, tak jak cookie.maxAge w Node
+        // session_set_cookie_params() ustawia TYLKO żywotność ciasteczka w
+        // przeglądarce - domyślne session.gc_maxlifetime PHP (na wielu
+        // hostingach 1440s = 24 minuty) i tak kasuje dane sesji po stronie
+        // serwera dużo wcześniej. Efekt: przeglądarka dalej ma "ważne"
+        // ciasteczko (więc window.__STEAM_AUTH__.loggedIn ustawione przy
+        // wczytaniu strony zostaje true), ale każdy kolejny POST wymagający
+        // current_user() (np. battle:create) dostaje not_logged_in, bo
+        // sesja po stronie serwera już nie istnieje - stąd "nie udało się
+        // utworzyć bitwy" po dłuższym trzymaniu karty otwartej bez przeładowania.
+        ini_set('session.gc_maxlifetime', (string) $lifetime);
         session_set_cookie_params([
-            'lifetime' => 90 * 24 * 60 * 60, // 90 dni, tak jak cookie.maxAge w Node
+            'lifetime' => $lifetime,
             'path' => '/',
             'secure' => $secure,
             'httponly' => true,
