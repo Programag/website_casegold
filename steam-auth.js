@@ -441,7 +441,16 @@
     s.claimedLevelRewards = nextClaimed;
     s.updatedAt = Date.now();
     try { localStorage.setItem(STATE_KEY, JSON.stringify(s)); } catch (e) {}
-    schedulePush();
+    // flushPush(), nie schedulePush() - to jednorazowe, świadome kliknięcie
+    // "odbierz", nie ciągły strumień drobnych zmian jak w recordPull()/
+    // incrementCounter() niżej. 500ms debounce'a wystarczy, żeby na mobile
+    // przeglądarka zdążyła uśpić/ubić w tle kartę (np. gracz od razu
+    // przełącza aplikację) zanim timer w ogóle odpali - wtedy zapis ginie
+    // bezpowrotnie, bo uśpiona/ubita karta nie dostaje szansy uruchomić
+    // JS-a, więc nawet siatka bezpieczeństwa w beforeunload/pagehide nic tu
+    // nie pomoże. Odpalenie żądania OD RAZU zawęża to okno do czasu samego
+    // requestu, zamiast pełnych 500ms bezczynności.
+    flushPush();
     return item;
   }
 
@@ -484,7 +493,7 @@
       localStorage.setItem(DAILY_KEY, String(Date.now()));
       localStorage.setItem(DAILY_STREAK_KEY, String(newStreak));
     } catch (e) {}
-    schedulePush();
+    flushPush(); // patrz komentarz przy claimLevelReward() - jednorazowe kliknięcie "odbierz", nie ciągły strumień zmian
     return { reward: status.reward, newStreak, day: status.pendingDay };
   }
   function fmtDailyBonus(n) {
@@ -736,7 +745,7 @@
     s.balance = (typeof s.balance === "number" ? s.balance : 0) + reward;
     s.updatedAt = Date.now();
     try { localStorage.setItem(STATE_KEY, JSON.stringify(s)); } catch (e) {}
-    schedulePush();
+    flushPush(); // patrz komentarz przy claimLevelReward() - jednorazowe kliknięcie "odbierz", nie ciągły strumień zmian
     return true;
   }
 
