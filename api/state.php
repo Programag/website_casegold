@@ -72,6 +72,14 @@ try {
     $isBrandNewAccount = $state === null;
     $state = ensure_level_watermark($state); // no-op dla null; dla reszty patrz komentarz w users.php
     $xpFloor = ($state && isset($state['xp']) && is_numeric($state['xp'])) ? $state['xp'] : 0;
+    // invCounter, w przeciwieństwie do xp/levelWatermark, do tej pory nie miał
+    // dolnej bariery przez max() - nieszkodliwe, dopóki był czysto klienckim
+    // licznikiem bez znaczenia poza deduplikacją w obrębie jednego zapisu.
+    // Odkąd nowe, atomowe endpointy (patrz inc/state_ops.php) zaczynają nadawać
+    // ID przedmiotom serwerowo i inne endpointy operują PO tych ID (sprzedaż,
+    // blokada), spóźniony/przestarzały PUT z niższym invCounter mógłby cofnąć
+    // licznik i doprowadzić do ponownego nadania już zajętego ID - stąd max().
+    $invCounterFloor = ($state && isset($state['invCounter']) && is_numeric($state['invCounter'])) ? $state['invCounter'] : 0;
 
     $newState = [
         // balance/inventory/invCounter/level MUSZĄ paść wstecz na już
@@ -81,7 +89,7 @@ try {
         // nie zmieniać w tym polu.
         'balance' => num_or($body, 'balance', $state['balance'] ?? 0),
         'inventory' => isset($body['inventory']) && is_array($body['inventory']) ? $body['inventory'] : ($state['inventory'] ?? []),
-        'invCounter' => num_or($body, 'invCounter', $state['invCounter'] ?? 0),
+        'invCounter' => max(num_or($body, 'invCounter', $invCounterFloor), $invCounterFloor),
         'level' => num_or($body, 'level', $state['level'] ?? 0),
         'xp' => max(num_or($body, 'xp', 0), $xpFloor),
         'dailyBonusAt' => num_or($body, 'dailyBonusAt', null),
