@@ -462,6 +462,38 @@
     } catch (e) {}
   }
 
+  // Otwarcie skrzynki (Faza 2 migracji) - RNG i animacja zostają w 100%
+  // po stronie klienta (każda z 23 stron case_*.html liczy wynik lokalnie,
+  // dokładnie jak dotąd), ale zapis wyniku jest teraz atomowym,
+  // natychmiastowym zapytaniem do serwera zamiast lokalnego zapisu +
+  // najlepszym-wysiłkiem pushu całego blobu. Serwer sam liczy koszt z
+  // własnej tabeli cen (api/apply-case-open.php) - cost/jesterMode tutaj
+  // to tylko informacja dla trybu Jester (patrz komentarz w tym endponcie),
+  // nie coś, czemu serwer bezwarunkowo ufa. Zwraca {items, cost, state} z
+  // przedmiotami mającymi już nadane serwerowe ID, albo null przy porażce -
+  // wołający MUSI sprawdzić null i NIE dodawać przedmiotów lokalnie w tym
+  // wypadku (zostały już odrzucone/nie zapisane na serwerze).
+  async function applyCaseOpen({ caseId, count, jesterMode, cost, items }) {
+    if (!me.loggedIn) return null;
+    try {
+      const res = await fetch("/api/apply-case-open.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        keepalive: true, // payload jest maleńki (max 5 przedmiotów) - zawsze bezpieczne
+        body: JSON.stringify({ caseId, count, jesterMode: !!jesterMode, cost, items }),
+      });
+      if (!res.ok) return null;
+      const body = await res.json();
+      if (!body || !body.ok) return null;
+      applyServerState(body.state);
+      return { items: body.items, cost: body.cost, state: body.state };
+    } catch (e) {
+      console.error("[cs2sim] apply-case-open - błąd sieci:", e);
+      return null;
+    }
+  }
+
   // Marks a level's reward as claimed and hands back the item so the caller
   // (equipment.html) can render it - odbiór jest teraz w pełni serwerowy
   // (api/claim-level-reward.php): serwer sam sprawdza poziom/odebranie i
@@ -1236,5 +1268,6 @@
     openDailyBonusModal,
     recordBattleHistory,
     readBattleHistory,
+    applyCaseOpen,
   };
 })();

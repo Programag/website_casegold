@@ -84,3 +84,12 @@ function state_effective_level(array $state): int {
     $watermark = is_numeric($state['levelWatermark'] ?? null) ? (int) $state['levelWatermark'] : 0;
     return max($watermark, level_for_xp($xp));
 }
+
+/* Wołać po KAŻDEJ zmianie $state['xp'] - odpowiednik efektu ubocznego
+   effectiveLevel() w steam-auth.js (podbija i PERSYSTUJE levelWatermark,
+   jeśli świeże xp na to pozwala). Bez tego wyświetlany poziom zostałby
+   nieaktualny aż do następnego załadowania jakiejś strony (co i tak by go
+   naprawiło przez identyczną logikę po stronie klienta, ale po co czekać). */
+function state_bump_level_watermark(array &$state): void {
+    $state['levelWatermark'] = state_effective_level($state);
+}

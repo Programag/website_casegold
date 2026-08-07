@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<script src="steam-auth.js?v=5"></script>
+<script src="steam-auth.js?v=6"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CASEGOLD // Cosmos Case</title>
 <link rel="icon" type="image/png" href="casegold_logo.PNG">
@@ -675,6 +675,9 @@ const ITEMS = [
   {weapon:"M4A1-S", skin:"Black Lotus", wear:"MW", price:51.03, start:86101, end:100000, chance:13.900},
 ];
 
+// Identyfikator wysyłany do api/apply-case-open.php - musi zgadzać się z
+// kluczem w inc/data/case_prices.php (nazwa tego pliku bez rozszerzenia).
+const CASE_ID = "case_cosmos";
 /* Wklej link do obrazka skrzynki tutaj (widoczny w nagłówku panelu otwierania) */
 const CASE_NAME = "Cosmos Case";
 const CASE_IMAGE = getCaseImage(CASE_NAME);
@@ -732,6 +735,13 @@ function saveState(){
     localStorage.setItem(STORAGE_KEY, JSON.stringify({balance, inventory, invCounter, level, xp, ...window.SteamAuth.readPersistentExtras()}));
     window.SteamAuth.schedulePush();
   }catch(e){}
+}
+// Odświeża lokalne zmienne z localStorage - używane PO window.SteamAuth.applyCaseOpen(),
+// które samo już zapisało autorytatywny stan na serwerze i w localStorage.
+function reloadSharedState(){
+  const s = loadState();
+  balance = s.balance; inventory = s.inventory; invCounter = s.invCounter; xp = s.xp;
+  level = window.SteamAuth.effectiveLevel(xp);
 }
 
 const initial = loadState();
@@ -888,29 +898,13 @@ function itemNode(it, cls){
 
 function log(msg){}
 
-function addToInventory(it){
-  invCounter++;
-  inventory.push({...it, _id: invCounter});
-  window.SteamAuth.recordPull(it);
-  window.SteamAuth.recordCasesOpened(1);
-}
-
+// Saldo/ekwipunek/liczniki są już zapisane (serwerowo i lokalnie) w
+// momencie, gdy ta funkcja jest wołana - patrz openBtn.onclick, który woła
+// window.SteamAuth.applyCaseOpen() OD RAZU po wylosowaniu wyniku, nie
+// dopiero tutaj. commitResults() tylko domyka okienko z wynikiem.
 function commitResults(){
-  console.log('commitResults called', !!pendingResults);
-  if(!pendingResults){
-    document.getElementById("resultFlash").classList.remove("show");
-    spinning = false;
-    renderBalance();
-    return;
-  }
-  pendingResults.forEach(it => {
-    addToInventory(it);
-    log(`Otwarto skrzynkę → ${it.weapon} | ${it.skin} (${it.wear}) — ${fmt(it.price)}`);
-  });
-  pendingResults = null;
-  spinning = false;
-  renderBalance();
   document.getElementById("resultFlash").classList.remove("show");
+  pendingResults = null;
 }
 
 document.getElementById("inventoryBtn").onclick = () => { window.location.href = "/equipment.html"; };
@@ -1035,20 +1029,13 @@ function flashResult(it, count){
 
 document.getElementById("resultClose").onclick = () => { console.log('resultClose clicked'); commitResults(); };
 
-openBtn.onclick = () => {
+openBtn.onclick = async () => {
   if(!window.SteamAuth.requireLogin()) return;
   const count = Number(openCount.value);
   const totalCost = currentCasePrice() * count;
   if(spinning || balance < totalCost) return;
   spinning = true;
   openBtn.disabled = true;
-
-  balance -= totalCost;
-  window.SteamAuth.recordCaseSpend(totalCost);
-  xp += totalCost * window.SteamAuth.xpPerZl;
-  level = window.SteamAuth.effectiveLevel(xp);
-  renderBalance();
-  window.SteamAuth.refreshLevelBadge();
 
   reelsContainer.innerHTML = "";
   const results = Array.from({length: count}, () => rollItem());
@@ -1059,15 +1046,43 @@ openBtn.onclick = () => {
   reelData.forEach(({track, winnerIndex}) => spinTo(track, winnerIndex, fast));
   playSpinSound(duration);
 
+  // Zapis wyniku leci do serwera OD RAZU (równolegle z animacją, nie
+  // dopiero po zamknięciu okienka z wynikiem) - serwer sam liczy koszt z
+  // własnej tabeli cen, więc totalCost/jesterMode tutaj to informacja, nie
+  // coś, czemu bezwarunkowo ufa (patrz komentarz w api/apply-case-open.php).
+  const serverPromise = window.SteamAuth.applyCaseOpen({
+    caseId: CASE_ID,
+    count,
+    jesterMode: jesterMode,
+    cost: totalCost,
+    items: results.map(it => ({ weapon: it.weapon, skin: it.skin, wear: it.wear, price: it.price })),
+  });
+
+  const [, serverResult] = await Promise.all([
+    new Promise(resolve => setTimeout(resolve, duration)),
+    serverPromise,
+  ]);
+
+  spinning = false;
+  openBtn.disabled = false;
+
+  if(!serverResult){
+    reelsContainer.innerHTML = "";
+    alert("Nie udało się otworzyć skrzynki — spróbuj ponownie.");
+    return;
+  }
+
+  reloadSharedState();
+  renderBalance();
+  window.SteamAuth.refreshLevelBadge();
+
   pendingResults = results;
-  setTimeout(() => {
-    const best = results.reduce((top, item) => item.price > top.price ? item : top, results[0]);
-    playWinSound();
-    flashResult(best, count);
-    if(count > 1){
-      log(`Otwarto ${count} skrzynki za ${fmt(totalCost)}`);
-    }
-  }, duration);
+  const best = results.reduce((top, item) => item.price > top.price ? item : top, results[0]);
+  playWinSound();
+  flashResult(best, count);
+  if(count > 1){
+    log(`Otwarto ${count} skrzynki za ${fmt(totalCost)}`);
+  }
 };
 
 /* ---------------- "Zawartość skrzynki" grid ---------------- */
