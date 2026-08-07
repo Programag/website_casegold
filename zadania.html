@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<script src="steam-auth.js?v=4"></script>
+<script src="steam-auth.js?v=5"></script>
 <script src="sound.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CASEGOLD // Zadania</title>
@@ -483,9 +483,9 @@ function renderAll(){
   });
 }
 
-function claimTier(taskId, tierIndex, reward){
+async function claimTier(taskId, tierIndex, reward){
   if(!window.SteamAuth.requireLogin()) return;
-  const ok = window.SteamAuth.claimQuestTier(taskId, tierIndex, reward);
+  const ok = await window.SteamAuth.claimQuestTier(taskId, tierIndex, reward);
   if(!ok){ renderAll(); return; }
   playWinSound();
   renderAll();

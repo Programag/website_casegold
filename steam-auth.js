@@ -421,37 +421,78 @@
       return [];
     }
   }
-  // Marks a level's reward as claimed (persists + pushes) and hands back the
-  // item so the caller (equipment.html) can drop it into its own inventory.
-  // Refuses to double-claim or to claim a level not yet reached; any level
-  // up to the player's current one can be claimed independently/out of order.
-  function claimLevelReward(level) {
+  // Nadpisuje lokalny cache stanem ZWRÓCONYM przez serwer (odpowiedź nowych,
+  // atomowych endpointów claim-*.php/apply-*.php - patrz plan migracji na
+  // serwer-autorytatywny) - używa nativeSetItem, żeby nie odpalać zwrotnego
+  // pusha tego, co właśnie przyszło Z serwera. dailyBonusAt/dailyStreak/
+  // freeCaseAt żyją w osobnych kluczach localStorage (nie w STATE_KEY) -
+  // te trzy linijki lustrzanie odzwierciedlają identyczny efekt uboczny już
+  // istniejący w merge'u wewnątrz fetchMeSync() wyżej.
+  function applyServerState(s) {
+    if (!s) return;
+    const updatedAt = typeof s.updatedAt === "number" ? s.updatedAt : Date.now();
+    try { localStorage.setItem(SERVER_BASE_KEY, String(updatedAt)); } catch (e) {}
+    try {
+      if (s.dailyBonusAt) localStorage.setItem(DAILY_KEY, String(s.dailyBonusAt));
+      if (typeof s.dailyStreak === "number") localStorage.setItem(DAILY_STREAK_KEY, String(s.dailyStreak));
+      if (s.freeCaseAt) localStorage.setItem(FREE_CASE_KEY, String(s.freeCaseAt));
+    } catch (e) {}
+    const setItem = nativeSetItem || localStorage.setItem.bind(localStorage);
+    try {
+      setItem(STATE_KEY, JSON.stringify({
+        balance: s.balance,
+        inventory: s.inventory,
+        invCounter: s.invCounter,
+        level: typeof s.level === "number" ? s.level : 0,
+        xp: typeof s.xp === "number" ? s.xp : 0,
+        bestPull: s.bestPull || null,
+        upgradeClicks: typeof s.upgradeClicks === "number" ? s.upgradeClicks : 0,
+        casesOpened: typeof s.casesOpened === "number" ? s.casesOpened : 0,
+        spentCases: typeof s.spentCases === "number" ? s.spentCases : 0,
+        spentUpgrader: typeof s.spentUpgrader === "number" ? s.spentUpgrader : 0,
+        battlesPlayed: typeof s.battlesPlayed === "number" ? s.battlesPlayed : 0,
+        battlesWon: typeof s.battlesWon === "number" ? s.battlesWon : 0,
+        questClaims: s.questClaims && typeof s.questClaims === "object" ? s.questClaims : {},
+        claimedLevelRewards: Array.isArray(s.claimedLevelRewards) ? s.claimedLevelRewards : [],
+        battleHistory: Array.isArray(s.battleHistory) ? s.battleHistory : [],
+        levelWatermark: typeof s.levelWatermark === "number" ? s.levelWatermark : 0,
+        xpScaleMigratedV2: !!s.xpScaleMigratedV2,
+        updatedAt,
+      }));
+    } catch (e) {}
+  }
+
+  // Marks a level's reward as claimed and hands back the item so the caller
+  // (equipment.html) can render it - odbiór jest teraz w pełni serwerowy
+  // (api/claim-level-reward.php): serwer sam sprawdza poziom/odebranie i
+  // dobiera przedmiot, klientowi zostaje tylko szybka lokalna walidacja
+  // "czy w ogóle ma sens próbować" (żeby nie strzelać oczywiście złym
+  // żądaniem), nie ostateczne uprawnienie.
+  async function claimLevelReward(level) {
     const currentLevel = effectiveLevel((() => {
       try { return JSON.parse(localStorage.getItem(STATE_KEY) || "{}").xp || 0; } catch (e) { return 0; }
     })());
     if (level < 1 || level > currentLevel) return null;
     const claimed = readClaimedLevelRewards();
     if (claimed.includes(level)) return null;
-    const item = levelRewardItem(level);
-    if (!item) return null;
-    let s = {};
-    try { s = JSON.parse(localStorage.getItem(STATE_KEY) || "{}"); } catch (e) {}
-    const nextClaimed = Array.isArray(s.claimedLevelRewards) ? s.claimedLevelRewards.slice() : [];
-    if (!nextClaimed.includes(level)) nextClaimed.push(level);
-    s.claimedLevelRewards = nextClaimed;
-    s.updatedAt = Date.now();
-    try { localStorage.setItem(STATE_KEY, JSON.stringify(s)); } catch (e) {}
-    // flushPush(), nie schedulePush() - to jednorazowe, świadome kliknięcie
-    // "odbierz", nie ciągły strumień drobnych zmian jak w recordPull()/
-    // incrementCounter() niżej. 500ms debounce'a wystarczy, żeby na mobile
-    // przeglądarka zdążyła uśpić/ubić w tle kartę (np. gracz od razu
-    // przełącza aplikację) zanim timer w ogóle odpali - wtedy zapis ginie
-    // bezpowrotnie, bo uśpiona/ubita karta nie dostaje szansy uruchomić
-    // JS-a, więc nawet siatka bezpieczeństwa w beforeunload/pagehide nic tu
-    // nie pomoże. Odpalenie żądania OD RAZU zawęża to okno do czasu samego
-    // requestu, zamiast pełnych 500ms bezczynności.
-    flushPush();
-    return item;
+    if (!me.loggedIn) return null;
+    try {
+      const res = await fetch("/api/claim-level-reward.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        keepalive: true, // payload jest maleńki - to zawsze bezpieczne, patrz komentarz w pushNow()
+        body: JSON.stringify({ level }),
+      });
+      if (!res.ok) return null;
+      const body = await res.json();
+      if (!body || !body.ok) return null;
+      applyServerState(body.state);
+      return body.item;
+    } catch (e) {
+      console.error("[cs2sim] claim-level-reward - błąd sieci:", e);
+      return null;
+    }
   }
 
   // ---- Dzienny bonus (rosnąca passa) ----
@@ -480,21 +521,29 @@
       msLeft: Math.max(0, DAILY_BONUS_COOLDOWN_MS - msSinceClaim),
     };
   }
-  function claimDailyBonus() {
+  // Odbiór jest teraz w pełni serwerowy (api/claim-daily-bonus.php): serwer
+  // sam liczy cooldown/passę/nagrodę z tego, co ma już zapisane -
+  // dailyBonusStatus() tutaj to tylko szybka lokalna walidacja "czy w ogóle
+  // sensownie próbować" (i podgląd w modalu przed kliknięciem), nie
+  // ostateczne uprawnienie.
+  async function claimDailyBonus() {
     const status = dailyBonusStatus();
-    if (!status.canClaim) return null;
-    const newStreak = status.effectiveStreak + 1;
-    let s = {};
-    try { s = JSON.parse(localStorage.getItem(STATE_KEY) || "{}"); } catch (e) {}
-    s.balance = (typeof s.balance === "number" ? s.balance : 0) + status.reward;
-    s.updatedAt = Date.now();
-    try { localStorage.setItem(STATE_KEY, JSON.stringify(s)); } catch (e) {}
+    if (!status.canClaim || !me.loggedIn) return null;
     try {
-      localStorage.setItem(DAILY_KEY, String(Date.now()));
-      localStorage.setItem(DAILY_STREAK_KEY, String(newStreak));
-    } catch (e) {}
-    flushPush(); // patrz komentarz przy claimLevelReward() - jednorazowe kliknięcie "odbierz", nie ciągły strumień zmian
-    return { reward: status.reward, newStreak, day: status.pendingDay };
+      const res = await fetch("/api/claim-daily-bonus.php", {
+        method: "POST",
+        credentials: "same-origin",
+        keepalive: true, // payload jest maleńki - to zawsze bezpieczne, patrz komentarz w pushNow()
+      });
+      if (!res.ok) return null;
+      const body = await res.json();
+      if (!body || !body.ok) return null;
+      applyServerState(body.state);
+      return { reward: body.reward, newStreak: body.newStreak, day: body.day };
+    } catch (e) {
+      console.error("[cs2sim] claim-daily-bonus - błąd sieci:", e);
+      return null;
+    }
   }
   function fmtDailyBonus(n) {
     return n.toLocaleString("pl-PL", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " zł";
@@ -555,10 +604,10 @@
     const btn = document.getElementById("dbClaimBtn");
     btn.disabled = false;
     btn.textContent = "🎁 ODBIERZ BONUS";
-    btn.onclick = () => {
-      const result = claimDailyBonus();
-      if (!result) return;
+    btn.onclick = async () => {
       btn.disabled = true;
+      const result = await claimDailyBonus();
+      if (!result) { btn.disabled = false; return; }
       btn.textContent = "✓ Odebrano!";
       if (typeof dailyBonusOnClaimedCb === "function") dailyBonusOnClaimedCb(result.reward);
       setTimeout(() => {
@@ -733,20 +782,32 @@
       return {};
     }
   }
-  function claimQuestTier(taskId, tierIndex, reward) {
-    if (!taskId || typeof tierIndex !== "number" || typeof reward !== "number") return false;
-    let s = {};
-    try { s = JSON.parse(localStorage.getItem(STATE_KEY) || "{}"); } catch (e) {}
-    const claims = s.questClaims && typeof s.questClaims === "object" ? { ...s.questClaims } : {};
+  // reward zostaje w sygnaturze dla zgodności z dotychczasowym wywołaniem w
+  // zadania.html, ale NIE jest już do niczego używane tutaj - serwer sam
+  // liczy nagrodę z własnej kopii tabeli QUESTS (inc/state_rewards.php) i to
+  // ta wartość jest ostatecznie zapisywana, nie ta przysłana przez klienta.
+  async function claimQuestTier(taskId, tierIndex, reward) {
+    if (!taskId || typeof tierIndex !== "number") return false;
+    const claims = readQuestClaims();
     const already = typeof claims[taskId] === "number" ? claims[taskId] : 0;
-    if (tierIndex !== already) return false; // tylko następny nieodebrany poziom, po kolei
-    claims[taskId] = already + 1;
-    s.questClaims = claims;
-    s.balance = (typeof s.balance === "number" ? s.balance : 0) + reward;
-    s.updatedAt = Date.now();
-    try { localStorage.setItem(STATE_KEY, JSON.stringify(s)); } catch (e) {}
-    flushPush(); // patrz komentarz przy claimLevelReward() - jednorazowe kliknięcie "odbierz", nie ciągły strumień zmian
-    return true;
+    if (tierIndex !== already || !me.loggedIn) return false; // szybka lokalna walidacja, nie ostateczne uprawnienie
+    try {
+      const res = await fetch("/api/claim-quest-tier.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        keepalive: true, // payload jest maleńki - to zawsze bezpieczne, patrz komentarz w pushNow()
+        body: JSON.stringify({ taskId, tierIndex }),
+      });
+      if (!res.ok) return false;
+      const body = await res.json();
+      if (!body || !body.ok) return false;
+      applyServerState(body.state);
+      return true;
+    } catch (e) {
+      console.error("[cs2sim] claim-quest-tier - błąd sieci:", e);
+      return false;
+    }
   }
 
   // Monkey-patch jako dodatkowa siatka bezpieczeństwa - część przeglądarek

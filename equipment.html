@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<script src="steam-auth.js?v=4"></script>
+<script src="steam-auth.js?v=5"></script>
 <script src="sound.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CASEGOLD // Ekwipunek</title>
@@ -304,6 +304,16 @@ function loadState(){
 function saveState(){
   try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({balance, inventory, invCounter, level, xp, ...window.SteamAuth.readPersistentExtras()})); window.SteamAuth.schedulePush(); }catch(e){}
 }
+// Odświeża lokalne zmienne z localStorage - używane PO wywołaniach, które
+// same już zapisały autorytatywny stan na serwerze i w localStorage (np.
+// window.SteamAuth.claimLevelReward(), patrz claimLevelReward() niżej), żeby
+// ta strona nie odtwarzała ręcznie (i z niepoprawnym, lokalnie wygenerowanym
+// _id) tego, co serwer już poprawnie zapisał.
+function reloadSharedState(){
+  const s = loadState();
+  balance = s.balance; inventory = s.inventory; invCounter = s.invCounter; xp = s.xp;
+  level = window.SteamAuth.effectiveLevel(xp);
+}
 
 const initial = loadState();
 let balance = initial.balance;
@@ -462,19 +472,24 @@ function renderLevelRewards(){
     lvlRewardsEl.appendChild(card);
   });
 }
-function claimLevelReward(lvl){
+async function claimLevelReward(lvl){
   try{
-    const item = window.SteamAuth.claimLevelReward(lvl);
+    // window.SteamAuth.claimLevelReward() jest teraz w pełni serwerowe -
+    // przedmiot (z ID nadanym przez serwer) jest już zapisany zarówno na
+    // serwerze, jak i w localStorage (applyServerState w steam-auth.js), zanim
+    // ta funkcja w ogóle dostanie odpowiedź. reloadSharedState() poniżej tylko
+    // wciąga ten JUŻ poprawny stan do lokalnych zmiennych tej strony - nie
+    // odtwarzamy przedmiotu ręcznie (żeby nie nadać mu drugi raz, innego,
+    // lokalnie wygenerowanego ID).
+    const item = await window.SteamAuth.claimLevelReward(lvl);
     if(!item){ log(`Nie udało się odebrać nagrody za poziom ${lvl} (już odebrana albo poziom jeszcze nieosiągnięty).`); return; }
     if(typeof item.price !== "number" || !isFinite(item.price)){ log(`Błąd: nagroda za poziom ${lvl} ma nieprawidłową cenę. Zgłoś to.`); return; }
-    invCounter++;
-    const newId = invCounter;
-    inventory.push({ weapon:item.weapon, skin:item.skin, wear:item.wear, price:item.price, img:getSkinImage(item), _id: newId });
-    saveState();
+    reloadSharedState();
     renderInventory();
     renderLevelRewards();
+    renderBalance();
     log(`Odebrano nagrodę za poziom ${lvl}: ${item.weapon} | ${item.skin} (${item.wear}) o wartości ${fmt(item.price)}. Przedmiot jest teraz w Twoim ekwipunku - sprzedaj go tam, żeby dostać saldo.`);
-    const newEl = inventoryEl.querySelector(`[data-id="${newId}"]`);
+    const newEl = inventoryEl.querySelector(`[data-id="${item._id}"]`);
     if(newEl){
       newEl.scrollIntoView({ behavior: "smooth", block: "center" });
       newEl.classList.add("just-claimed");
@@ -485,24 +500,26 @@ function claimLevelReward(lvl){
   }
 }
 
-function claimAllLevelRewards(){
+async function claimAllLevelRewards(){
   const claimed = window.SteamAuth.readClaimedLevelRewards();
   const unclaimed = [];
   for(let lvl = 1; lvl <= level; lvl++) if(!claimed.includes(lvl)) unclaimed.push(lvl);
   if(unclaimed.length === 0) return;
   let claimedCount = 0;
   let totalValue = 0;
-  unclaimed.forEach(lvl => {
-    const item = window.SteamAuth.claimLevelReward(lvl);
-    if(!item || typeof item.price !== "number" || !isFinite(item.price)) return;
-    invCounter++;
-    inventory.push({ weapon:item.weapon, skin:item.skin, wear:item.wear, price:item.price, img:getSkinImage(item), _id: invCounter });
+  // Sekwencyjnie (nie Promise.all) - każde wywołanie to osobna, atomowa
+  // transakcja na serwerze (SELECT...FOR UPDATE), więc równoległe strzelanie
+  // nimi tylko czekałoby na tę samą blokadę wiersza bez żadnej korzyści.
+  for(const lvl of unclaimed){
+    const item = await window.SteamAuth.claimLevelReward(lvl);
+    if(!item || typeof item.price !== "number" || !isFinite(item.price)) continue;
     claimedCount++;
     totalValue += item.price;
-  });
-  saveState();
+  }
+  reloadSharedState();
   renderInventory();
   renderLevelRewards();
+  renderBalance();
   if(claimedCount > 0){
     log(`Odebrano wszystkie nagrody za poziomy (${claimedCount}) o łącznej wartości ${fmt(totalValue)}. Przedmioty są teraz w Twoim ekwipunku - sprzedaj je tam, żeby dostać saldo.`);
   }
