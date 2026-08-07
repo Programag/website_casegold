@@ -5,7 +5,11 @@ require_once __DIR__ . '/../inc/auth.php';
 
 header('Content-Type: application/json');
 
-if ($_SERVER['REQUEST_METHOD'] !== 'PUT') {
+// POST jest dozwolony obok PUT wyłącznie dla navigator.sendBeacon() (patrz
+// pushSync() w steam-auth.js) - beacon zawsze wysyła POST i nie pozwala
+// ustawić metody, więc to jedyny sposób, żeby zapis "na wyjściu ze strony"
+// mógł trafić do tego samego endpointu z identyczną logiką co zwykły PUT.
+if (!in_array($_SERVER['REQUEST_METHOD'], ['PUT', 'POST'], true)) {
     http_response_code(405);
     echo json_encode(['error' => 'method_not_allowed']);
     exit;

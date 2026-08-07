@@ -775,20 +775,35 @@
   // daje żadnej gwarancji: przy większym ekwipunku/historii bitew payload
   // przekracza limit 64KB na keepalive (patrz komentarz w pushNow), więc
   // request jest po cichu ubijany w połowie, gdy strona faktycznie się
-  // odładowuje - dokładnie objaw "saldo wraca do stanu sprzed bitwy po
-  // odświeżeniu". Synchroniczny XMLHttpRequest (ten sam trik co przy
-  // fetchMeSync() na starcie strony) BLOKUJE nawigację, aż zapis faktycznie
-  // się skończy, niezależnie od rozmiaru payloadu - to jedyny transport bez
-  // żadnego cichego okna na utratę danych w tym miejscu.
+  // odładowuje.
+  //
+  // WAŻNE: synchroniczny XMLHttpRequest tutaj (poprzednia wersja tej funkcji)
+  // WYGLĄDAŁ na rozwiązanie (ten sam trik co przy fetchMeSync() na starcie
+  // strony), ale zweryfikowano eksperymentalnie (prawdziwa przeglądarka,
+  // odświeżenie zaraz po kliknięciu), że request kończył się
+  // net::ERR_CONNECTION_RESET i NIGDY nie docierał do serwera - nowsze wersje
+  // Chromium aktywnie BLOKUJĄ/ubijają synchroniczny XHR wywołany z wnętrza
+  // handlera beforeunload/pagehide/unload ("page dismissal"), więc ten kod
+  // wyglądał na działający, a w praktyce nie robił nic. sendBeacon() jest
+  // jedynym transportem faktycznie zaprojektowanym do przeżycia odładowania
+  // strony - przeglądarka gwarantuje próbę dostarczenia w tle, niezależnie od
+  // tego, że strona już nawiguje gdzie indziej. Endpoint akceptuje dla niego
+  // POST obok PUT (sendBeacon zawsze wysyła POST, nie pozwala zmienić metody
+  // ani nagłówków) - patrz komentarz w api/state.php.
   function pushSync() {
     if (!me.loggedIn) return;
     try {
-      const xhr = new XMLHttpRequest();
-      xhr.open("PUT", "/api/state.php", false); // synchroniczne - celowo, patrz komentarz wyżej
-      xhr.setRequestHeader("Content-Type", "application/json");
-      xhr.send(JSON.stringify(buildPushPayload()));
+      const blob = new Blob([JSON.stringify(buildPushPayload())], { type: "application/json" });
+      const queued = navigator.sendBeacon("/api/state.php", blob);
+      if (!queued) throw new Error("sendBeacon queue failed");
     } catch (e) {
-      /* nic więcej nie da się tu zrobić - strona już się odładowuje */
+      /* ostatnia deska ratunku - jeśli i to zawiedzie, nic więcej się nie da zrobić, strona już się odładowuje */
+      try {
+        const xhr = new XMLHttpRequest();
+        xhr.open("PUT", "/api/state.php", false);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.send(JSON.stringify(buildPushPayload()));
+      } catch (e2) {}
     }
   }
   window.addEventListener("beforeunload", () => { if (pushTimer || pendingPush) pushSync(); });
