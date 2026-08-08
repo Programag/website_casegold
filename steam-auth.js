@@ -655,6 +655,77 @@
     overlay.classList.add("show");
   }
 
+  // ---- Doładowanie salda (na razie WYŁĄCZNIE wygląd - żadnych prawdziwych
+  // płatności ani backendu; przyciski pakietów pokazują komunikat "wkrótce
+  // dostępne" zamiast pozorować udany zakup) ----
+  const TOPUP_PACKAGES = [
+    { amount: 5000, price: "4,99 zł" },
+    { amount: 12500, price: "9,99 zł" },
+    { amount: 30000, price: "24,99 zł", badge: "POPULARNE" },
+    { amount: 67000, price: "49,99 zł" },
+    { amount: 150000, price: "99,99 zł", badge: "NAJOPŁACALNIEJSZE", best: true },
+  ];
+  function buildTopUpModal() {
+    injectStyle();
+    let overlay = document.getElementById("topUpOverlay");
+    if (overlay) return overlay;
+    overlay = document.createElement("div");
+    overlay.id = "topUpOverlay";
+    overlay.innerHTML = `
+      <div class="tu-panel">
+        <button class="tu-close" id="tuClose" aria-label="Zamknij">✕</button>
+        <div class="tu-header">
+          <h2>💳 Doładuj swoje konto</h2>
+          <p>Wybierz pakiet i błyskawicznie zwiększ swoje saldo.</p>
+        </div>
+        <div class="tu-section-label">💰 Pakiety balansu</div>
+        <div class="tu-packages" id="tuPackages"></div>
+        <div class="tu-disclaimer">
+          Doładowanie służy wyłącznie do zakupu wirtualnej waluty wykorzystywanej w symulatorze lootboxów o charakterze rozrywkowym.
+        </div>
+        <div class="tu-promo">
+          <button type="button" class="tu-promo-toggle" id="tuPromoToggle">🎁 Masz kod promocyjny? <span class="tu-promo-chevron">⌄</span></button>
+          <div class="tu-promo-body" id="tuPromoBody">
+            <input type="text" class="tu-promo-input" id="tuPromoInput" placeholder="Wpisz kod promocyjny">
+            <button type="button" class="tu-promo-apply" id="tuPromoApply">Zastosuj</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const grid = overlay.querySelector("#tuPackages");
+    TOPUP_PACKAGES.forEach((p) => {
+      const card = document.createElement("div");
+      card.className = "tu-pkg" + (p.best ? " best" : "");
+      card.innerHTML = `
+        ${p.badge ? `<div class="tu-pkg-badge">${p.badge === "POPULARNE" ? "⚡" : "✨"} ${p.badge}</div>` : ""}
+        <div class="tu-pkg-amount">🪙 ${p.amount.toLocaleString("pl-PL")} zł</div>
+        <button type="button" class="tu-pkg-buy">${p.price}</button>
+      `;
+      card.querySelector(".tu-pkg-buy").onclick = () => {
+        alert("Płatności będą dostępne wkrótce — na razie to tylko podgląd panelu doładowania.");
+      };
+      grid.appendChild(card);
+    });
+
+    const hide = () => overlay.classList.remove("show");
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) hide(); });
+    document.getElementById("tuClose").onclick = hide;
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") hide(); });
+    document.getElementById("tuPromoToggle").onclick = () => {
+      overlay.querySelector(".tu-promo").classList.toggle("open");
+    };
+    document.getElementById("tuPromoApply").onclick = () => {
+      alert("Kody promocyjne będą dostępne wkrótce.");
+    };
+    return overlay;
+  }
+  function openTopUpModal() {
+    const overlay = buildTopUpModal();
+    overlay.classList.add("show");
+  }
+
   let lvlTooltipDismissWired = false;
   function refreshLevelBadge() {
     const wrap = document.querySelector(".avatar-wrap");
@@ -1098,6 +1169,95 @@
       .db-claim-btn:hover{transform:translateY(-1px); box-shadow:0 8px 20px -8px var(--hazard,#ff9500);}
       .db-claim-btn:disabled{opacity:.6; cursor:default; transform:none; box-shadow:none;}
       .db-note{font-size:11px; color:var(--muted,#7d879b); margin-top:16px; line-height:1.5;}
+
+      /* ---- Doładowanie salda (panel wygląda jak prawdziwe pakiety płatne,
+         ale przyciski niczego nie obciążają - patrz komentarz przy
+         TOPUP_PACKAGES) ---- */
+      #topUpOverlay{
+        position:fixed; inset:0; z-index:9998; display:none;
+        align-items:center; justify-content:center; padding:20px;
+        background:rgba(6,8,13,.72); backdrop-filter:blur(6px);
+        opacity:0; transition:opacity .18s ease;
+      }
+      #topUpOverlay.show{display:flex; opacity:1;}
+      .tu-panel{
+        position:relative; width:100%; max-width:560px; max-height:88vh; overflow-y:auto;
+        background:var(--panel,#141821); border:1px solid var(--line,#262c3a);
+        border-radius:16px; padding:26px; text-align:left;
+        box-shadow:0 24px 60px -20px rgba(0,0,0,.7);
+        transform:translateY(10px) scale(.98); transition:transform .18s ease;
+        font-family:'Inter',sans-serif;
+      }
+      #topUpOverlay.show .tu-panel{transform:translateY(0) scale(1);}
+      .tu-close{
+        position:absolute; top:12px; right:12px; width:28px; height:28px; border-radius:8px;
+        background:var(--panel-2,#1b202b); border:1px solid var(--line,#262c3a); color:var(--muted,#7d879b);
+        cursor:pointer; font-size:14px; line-height:1;
+      }
+      .tu-close:hover{color:var(--text,#e9ecf3); border-color:var(--hazard,#ff9500);}
+      .tu-header{margin-bottom:20px; padding-right:30px;}
+      .tu-header h2{
+        font-family:'Oswald',sans-serif; font-weight:700; text-transform:uppercase; letter-spacing:1px;
+        font-size:19px; margin:0 0 6px; color:var(--text,#e9ecf3);
+      }
+      .tu-header p{font-size:12.5px; color:var(--muted,#7d879b); margin:0; line-height:1.5;}
+      .tu-section-label{
+        font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:1px;
+        font-size:13px; font-weight:600; color:var(--text,#e9ecf3); margin-bottom:10px;
+      }
+      .tu-packages{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;}
+      @media (max-width:420px){ .tu-packages{grid-template-columns:1fr;} }
+      .tu-pkg{
+        position:relative; background:var(--panel-2,#1b202b); border:1px solid var(--line,#262c3a);
+        border-radius:12px; padding:16px 12px 12px; text-align:center;
+      }
+      .tu-pkg.best{border-color:var(--good,#3ddc84); box-shadow:0 0 18px -8px var(--good,#3ddc84);}
+      .tu-pkg-badge{
+        display:inline-block; font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700;
+        letter-spacing:.4px; padding:3px 8px; border-radius:20px; margin-bottom:10px;
+        background:var(--hazard-dim,#3a2712); color:var(--hazard,#ff9500);
+      }
+      .tu-pkg.best .tu-pkg-badge{background:rgba(61,220,132,.12); color:var(--good,#3ddc84);}
+      .tu-pkg-amount{
+        font-family:'JetBrains Mono',monospace; font-weight:700; font-size:15.5px;
+        color:var(--text,#e9ecf3); margin-bottom:12px;
+      }
+      .tu-pkg-buy{
+        width:100%; font-family:'Inter',sans-serif; font-weight:600; font-size:13px;
+        background:var(--panel,#141821); border:1px solid var(--line,#262c3a); color:var(--text,#e9ecf3);
+        padding:9px 10px; border-radius:8px; cursor:pointer; transition:border-color .12s ease, color .12s ease;
+      }
+      .tu-pkg-buy:hover{border-color:var(--hazard,#ff9500); color:var(--hazard,#ff9500);}
+      .tu-pkg.best .tu-pkg-buy{
+        background:var(--good,#3ddc84); border-color:var(--good,#3ddc84); color:#062412; font-weight:700;
+      }
+      .tu-pkg.best .tu-pkg-buy:hover{filter:brightness(1.08); color:#062412;}
+      .tu-disclaimer{
+        background:var(--hazard-dim,#3a2712); border:1px solid rgba(255,149,0,.35); border-radius:10px;
+        padding:12px 14px; font-size:11.5px; color:var(--muted,#7d879b); line-height:1.5; margin-bottom:14px;
+      }
+      .tu-promo{background:var(--panel-2,#1b202b); border:1px solid var(--line,#262c3a); border-radius:10px; overflow:hidden;}
+      .tu-promo-toggle{
+        width:100%; display:flex; align-items:center; justify-content:space-between; gap:8px;
+        background:none; border:none; color:var(--text,#e9ecf3); font-size:13px; font-weight:600;
+        padding:12px 14px; cursor:pointer; font-family:'Inter',sans-serif;
+      }
+      .tu-promo-chevron{color:var(--muted,#7d879b); transition:transform .15s ease;}
+      .tu-promo.open .tu-promo-chevron{transform:rotate(180deg);}
+      .tu-promo-body{
+        display:flex; gap:8px; padding:0 14px; max-height:0; opacity:0; overflow:hidden;
+        transition:max-height .18s ease, opacity .18s ease, padding .18s ease;
+      }
+      .tu-promo.open .tu-promo-body{max-height:60px; opacity:1; padding:0 14px 14px;}
+      .tu-promo-input{
+        flex:1; background:var(--panel,#141821); border:1px solid var(--line,#262c3a); color:var(--text,#e9ecf3);
+        border-radius:7px; padding:9px 12px; font-size:13px; font-family:'Inter',sans-serif;
+      }
+      .tu-promo-apply{
+        background:var(--panel,#141821); border:1px solid var(--line,#262c3a); color:var(--text,#e9ecf3);
+        border-radius:7px; padding:9px 14px; font-size:12.5px; font-weight:600; cursor:pointer; white-space:nowrap;
+      }
+      .tu-promo-apply:hover{border-color:var(--hazard,#ff9500); color:var(--hazard,#ff9500);}
     `;
     document.head.appendChild(style);
   }
@@ -1160,6 +1320,15 @@
     const avatarWrap = document.querySelector(".avatar-wrap");
     const avatar = avatarWrap && avatarWrap.querySelector(".avatar");
     const menu = document.getElementById("settingsMenu");
+
+    // "+" w chipie salda - jeden punkt podpięcia dla wszystkich stron (zamiast
+    // każda strona osobno), bo panel doładowania nie potrzebuje żadnego
+    // per-stronowego callbacku jak np. daily bonus (na razie sam wygląd, bez
+    // realnych płatności - patrz komentarz przy TOPUP_PACKAGES).
+    const topUpBtn = document.getElementById("topUpBtn");
+    if (topUpBtn) {
+      topUpBtn.onclick = () => { if (requireLogin()) openTopUpModal(); };
+    }
 
     if (me.loggedIn && me.user) {
       const profileUrl = me.user.slug ? `/profile.html?u=${encodeURIComponent(me.user.slug)}` : "/profile.html";
@@ -1266,6 +1435,7 @@
     readClaimedLevelRewards,
     claimLevelReward,
     openDailyBonusModal,
+    openTopUpModal,
     recordBattleHistory,
     readBattleHistory,
     applyCaseOpen,
