@@ -23,6 +23,11 @@ jobs:
           # też api/, backup/, logs/, svn_repo/, więc pliki muszą trafiać
           # właśnie tu, nie do katalogu głównego.
           server-dir: public_html/
+          # images/** - obrazki skinów są wgrywane RĘCZNIE przez FTP/panel
+          # hostingu bezpośrednio do public_html/images/ (za duże jak na
+          # repo - setki plików binarnych), nigdy nie trafiają do tego repo.
+          # Wykluczone jawnie, żeby ten deploy nigdy nie próbował ich
+          # dotknąć/skasować, niezależnie od stanu synchronizacji akcji.
           exclude: |
             **/.git*
             **/.git*/**
@@ -36,3 +41,4 @@ jobs:
             render.yaml
             .env.example
             .github/**
+            images/**
