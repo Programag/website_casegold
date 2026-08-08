@@ -561,6 +561,16 @@
     background:var(--panel-2); border:1px solid var(--line); color:var(--text);
     border-radius:6px; width:28px; height:28px; cursor:pointer;
   }
+  /* Modal wyboru skrzynki zasłania sobą cały panel z kosztem wejścia/saldem
+     pod spodem (position:fixed, inset:0) - bez tego widać je dopiero po
+     zamknięciu, więc podczas samego wybierania skrzynek nie wiadomo, ile
+     zostało pieniędzy. */
+  .nb-case-modal-summary{
+    display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap;
+    background:var(--panel-2); border:1px solid var(--line); border-radius:8px;
+    padding:10px 14px; margin-bottom:14px; font-size:13px; color:var(--muted);
+  }
+  .nb-case-modal-summary b{color:var(--text); font-family:'JetBrains Mono',monospace;}
   .bot-picker-grid{
     display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin-bottom:14px;
   }
@@ -1314,6 +1324,10 @@
         <div class="nb-case-modal-head">
           <div>Wybierz skrzynkę <span class="hint" style="text-transform:none; letter-spacing:0; font-size:11.5px; color:var(--muted);">— kliknij, żeby dodać rundę</span></div>
           <button id="caseModalClose" type="button">✕</button>
+        </div>
+        <div class="nb-case-modal-summary">
+          <div>Koszt wejścia: <b id="modalEntryCost">0,00 zł</b></div>
+          <div>Saldo: <b id="modalSummaryBalance">0,00 zł</b></div>
         </div>
         <label class="jester-picker-toggle">
           <input type="checkbox" id="jesterPickerToggle">
@@ -2879,7 +2893,7 @@ jesterPickerToggle.onchange = () => {
 };
 
 const caseModal = document.getElementById("caseModal");
-function openCaseModal(){ caseModal.classList.add("show"); }
+function openCaseModal(){ caseModal.classList.add("show"); renderSummary(); }
 function closeCaseModal(){ caseModal.classList.remove("show"); }
 document.getElementById("caseModalClose").onclick = closeCaseModal;
 caseModal.addEventListener("click", (e) => { if(e.target === caseModal) closeCaseModal(); });
@@ -3089,6 +3103,8 @@ updateModifierAvailability();
 
 const entryCostEl = document.getElementById("entryCost");
 const summaryBalanceEl = document.getElementById("summaryBalance");
+const modalEntryCostEl = document.getElementById("modalEntryCost");
+const modalSummaryBalanceEl = document.getElementById("modalSummaryBalance");
 const startBattleBtn = document.getElementById("startBattleBtn");
 
 function entryCost(){
@@ -3099,6 +3115,13 @@ function renderSummary(){
   entryCostEl.textContent = fmt(cost);
   summaryBalanceEl.textContent = fmt(balance);
   entryCostEl.style.color = balance >= cost ? "var(--good)" : "var(--bad)";
+  // Ten sam koszt/saldo, tylko w kopii widocznej WEWNĄTRZ modala wyboru
+  // skrzynki (patrz komentarz przy .nb-case-modal-summary) - modal zasłania
+  // panel poniżej, więc bez tego gracz nie widzi, ile mu zostało, dopóki go
+  // nie zamknie.
+  modalEntryCostEl.textContent = fmt(cost);
+  modalSummaryBalanceEl.textContent = fmt(balance);
+  modalEntryCostEl.style.color = balance >= cost ? "var(--good)" : "var(--bad)";
   if(selectedRounds.length === 0){
     startBattleBtn.textContent = "Wybierz skrzynkę";
     startBattleBtn.disabled = false;
