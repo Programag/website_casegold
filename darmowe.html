@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<script src="steam-auth.js?v=10"></script>
+<script src="steam-auth.js?v=11"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CASEGOLD // Darmowe</title>
 <link rel="icon" type="image/png" href="casegold_logo.PNG">
@@ -231,6 +231,8 @@
   .gift-code-result.show{display:block;}
   .gift-code-result.ok{color:var(--good);}
   .gift-code-result.err{color:var(--bad);}
+  .gift-code-link{color:var(--good); font-weight:700; text-decoration:underline; display:inline-block; margin-top:6px;}
+  .gift-code-link:hover{filter:brightness(1.15);}
 
   footer{
     text-align:center; color:var(--muted); font-size:11px; margin-top:34px;
@@ -415,8 +417,10 @@ async function redeemGiftCode(){
     renderBalance();
     if(res.type === "money"){
       result.textContent = `🎉 Kod przyjęty! Otrzymujesz ${fmt(res.amount)} na saldo.`;
-    } else if(res.type === "case" && res.item){
-      result.textContent = `🎉 Kod przyjęty! Wygrałeś: ${res.item.weapon} | ${res.item.skin} (${res.item.wear}) o wartości ${fmt(res.item.price)} — przedmiot trafił do Twojego ekwipunku.`;
+    } else if(res.type === "case" && res.caseId){
+      const count = res.count || 1;
+      const label = res.label || res.caseId;
+      result.innerHTML = `🎉 Kod przyjęty! Dodano ${count} darmowe otwarcie skrzynki „${label}".<br><a class="gift-code-link" href="/${res.caseId}.html">Przejdź do skrzynki →</a>`;
     } else {
       result.textContent = "🎉 Kod przyjęty!";
     }

@@ -119,6 +119,7 @@
           battlesWon: typeof s.battlesWon === "number" ? s.battlesWon : 0,
           questClaims: s.questClaims && typeof s.questClaims === "object" ? s.questClaims : {},
           claimedLevelRewards: Array.isArray(s.claimedLevelRewards) ? s.claimedLevelRewards : [],
+          freeCaseOpens: s.freeCaseOpens && typeof s.freeCaseOpens === "object" ? s.freeCaseOpens : {},
           battleHistory: Array.isArray(s.battleHistory) ? s.battleHistory : [],
           levelWatermark: typeof s.levelWatermark === "number" ? s.levelWatermark : 0,
           xpScaleMigratedV2: !!s.xpScaleMigratedV2,
@@ -140,6 +141,7 @@
           battlesWon: typeof s.battlesWon === "number" ? s.battlesWon : 0,
           questClaims: s.questClaims && typeof s.questClaims === "object" ? s.questClaims : {},
           claimedLevelRewards: Array.isArray(s.claimedLevelRewards) ? s.claimedLevelRewards : [],
+          freeCaseOpens: s.freeCaseOpens && typeof s.freeCaseOpens === "object" ? s.freeCaseOpens : {},
           battleHistory: Array.isArray(s.battleHistory) ? s.battleHistory : [],
           levelWatermark: mergedWatermark,
           xpScaleMigratedV2: serverXpMigrated || localXpMigrated,
@@ -232,6 +234,7 @@
       battlesWon: typeof state.battlesWon === "number" ? state.battlesWon : 0,
       questClaims: state.questClaims && typeof state.questClaims === "object" ? state.questClaims : {},
       claimedLevelRewards: Array.isArray(state.claimedLevelRewards) ? state.claimedLevelRewards : [],
+      freeCaseOpens: state.freeCaseOpens && typeof state.freeCaseOpens === "object" ? state.freeCaseOpens : {},
       battleHistory: Array.isArray(state.battleHistory) ? state.battleHistory : [],
       levelWatermark: typeof state.levelWatermark === "number" ? state.levelWatermark : 0,
       dailyBonusAt: Number(localStorage.getItem(DAILY_KEY) || 0) || null,
@@ -304,6 +307,7 @@
               battlesWon: typeof s.battlesWon === "number" ? s.battlesWon : 0,
               questClaims: s.questClaims && typeof s.questClaims === "object" ? s.questClaims : {},
               claimedLevelRewards: Array.isArray(s.claimedLevelRewards) ? s.claimedLevelRewards : [],
+              freeCaseOpens: s.freeCaseOpens && typeof s.freeCaseOpens === "object" ? s.freeCaseOpens : {},
               battleHistory: Array.isArray(s.battleHistory) ? s.battleHistory : [],
               levelWatermark: trustServerWatermarkDirectly
                 ? (typeof s.levelWatermark === "number" ? s.levelWatermark : 0)
@@ -421,6 +425,19 @@
       return [];
     }
   }
+  // Liczba darmowych otwarć DANEJ skrzynki (caseId = klucz z
+  // inc/data/case_prices.php), zebranych przez api/redeem-gift-code.php -
+  // czytane przez każdą stronę case_*.html, żeby pokazać/ukryć przycisk
+  // "Otwórz za darmo".
+  function readFreeCaseOpens(caseId) {
+    try {
+      const obj = JSON.parse(localStorage.getItem(STATE_KEY) || "{}").freeCaseOpens;
+      const n = obj && typeof obj === "object" ? Number(obj[caseId]) : 0;
+      return Number.isFinite(n) && n > 0 ? n : 0;
+    } catch (e) {
+      return 0;
+    }
+  }
   // Nadpisuje lokalny cache stanem ZWRÓCONYM przez serwer (odpowiedź nowych,
   // atomowych endpointów claim-*.php/apply-*.php - patrz plan migracji na
   // serwer-autorytatywny) - używa nativeSetItem, żeby nie odpalać zwrotnego
@@ -454,6 +471,7 @@
         battlesWon: typeof s.battlesWon === "number" ? s.battlesWon : 0,
         questClaims: s.questClaims && typeof s.questClaims === "object" ? s.questClaims : {},
         claimedLevelRewards: Array.isArray(s.claimedLevelRewards) ? s.claimedLevelRewards : [],
+        freeCaseOpens: s.freeCaseOpens && typeof s.freeCaseOpens === "object" ? s.freeCaseOpens : {},
         battleHistory: Array.isArray(s.battleHistory) ? s.battleHistory : [],
         levelWatermark: typeof s.levelWatermark === "number" ? s.levelWatermark : 0,
         xpScaleMigratedV2: !!s.xpScaleMigratedV2,
@@ -473,7 +491,7 @@
   // przedmiotami mającymi już nadane serwerowe ID, albo null przy porażce -
   // wołający MUSI sprawdzić null i NIE dodawać przedmiotów lokalnie w tym
   // wypadku (zostały już odrzucone/nie zapisane na serwerze).
-  async function applyCaseOpen({ caseId, count, jesterMode, cost, items }) {
+  async function applyCaseOpen({ caseId, count, jesterMode, cost, items, useFreeCredit }) {
     if (!me.loggedIn) return null;
     try {
       const res = await fetch("/api/apply-case-open.php", {
@@ -481,7 +499,7 @@
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
         keepalive: true, // payload jest maleńki (max 5 przedmiotów) - zawsze bezpieczne
-        body: JSON.stringify({ caseId, count, jesterMode: !!jesterMode, cost, items }),
+        body: JSON.stringify({ caseId, count, jesterMode: !!jesterMode, cost, items, useFreeCredit: !!useFreeCredit }),
       });
       if (!res.ok) return null;
       const body = await res.json();
@@ -529,10 +547,12 @@
 
   // Kod prezentowy (darmowe.html) - w pełni serwerowe (api/redeem-gift-code.php):
   // serwer sam sprawdza czy kod istnieje i czy NIE był już wykorzystany na
-  // tym koncie (redeemedGiftCodes w stanie), i sam dobiera nagrodę (pieniądze
-  // albo losowy przedmiot z GIFT_CASE_POOL) - klient tylko wysyła wpisany
-  // tekst. Zwraca {ok, error} albo {ok:true, type, amount|item} zamiast
-  // samego przedmiotu/null jak claimLevelReward(), bo wywołujący (darmowe.html)
+  // tym koncie (redeemedGiftCodes w stanie), i sam dolicza nagrodę - pieniądze
+  // (amount) albo +N darmowych otwarć konkretnej skrzynki (caseId/label/count,
+  // patrz freeCaseOpens i useFreeCredit w api/apply-case-open.php) - klient
+  // tylko wysyła wpisany tekst. Zwraca {ok, error} albo
+  // {ok:true, type, amount|caseId+label+count} zamiast samego przedmiotu/null
+  // jak claimLevelReward(), bo wywołujący (darmowe.html)
   // musi rozróżnić POWÓD niepowodzenia (zły kod / już wykorzystany / brak
   // logowania), żeby pokazać właściwy komunikat.
   async function redeemGiftCode(rawCode) {
@@ -552,7 +572,7 @@
         return { ok: false, error: (body && body.error) || "network_error" };
       }
       applyServerState(body.state);
-      return { ok: true, type: body.type, amount: body.amount, item: body.item };
+      return { ok: true, type: body.type, amount: body.amount, item: body.item, caseId: body.caseId, label: body.label, count: body.count };
     } catch (e) {
       console.error("[cs2sim] redeem-gift-code - błąd sieci:", e);
       return { ok: false, error: "network_error" };
@@ -877,6 +897,7 @@
         // podstronie.
         questClaims: s.questClaims && typeof s.questClaims === "object" ? s.questClaims : {},
         claimedLevelRewards: Array.isArray(s.claimedLevelRewards) ? s.claimedLevelRewards : [],
+        freeCaseOpens: s.freeCaseOpens && typeof s.freeCaseOpens === "object" ? s.freeCaseOpens : {},
         battleHistory: Array.isArray(s.battleHistory) ? s.battleHistory : [],
         // Musi przetrwać KAŻDY zapis stanu z dowolnej podstrony (equipment,
         // index, battle...), inaczej wskaźnik poziomu cofałby się do 0 przy
@@ -890,7 +911,7 @@
         updatedAt: Date.now(),
       };
     } catch (e) {
-      return { bestPull: null, upgradeClicks: 0, casesOpened: 0, spentCases: 0, spentUpgrader: 0, battlesPlayed: 0, battlesWon: 0, questClaims: {}, claimedLevelRewards: [], battleHistory: [], levelWatermark: 0, xpScaleMigratedV2: false, updatedAt: Date.now() };
+      return { bestPull: null, upgradeClicks: 0, casesOpened: 0, spentCases: 0, spentUpgrader: 0, battlesPlayed: 0, battlesWon: 0, questClaims: {}, claimedLevelRewards: [], freeCaseOpens: {}, battleHistory: [], levelWatermark: 0, xpScaleMigratedV2: false, updatedAt: Date.now() };
     }
   }
   // ---- Historia bitew Case Battle (do zakładki "Moje bitwy") ----
@@ -1555,6 +1576,7 @@
     levelRewardTargetPrice,
     levelRewardItem,
     readClaimedLevelRewards,
+    readFreeCaseOpens,
     claimLevelReward,
     redeemGiftCode,
     openDailyBonusModal,

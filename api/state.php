@@ -117,6 +117,12 @@ try {
         // zwykły, "nieświadomy" tego pola pełny push zerowałby listę
         // wykorzystanych kodów i pozwalał wykorzystać je ponownie.
         'redeemedGiftCodes' => isset($body['redeemedGiftCodes']) && is_array($body['redeemedGiftCodes']) ? $body['redeemedGiftCodes'] : ($state['redeemedGiftCodes'] ?? []),
+        // Kredyty darmowych otwarć z kodów prezentowych (caseId -> liczba) -
+        // ten sam wzorzec co redeemedGiftCodes wyżej, z tego samego powodu.
+        'freeCaseOpens' => (function () use ($body, $state) {
+            $v = isset($body['freeCaseOpens']) && is_array($body['freeCaseOpens']) ? $body['freeCaseOpens'] : ($state['freeCaseOpens'] ?? []);
+            return empty($v) ? new stdClass() : $v;
+        })(),
         'battleHistory' => isset($body['battleHistory']) && is_array($body['battleHistory']) ? $body['battleHistory'] : ($state['battleHistory'] ?? []),
         'levelWatermark' => max(num_or($body, 'levelWatermark', 0), $state['levelWatermark'] ?? 0),
         'xpScaleMigratedV2' => $isBrandNewAccount ? true : (bool) ($state['xpScaleMigratedV2'] ?? false),

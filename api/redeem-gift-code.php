@@ -34,6 +34,17 @@ if (!$def) {
     echo json_encode(['error' => 'invalid_code']);
     exit;
 }
+if ($def['type'] === 'case') {
+    $casePrices = require __DIR__ . '/../inc/data/case_prices.php';
+    if (empty($def['caseId']) || !isset($casePrices[$def['caseId']])) {
+        // Błąd w konfiguracji kodu (zły/nieistniejący caseId w gift_codes.php),
+        // nie coś, co gracz mógł spowodować - zgłoś jako 500, nie 404, żeby
+        // odróżnić od zwykłego "nie ma takiego kodu".
+        http_response_code(500);
+        echo json_encode(['error' => 'bad_gift_case_config']);
+        exit;
+    }
+}
 
 $pdo = db();
 $pdo->beginTransaction();
@@ -63,13 +74,14 @@ try {
         $state['balance'] = $currentBalance + $amount;
         $result['amount'] = $amount;
     } else {
-        $item = gift_case_random_item();
-        $itemId = state_next_item_id($state);
-        $inventory = is_array($state['inventory'] ?? null) ? $state['inventory'] : [];
-        $newItem = ['weapon' => $item['weapon'], 'skin' => $item['skin'], 'wear' => $item['wear'], 'price' => $item['price'], '_id' => $itemId];
-        $inventory[] = $newItem;
-        $state['inventory'] = $inventory;
-        $result['item'] = $newItem;
+        $caseId = $def['caseId'];
+        $grantCount = isset($def['count']) && is_numeric($def['count']) ? max(1, (int) $def['count']) : 1;
+        $freeOpens = is_array($state['freeCaseOpens'] ?? null) ? $state['freeCaseOpens'] : [];
+        $freeOpens[$caseId] = (int) ($freeOpens[$caseId] ?? 0) + $grantCount;
+        $state['freeCaseOpens'] = $freeOpens;
+        $result['caseId'] = $caseId;
+        $result['label'] = $def['label'] ?? $caseId;
+        $result['count'] = $grantCount;
     }
 
     $saved = state_save($pdo, $me['steamid'], $state);

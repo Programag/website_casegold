@@ -34,6 +34,7 @@ function state_default_shape(): array {
         'questClaims' => [],
         'claimedLevelRewards' => [],
         'redeemedGiftCodes' => [],
+        'freeCaseOpens' => [],
         'battleHistory' => [],
         'freeCaseCooldowns' => [],
         'xpScaleMigratedV2' => true,

@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<script src="steam-auth.js?v=10"></script>
+<script src="steam-auth.js?v=11"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CASEGOLD // Ice Sticker</title>
 <link rel="icon" type="image/png" href="casegold_logo.PNG">
@@ -407,6 +407,20 @@
   .open-btn:hover:not(:disabled){transform:translateY(-1px);}
   .open-btn:active:not(:disabled){transform:translateY(3px); box-shadow:0 1px 0 #b56b00;}
   .open-btn:disabled{opacity:.5; cursor:not-allowed; box-shadow:none;}
+  .free-open-banner{
+    display:none; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
+    background:rgba(61,220,132,.08); border:1px solid var(--good); border-radius:10px;
+    padding:12px 16px; margin-top:14px;
+  }
+  .free-open-banner.show{display:flex;}
+  .free-open-text{color:var(--good); font-size:13px; font-weight:600;}
+  .free-open-btn{
+    font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:1px; font-size:13.5px; font-weight:700;
+    background:var(--good); color:#062412; border:none; padding:10px 18px; border-radius:8px; cursor:pointer;
+    white-space:nowrap; transition:filter .1s ease;
+  }
+  .free-open-btn:hover:not(:disabled){filter:brightness(1.08);}
+  .free-open-btn:disabled{opacity:.6; cursor:default;}
   .fast-toggle{
     display:inline-flex; align-items:center; gap:9px;
     color:var(--muted); font-size:12.5px; cursor:pointer; user-select:none;
@@ -597,6 +611,11 @@
     </div>
 
     <div class="reels" id="reelsContainer"></div>
+
+    <div class="free-open-banner" id="freeOpenBanner">
+      <div class="free-open-text">🎁 Masz darmowe otwarcie tej skrzynki (z kodu prezentowego)!</div>
+      <button type="button" class="free-open-btn" id="freeOpenBtn">Otwórz za darmo</button>
+    </div>
 
     <div class="controls">
       <button class="open-btn" id="openBtn">Otwórz skrzynkę</button>
@@ -834,8 +853,74 @@ function renderBalance(){
   balanceEl.textContent = fmt(balance);
   balanceEl.classList.toggle("low", balance < totalCost);
   openBtn.disabled = balance < totalCost || spinning;
+  renderFreeOpenBanner();
   saveState();
 }
+// Kredyty darmowych otwarć z kodów prezentowych (darmowe.html -> "Przejdź
+// do skrzynki") - window.SteamAuth.readFreeCaseOpens() czyta bezpośrednio z
+// localStorage (aktualizowane przez applyServerState() po KAŻDEJ odpowiedzi
+// serwera, patrz steam-auth.js), więc nie trzeba osobno wątkować tego przez
+// loadState()/reloadSharedState() tej strony.
+function renderFreeOpenBanner(){
+  const banner = document.getElementById("freeOpenBanner");
+  const btn = document.getElementById("freeOpenBtn");
+  const freeOpens = window.SteamAuth.readFreeCaseOpens(CASE_ID);
+  if(freeOpens > 0){
+    banner.classList.add("show");
+    btn.textContent = freeOpens > 1 ? `Otwórz za darmo (${freeOpens}×)` : "Otwórz za darmo";
+    btn.disabled = spinning;
+  } else {
+    banner.classList.remove("show");
+  }
+}
+
+async function openFree(){
+  if(!window.SteamAuth.requireLogin()) return;
+  if(spinning || window.SteamAuth.readFreeCaseOpens(CASE_ID) < 1) return;
+  spinning = true;
+  openBtn.disabled = true;
+  document.getElementById("freeOpenBtn").disabled = true;
+
+  reelsContainer.innerHTML = "";
+  const results = [rollItem()];
+  const fast = fastToggle.checked;
+  const duration = fast ? 650 : 5300;
+
+  const reelData = results.map(winner => buildReel(winner));
+  reelData.forEach(({track, winnerIndex}) => spinTo(track, winnerIndex, fast));
+  playSpinSound(duration);
+
+  const serverPromise = window.SteamAuth.applyCaseOpen({
+    caseId: CASE_ID,
+    count: 1,
+    useFreeCredit: true,
+    items: results.map(it => ({ weapon: it.weapon, skin: it.skin, wear: it.wear, price: it.price })),
+  });
+
+  const [, serverResult] = await Promise.all([
+    new Promise(resolve => setTimeout(resolve, duration)),
+    serverPromise,
+  ]);
+
+  spinning = false;
+
+  if(!serverResult){
+    reelsContainer.innerHTML = "";
+    alert("Nie udało się otworzyć darmowej skrzynki — spróbuj ponownie.");
+    renderBalance();
+    return;
+  }
+
+  reloadSharedState();
+  renderBalance();
+  window.SteamAuth.refreshLevelBadge();
+
+  pendingResults = results;
+  playWinSound();
+  flashResult(results[0], 1);
+}
+document.getElementById("freeOpenBtn").onclick = openFree;
+
 
 function updateOpenButtonText(){
   const count = Number(openCount.value);

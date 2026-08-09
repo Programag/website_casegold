@@ -5,8 +5,13 @@
    więc tu wystarczy pisać docelową, znormalizowaną postać.
 
    type "money" -> 'amount' dopisywane bezpośrednio do salda gracza.
-   type "case"  -> losowy przedmiot z GIFT_CASE_POOL (inc/state_rewards.php),
-   dokładnie tak samo jak przy zwykłej wygranej ze skrzynki.
+   type "case"  -> +'count' (domyślnie 1) darmowych otwarć KONKRETNEJ
+   skrzynki ('caseId' - musi być kluczem w inc/data/case_prices.php).
+   Gracz odbiera nagrodę na darmowe.html, a faktycznie otwiera skrzynkę (z
+   jej prawdziwą tabelą przedmiotów) na case_*.html przyciskiem
+   "Otwórz za darmo" - patrz useFreeCredit w api/apply-case-open.php.
+   'label' to nazwa wyświetlana w komunikacie sukcesu (ta sama, co
+   CASE_NAME na danej stronie case_*.html).
 
    Żeby dodać nowy kod: dopisz kolejną linię niżej i wdróż (nowy kod działa
    od razu po deployu, stare kody nie znikają same - usuń ręcznie, jeśli mają
@@ -15,5 +20,5 @@
 return [
     'DISCORD500' => ['type' => 'money', 'amount' => 500],
     'DISCORD1000' => ['type' => 'money', 'amount' => 1000],
-    'CASEGOLDCASE' => ['type' => 'case'],
+    'CASEGOLDCASE' => ['type' => 'case', 'caseId' => 'case_gold', 'label' => 'Gold Case'],
 ];

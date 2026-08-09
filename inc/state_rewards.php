@@ -84,32 +84,9 @@ function level_reward_item(int $level): ?array {
 }
 
 /* ---- Kody prezentowe (Discord) - api/redeem-gift-code.php ----
-   Pula "case"-owych kodów jest 1:1 skopiowana z puli tier "free" w
-   darmowe_open.html (top ~300 zł), żeby ekonomia darmowej skrzynki z kodu
-   nie odstawała od zwykłej darmowej skrzynki na tej samej stronie. */
-const GIFT_CASE_POOL = [
-    ['weapon' => 'M4A1-S', 'skin' => 'Basilisk', 'wear' => 'MW', 'price' => 45.36, 'chance' => 30],
-    ['weapon' => 'Five-SeveN', 'skin' => 'Case Hardened', 'wear' => 'FT', 'price' => 66.84, 'chance' => 22],
-    ['weapon' => 'AK-47', 'skin' => 'Point Disarray', 'wear' => 'FT', 'price' => 90.21, 'chance' => 18],
-    ['weapon' => 'AK-47', 'skin' => 'Frontside Misty', 'wear' => 'WW', 'price' => 115.75, 'chance' => 12],
-    ['weapon' => 'FAMAS', 'skin' => 'Styx', 'wear' => 'MW', 'price' => 148.80, 'chance' => 8],
-    ['weapon' => 'M4A1-S', 'skin' => 'Bright Water', 'wear' => 'FT', 'price' => 184.16, 'chance' => 5],
-    ['weapon' => 'Desert Eagle', 'skin' => 'Printstream', 'wear' => 'FT', 'price' => 221.20, 'chance' => 3],
-    ['weapon' => 'AWP', 'skin' => 'Wildfire', 'wear' => 'BS', 'price' => 264.03, 'chance' => 1.5],
-    ['weapon' => 'Desert Eagle', 'skin' => 'Printstream', 'wear' => 'MW', 'price' => 282.47, 'chance' => 0.4],
-    ['weapon' => 'CZ75-Auto', 'skin' => 'Emerald', 'wear' => 'FN', 'price' => 291.18, 'chance' => 0.1],
-];
-
-/* Ważone losowanie (mt_rand jest kryptograficznie słabe, ale to samo
-   dotyczy już dziś RNG skrzynek liczonego w JS po stronie klienta - to nie
-   pogarsza żadnego istniejącego zabezpieczenia). */
-function gift_case_random_item(): array {
-    $total = array_sum(array_column(GIFT_CASE_POOL, 'chance'));
-    $roll = mt_rand() / mt_getrandmax() * $total;
-    $acc = 0;
-    foreach (GIFT_CASE_POOL as $it) {
-        $acc += $it['chance'];
-        if ($roll <= $acc) return $it;
-    }
-    return end(GIFT_CASE_POOL);
-}
+   Kody typu "case" dopisują +1 (albo więcej - patrz 'count' w
+   inc/data/gift_codes.php) do state['freeCaseOpens'][caseId] - to jest
+   dokładnie ta sama pula darmowych otwarć, którą api/apply-case-open.php
+   (parametr useFreeCredit) zużywa przy faktycznym otwarciu na stronie danej
+   skrzynki (case_*.html), więc wygrana skrzynka jest PRAWDZIWĄ skrzynką z
+   jej właściwą tabelą przedmiotów, nie osobną, uproszczoną pulą. */

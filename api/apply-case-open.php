@@ -40,6 +40,12 @@ $caseId = isset($body['caseId']) && is_string($body['caseId']) ? $body['caseId']
 $count = isset($body['count']) && is_numeric($body['count']) ? (int) $body['count'] : null;
 $jesterMode = !empty($body['jesterMode']);
 $items = isset($body['items']) && is_array($body['items']) ? $body['items'] : null;
+// Darmowe otwarcie z kodu prezentowego (api/redeem-gift-code.php dopisuje
+// kredyt do state['freeCaseOpens'][caseId]) - zamiast obciążać saldo,
+// zużywa jeden kredyt. Zawsze dokładnie 1 skrzynka na żądanie (osobny
+// przycisk "Otwórz za darmo" na case_*.html, nie licznik Ilość 1-5), więc
+// nie ma tu trybu Jester ani wpływu na cenę.
+$useFreeCredit = !empty($body['useFreeCredit']);
 
 static $casePrices = null;
 if ($casePrices === null) $casePrices = require __DIR__ . '/../inc/data/case_prices.php';
@@ -47,6 +53,11 @@ if ($casePrices === null) $casePrices = require __DIR__ . '/../inc/data/case_pri
 if (!$caseId || !isset($casePrices[$caseId])) {
     http_response_code(400);
     echo json_encode(['error' => 'bad_case_id']);
+    exit;
+}
+if ($useFreeCredit && $count !== 1) {
+    http_response_code(400);
+    echo json_encode(['error' => 'bad_count']);
     exit;
 }
 if ($count === null || $count < 1 || $count > CASE_OPEN_MAX_COUNT) {
@@ -81,7 +92,9 @@ foreach ($items as $it) {
 }
 
 $normalCost = $casePrices[$caseId] * $count;
-if ($jesterMode) {
+if ($useFreeCredit) {
+    $cost = 0;
+} elseif ($jesterMode) {
     $clientCost = isset($body['cost']) && is_numeric($body['cost']) ? (float) $body['cost'] : null;
     $min = $normalCost * JESTER_PRICE_MIN_MULT;
     $max = $normalCost * JESTER_PRICE_MAX_MULT;
@@ -106,15 +119,28 @@ try {
         exit;
     }
 
-    $balance = is_numeric($state['balance'] ?? null) ? (float) $state['balance'] : 0;
-    if ($balance < $cost) {
-        $pdo->rollBack();
-        http_response_code(409);
-        echo json_encode(['error' => 'insufficient_funds', 'balance' => $balance, 'cost' => $cost]);
-        exit;
+    if ($useFreeCredit) {
+        $freeOpens = is_array($state['freeCaseOpens'] ?? null) ? $state['freeCaseOpens'] : [];
+        $available = (int) ($freeOpens[$caseId] ?? 0);
+        if ($available < 1) {
+            $pdo->rollBack();
+            http_response_code(409);
+            echo json_encode(['error' => 'no_free_open']);
+            exit;
+        }
+        $available -= 1;
+        if ($available > 0) { $freeOpens[$caseId] = $available; } else { unset($freeOpens[$caseId]); }
+        $state['freeCaseOpens'] = $freeOpens;
+    } else {
+        $balance = is_numeric($state['balance'] ?? null) ? (float) $state['balance'] : 0;
+        if ($balance < $cost) {
+            $pdo->rollBack();
+            http_response_code(409);
+            echo json_encode(['error' => 'insufficient_funds', 'balance' => $balance, 'cost' => $cost]);
+            exit;
+        }
+        $state['balance'] = $balance - $cost;
     }
-
-    $state['balance'] = $balance - $cost;
     $inventory = is_array($state['inventory'] ?? null) ? $state['inventory'] : [];
     $bestPull = is_array($state['bestPull'] ?? null) ? $state['bestPull'] : null;
     $wonItems = [];
