@@ -13,10 +13,16 @@
    'label' to nazwa wyświetlana w komunikacie sukcesu (ta sama, co
    CASE_NAME na danej stronie case_*.html).
 
-   Żeby dodać nowy kod: dopisz kolejną linię niżej i wdróż (nowy kod działa
-   od razu po deployu, stare kody nie znikają same - usuń ręcznie, jeśli mają
-   przestać działać). Każdy kod może zostać wykorzystany raz na konto
-   (redeemedGiftCodes w stanie gracza). */
+   'addedAt' - data dodania kodu (string do strtotime, np. 'YYYY-MM-DD').
+   Kod automatycznie WYGASA 5 dni po tej dacie (GIFT_CODE_TTL_DAYS w
+   api/redeem-gift-code.php) - po tym terminie zwraca błąd "code_expired",
+   tak jakby kod już nie istniał, ale z osobnym komunikatem na darmowe.html.
+   Wymagane dla każdego kodu.
+
+   Żeby dodać nowy kod: dopisz kolejną linię niżej z dzisiejszą datą jako
+   'addedAt' i wdróż (nowy kod działa od razu po deployu i wygasa
+   automatycznie po 5 dniach - nie trzeba go ręcznie usuwać). Każdy kod może
+   zostać wykorzystany raz na konto (redeemedGiftCodes w stanie gracza). */
 return [
-    'ULTRASYF' => ['type' => 'case', 'caseId' => 'case_ultra', 'label' => 'Ultra Case'],
+    'ULTRASYF' => ['type' => 'case', 'caseId' => 'case_ultra', 'label' => 'Ultra Case', 'addedAt' => '2026-08-09'],
 ];

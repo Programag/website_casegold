@@ -5,6 +5,11 @@ require_once __DIR__ . '/../inc/state_rewards.php';
 
 header('Content-Type: application/json');
 
+// Każdy kod prezentowy (inc/data/gift_codes.php) automatycznie wygasa tyle
+// dni po swoim 'addedAt' - nie trzeba go ręcznie usuwać z konfiguracji, żeby
+// przestał działać.
+const GIFT_CODE_TTL_DAYS = 5;
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(['error' => 'method_not_allowed']);
@@ -32,6 +37,22 @@ $def = $codes[$code] ?? null;
 if (!$def) {
     http_response_code(404);
     echo json_encode(['error' => 'invalid_code']);
+    exit;
+}
+// 'addedAt' musi być ustawione dla każdego kodu (patrz komentarz w
+// gift_codes.php) - brak go traktujemy jako błąd konfiguracji, nie jako
+// "kod nigdy nie wygasa", żeby nie dało się przypadkiem wdrożyć
+// wiecznie ważnego kodu przez samo pominięcie tego pola.
+$addedAtTs = isset($def['addedAt']) ? strtotime((string) $def['addedAt']) : false;
+if ($addedAtTs === false) {
+    http_response_code(500);
+    echo json_encode(['error' => 'bad_gift_case_config']);
+    exit;
+}
+$expiresAtMs = $addedAtTs * 1000 + GIFT_CODE_TTL_DAYS * 24 * 60 * 60 * 1000;
+if (now_ms() > $expiresAtMs) {
+    http_response_code(410);
+    echo json_encode(['error' => 'code_expired']);
     exit;
 }
 if ($def['type'] === 'case') {
