@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<script src="steam-auth.js?v=9"></script>
+<script src="steam-auth.js?v=10"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CASEGOLD // Darmowe</title>
 <link rel="icon" type="image/png" href="casegold_logo.PNG">
@@ -207,6 +207,31 @@
   .free-card .fc-status.cooldown{color:var(--muted); font-family:'JetBrains Mono',monospace; font-weight:500;}
   .free-card .fc-status.locked-msg{color:var(--muted); font-weight:400; font-size:11.5px; line-height:1.4;}
 
+  .gift-code-box{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    padding:20px 22px;
+  }
+  .gift-code-hint{color:var(--muted); font-size:13px; line-height:1.5; margin:0 0 14px;}
+  .gift-code-row{display:flex; gap:10px; flex-wrap:wrap;}
+  .gift-code-input{
+    flex:1; min-width:180px; background:var(--panel-2); border:1px solid var(--line); color:var(--text);
+    border-radius:9px; padding:12px 14px; font-size:14px; font-family:'JetBrains Mono',monospace;
+    letter-spacing:1px; text-transform:uppercase;
+  }
+  .gift-code-input::placeholder{text-transform:none; letter-spacing:normal; font-family:'Inter',sans-serif;}
+  .gift-code-input:focus{outline:none; border-color:var(--hazard);}
+  .gift-code-btn{
+    background:var(--hazard); color:#181000; border:none; border-radius:9px;
+    padding:12px 22px; font-family:'Oswald',sans-serif; font-weight:700; text-transform:uppercase; letter-spacing:.5px;
+    font-size:13.5px; cursor:pointer; white-space:nowrap;
+  }
+  .gift-code-btn:hover{filter:brightness(1.08);}
+  .gift-code-btn:disabled{opacity:.6; cursor:default; filter:none;}
+  .gift-code-result{margin-top:12px; font-size:13px; font-weight:600; line-height:1.5; display:none;}
+  .gift-code-result.show{display:block;}
+  .gift-code-result.ok{color:var(--good);}
+  .gift-code-result.err{color:var(--bad);}
+
   footer{
     text-align:center; color:var(--muted); font-size:11px; margin-top:34px;
     letter-spacing:.5px;
@@ -272,6 +297,18 @@
     <div class="hero-icon">🎁</div>
     <h1>Darmowe Skrzynki</h1>
     <div class="sub">Otwieraj darmowe skrzynki co jakiś czas — bez żadnych kosztów.</div>
+  </div>
+
+  <div class="free-section">
+    <div class="free-section-head">🎟️ Kod prezentowy</div>
+    <div class="gift-code-box">
+      <p class="gift-code-hint">Kody prezentowe rozdajemy na naszym serwerze Discord. Wpisz kod, aby odebrać darmowe pieniądze albo darmową skrzynkę na swoje konto.</p>
+      <div class="gift-code-row">
+        <input type="text" class="gift-code-input" id="giftCodeInput" placeholder="Wpisz kod prezentowy" maxlength="40" autocomplete="off">
+        <button type="button" class="gift-code-btn" id="giftCodeBtn">Odbierz</button>
+      </div>
+      <div class="gift-code-result" id="giftCodeResult"></div>
+    </div>
   </div>
 
   <div class="free-section">
@@ -341,6 +378,57 @@ function showToast(msg){
   clearTimeout(showToast._t);
   showToast._t = setTimeout(() => toast.classList.remove("show"), 2200);
 }
+
+/* ---- kod prezentowy - w pełni serwerowe (api/redeem-gift-code.php przez
+   window.SteamAuth.redeemGiftCode()); serwer sam sprawdza czy kod istnieje i
+   czy nie był już wykorzystany na tym koncie, więc tu nie ma żadnej lokalnej
+   walidacji poza "czy w ogóle coś wpisano" - to samo podejście co przy
+   claimLevelReward() na equipment.html. */
+const GIFT_CODE_ERRORS = {
+  invalid_code: "Nieprawidłowy kod prezentowy.",
+  already_redeemed: "Ten kod został już wykorzystany na Twoim koncie.",
+  not_logged_in: "Zaloguj się, aby odebrać kod.",
+  bad_request: "Wpisz kod prezentowy.",
+};
+async function redeemGiftCode(){
+  const input = document.getElementById("giftCodeInput");
+  const btn = document.getElementById("giftCodeBtn");
+  const result = document.getElementById("giftCodeResult");
+  const code = input.value.trim();
+  if(!window.SteamAuth.requireLogin()) return;
+  if(!code){
+    result.textContent = GIFT_CODE_ERRORS.bad_request;
+    result.className = "gift-code-result show err";
+    return;
+  }
+  const prevLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Sprawdzanie...";
+  try{
+    const res = await window.SteamAuth.redeemGiftCode(code);
+    if(!res.ok){
+      result.textContent = GIFT_CODE_ERRORS[res.error] || "Wystąpił błąd. Spróbuj ponownie.";
+      result.className = "gift-code-result show err";
+      return;
+    }
+    state = loadState();
+    renderBalance();
+    if(res.type === "money"){
+      result.textContent = `🎉 Kod przyjęty! Otrzymujesz ${fmt(res.amount)} na saldo.`;
+    } else if(res.type === "case" && res.item){
+      result.textContent = `🎉 Kod przyjęty! Wygrałeś: ${res.item.weapon} | ${res.item.skin} (${res.item.wear}) o wartości ${fmt(res.item.price)} — przedmiot trafił do Twojego ekwipunku.`;
+    } else {
+      result.textContent = "🎉 Kod przyjęty!";
+    }
+    result.className = "gift-code-result show ok";
+    input.value = "";
+  } finally {
+    btn.disabled = false;
+    btn.textContent = prevLabel;
+  }
+}
+document.getElementById("giftCodeBtn").onclick = redeemGiftCode;
+document.getElementById("giftCodeInput").addEventListener("keydown", (e) => { if(e.key === "Enter") redeemGiftCode(); });
 
 /* ---- nav / settings wiring shared with the rest of the site ---- */
 document.querySelectorAll("[data-soon]").forEach(el => {

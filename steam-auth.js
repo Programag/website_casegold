@@ -527,6 +527,38 @@
     }
   }
 
+  // Kod prezentowy (darmowe.html) - w pełni serwerowe (api/redeem-gift-code.php):
+  // serwer sam sprawdza czy kod istnieje i czy NIE był już wykorzystany na
+  // tym koncie (redeemedGiftCodes w stanie), i sam dobiera nagrodę (pieniądze
+  // albo losowy przedmiot z GIFT_CASE_POOL) - klient tylko wysyła wpisany
+  // tekst. Zwraca {ok, error} albo {ok:true, type, amount|item} zamiast
+  // samego przedmiotu/null jak claimLevelReward(), bo wywołujący (darmowe.html)
+  // musi rozróżnić POWÓD niepowodzenia (zły kod / już wykorzystany / brak
+  // logowania), żeby pokazać właściwy komunikat.
+  async function redeemGiftCode(rawCode) {
+    const code = typeof rawCode === "string" ? rawCode.trim() : "";
+    if (!code) return { ok: false, error: "bad_request" };
+    if (!me.loggedIn) return { ok: false, error: "not_logged_in" };
+    try {
+      const res = await fetch("/api/redeem-gift-code.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        keepalive: true,
+        body: JSON.stringify({ code }),
+      });
+      const body = await res.json().catch(() => null);
+      if (!res.ok || !body || !body.ok) {
+        return { ok: false, error: (body && body.error) || "network_error" };
+      }
+      applyServerState(body.state);
+      return { ok: true, type: body.type, amount: body.amount, item: body.item };
+    } catch (e) {
+      console.error("[cs2sim] redeem-gift-code - błąd sieci:", e);
+      return { ok: false, error: "network_error" };
+    }
+  }
+
   // ---- Dzienny bonus (rosnąca passa) ----
   // Dzień 1 = 600 zł, każdy kolejny dzień +600 zł, aż do 3000 zł od dnia 5
   // (i tyle samo w każdym kolejnym dniu passy - próg 5 to pułap, nie reset).
@@ -1524,6 +1556,7 @@
     levelRewardItem,
     readClaimedLevelRewards,
     claimLevelReward,
+    redeemGiftCode,
     openDailyBonusModal,
     openTopUpModal,
     recordBattleHistory,

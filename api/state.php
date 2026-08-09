@@ -111,6 +111,12 @@ try {
             return empty($v) ? new stdClass() : $v;
         })(),
         'claimedLevelRewards' => isset($body['claimedLevelRewards']) && is_array($body['claimedLevelRewards']) ? $body['claimedLevelRewards'] : ($state['claimedLevelRewards'] ?? []),
+        // Kody prezentowe (api/redeem-gift-code.php) - ten sam wzorzec co
+        // claimedLevelRewards wyżej: bierz z body jeśli klient je przysłał,
+        // inaczej zostaw to, co JUŻ jest zapisane na serwerze - inaczej
+        // zwykły, "nieświadomy" tego pola pełny push zerowałby listę
+        // wykorzystanych kodów i pozwalał wykorzystać je ponownie.
+        'redeemedGiftCodes' => isset($body['redeemedGiftCodes']) && is_array($body['redeemedGiftCodes']) ? $body['redeemedGiftCodes'] : ($state['redeemedGiftCodes'] ?? []),
         'battleHistory' => isset($body['battleHistory']) && is_array($body['battleHistory']) ? $body['battleHistory'] : ($state['battleHistory'] ?? []),
         'levelWatermark' => max(num_or($body, 'levelWatermark', 0), $state['levelWatermark'] ?? 0),
         'xpScaleMigratedV2' => $isBrandNewAccount ? true : (bool) ($state['xpScaleMigratedV2'] ?? false),
