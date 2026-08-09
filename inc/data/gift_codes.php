@@ -25,4 +25,5 @@
    zostać wykorzystany raz na konto (redeemedGiftCodes w stanie gracza). */
 return [
     'ULTRASYF' => ['type' => 'case', 'caseId' => 'case_ultra', 'label' => 'Ultra Case', 'addedAt' => '2026-08-09'],
+    'DARMOWE2000' => ['type' => 'money', 'amount' => 2000, 'addedAt' => '2026-08-09'],
 ];
