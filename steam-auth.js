@@ -142,7 +142,7 @@
           claimedLevelRewards: Array.isArray(s.claimedLevelRewards) ? s.claimedLevelRewards : [],
           freeCaseOpens: s.freeCaseOpens && typeof s.freeCaseOpens === "object" ? s.freeCaseOpens : {},
           affiliateCode: typeof s.affiliateCode === "string" ? s.affiliateCode : null,
-          affiliateStats: s.affiliateStats && typeof s.affiliateStats === "object" ? s.affiliateStats : { timesUsed: 0, totalDepositedPln: 0, totalEarnedVirtual: 0 },
+          affiliateStats: s.affiliateStats && typeof s.affiliateStats === "object" ? s.affiliateStats : { timesUsed: 0, totalDepositedPln: 0, totalEarnedVirtual: 0, totalWithdrawn: 0 },
           battleHistory: Array.isArray(s.battleHistory) ? s.battleHistory : [],
           levelWatermark: typeof s.levelWatermark === "number" ? s.levelWatermark : 0,
           xpScaleMigratedV2: !!s.xpScaleMigratedV2,
@@ -166,7 +166,7 @@
           claimedLevelRewards: Array.isArray(s.claimedLevelRewards) ? s.claimedLevelRewards : [],
           freeCaseOpens: s.freeCaseOpens && typeof s.freeCaseOpens === "object" ? s.freeCaseOpens : {},
           affiliateCode: typeof s.affiliateCode === "string" ? s.affiliateCode : null,
-          affiliateStats: s.affiliateStats && typeof s.affiliateStats === "object" ? s.affiliateStats : { timesUsed: 0, totalDepositedPln: 0, totalEarnedVirtual: 0 },
+          affiliateStats: s.affiliateStats && typeof s.affiliateStats === "object" ? s.affiliateStats : { timesUsed: 0, totalDepositedPln: 0, totalEarnedVirtual: 0, totalWithdrawn: 0 },
           battleHistory: Array.isArray(s.battleHistory) ? s.battleHistory : [],
           levelWatermark: mergedWatermark,
           xpScaleMigratedV2: serverXpMigrated || localXpMigrated,
@@ -337,7 +337,7 @@
               claimedLevelRewards: Array.isArray(s.claimedLevelRewards) ? s.claimedLevelRewards : [],
               freeCaseOpens: s.freeCaseOpens && typeof s.freeCaseOpens === "object" ? s.freeCaseOpens : {},
               affiliateCode: typeof s.affiliateCode === "string" ? s.affiliateCode : null,
-              affiliateStats: s.affiliateStats && typeof s.affiliateStats === "object" ? s.affiliateStats : { timesUsed: 0, totalDepositedPln: 0, totalEarnedVirtual: 0 },
+              affiliateStats: s.affiliateStats && typeof s.affiliateStats === "object" ? s.affiliateStats : { timesUsed: 0, totalDepositedPln: 0, totalEarnedVirtual: 0, totalWithdrawn: 0 },
               battleHistory: Array.isArray(s.battleHistory) ? s.battleHistory : [],
               levelWatermark: trustServerWatermarkDirectly
                 ? (typeof s.levelWatermark === "number" ? s.levelWatermark : 0)
@@ -477,14 +477,18 @@
       const s = JSON.parse(localStorage.getItem(STATE_KEY) || "{}");
       const code = typeof s.affiliateCode === "string" ? s.affiliateCode : null;
       const stats = s.affiliateStats && typeof s.affiliateStats === "object" ? s.affiliateStats : {};
+      const totalEarnedVirtual = typeof stats.totalEarnedVirtual === "number" ? stats.totalEarnedVirtual : 0;
+      const totalWithdrawn = typeof stats.totalWithdrawn === "number" ? stats.totalWithdrawn : 0;
       return {
         code,
         timesUsed: typeof stats.timesUsed === "number" ? stats.timesUsed : 0,
         totalDepositedPln: typeof stats.totalDepositedPln === "number" ? stats.totalDepositedPln : 0,
-        totalEarnedVirtual: typeof stats.totalEarnedVirtual === "number" ? stats.totalEarnedVirtual : 0,
+        totalEarnedVirtual,
+        totalWithdrawn,
+        available: Math.max(0, totalEarnedVirtual - totalWithdrawn),
       };
     } catch (e) {
-      return { code: null, timesUsed: 0, totalDepositedPln: 0, totalEarnedVirtual: 0 };
+      return { code: null, timesUsed: 0, totalDepositedPln: 0, totalEarnedVirtual: 0, totalWithdrawn: 0, available: 0 };
     }
   }
   // Ustawia/zmienia WŁASNY kod partnerski - w pełni serwerowe
@@ -560,6 +564,30 @@
       return { ok: false, error: "network_error" };
     }
   }
+  // Przelewa CAŁOŚĆ jeszcze nie wypłaconych zarobków partnerskich
+  // (readAffiliateInfo().available) na WŁASNE saldo gracza - w pełni
+  // serwerowe (api/withdraw-affiliate-earnings.php), operuje na koncie
+  // wołającego, nie na cudzym. Zwraca {ok, error} albo {ok:true, amount}.
+  async function withdrawAffiliateEarnings() {
+    if (!me.loggedIn) return { ok: false, error: "not_logged_in" };
+    try {
+      const res = await fetch("/api/withdraw-affiliate-earnings.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        keepalive: true,
+      });
+      const body = await res.json().catch(() => null);
+      if (!res.ok || !body || !body.ok) {
+        return { ok: false, error: (body && body.error) || "network_error" };
+      }
+      applyServerState(body.state);
+      return { ok: true, amount: body.amount };
+    } catch (e) {
+      console.error("[cs2sim] withdraw-affiliate-earnings - błąd sieci:", e);
+      return { ok: false, error: "network_error" };
+    }
+  }
   // Nadpisuje lokalny cache stanem ZWRÓCONYM przez serwer (odpowiedź nowych,
   // atomowych endpointów claim-*.php/apply-*.php - patrz plan migracji na
   // serwer-autorytatywny) - używa nativeSetItem, żeby nie odpalać zwrotnego
@@ -595,7 +623,7 @@
         claimedLevelRewards: Array.isArray(s.claimedLevelRewards) ? s.claimedLevelRewards : [],
         freeCaseOpens: s.freeCaseOpens && typeof s.freeCaseOpens === "object" ? s.freeCaseOpens : {},
         affiliateCode: typeof s.affiliateCode === "string" ? s.affiliateCode : null,
-        affiliateStats: s.affiliateStats && typeof s.affiliateStats === "object" ? s.affiliateStats : { timesUsed: 0, totalDepositedPln: 0, totalEarnedVirtual: 0 },
+        affiliateStats: s.affiliateStats && typeof s.affiliateStats === "object" ? s.affiliateStats : { timesUsed: 0, totalDepositedPln: 0, totalEarnedVirtual: 0, totalWithdrawn: 0 },
         battleHistory: Array.isArray(s.battleHistory) ? s.battleHistory : [],
         levelWatermark: typeof s.levelWatermark === "number" ? s.levelWatermark : 0,
         xpScaleMigratedV2: !!s.xpScaleMigratedV2,
@@ -1090,7 +1118,7 @@
         claimedLevelRewards: Array.isArray(s.claimedLevelRewards) ? s.claimedLevelRewards : [],
         freeCaseOpens: s.freeCaseOpens && typeof s.freeCaseOpens === "object" ? s.freeCaseOpens : {},
         affiliateCode: typeof s.affiliateCode === "string" ? s.affiliateCode : null,
-        affiliateStats: s.affiliateStats && typeof s.affiliateStats === "object" ? s.affiliateStats : { timesUsed: 0, totalDepositedPln: 0, totalEarnedVirtual: 0 },
+        affiliateStats: s.affiliateStats && typeof s.affiliateStats === "object" ? s.affiliateStats : { timesUsed: 0, totalDepositedPln: 0, totalEarnedVirtual: 0, totalWithdrawn: 0 },
         battleHistory: Array.isArray(s.battleHistory) ? s.battleHistory : [],
         // Musi przetrwać KAŻDY zapis stanu z dowolnej podstrony (equipment,
         // index, battle...), inaczej wskaźnik poziomu cofałby się do 0 przy
@@ -1104,7 +1132,7 @@
         updatedAt: Date.now(),
       };
     } catch (e) {
-      return { bestPull: null, upgradeClicks: 0, casesOpened: 0, spentCases: 0, spentUpgrader: 0, battlesPlayed: 0, battlesWon: 0, questClaims: {}, claimedLevelRewards: [], freeCaseOpens: {}, affiliateCode: null, affiliateStats: { timesUsed: 0, totalDepositedPln: 0, totalEarnedVirtual: 0 }, battleHistory: [], levelWatermark: 0, xpScaleMigratedV2: false, updatedAt: Date.now() };
+      return { bestPull: null, upgradeClicks: 0, casesOpened: 0, spentCases: 0, spentUpgrader: 0, battlesPlayed: 0, battlesWon: 0, questClaims: {}, claimedLevelRewards: [], freeCaseOpens: {}, affiliateCode: null, affiliateStats: { timesUsed: 0, totalDepositedPln: 0, totalEarnedVirtual: 0, totalWithdrawn: 0 }, battleHistory: [], levelWatermark: 0, xpScaleMigratedV2: false, updatedAt: Date.now() };
     }
   }
   // ---- Historia bitew Case Battle (do zakładki "Moje bitwy") ----
@@ -1783,6 +1811,7 @@
     setAffiliateCode,
     lookupAffiliateCode,
     recordAffiliateDeposit,
+    withdrawAffiliateEarnings,
     claimLevelReward,
     redeemGiftCode,
     openDailyBonusModal,

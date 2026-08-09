@@ -36,7 +36,7 @@ function state_default_shape(): array {
         'redeemedGiftCodes' => [],
         'freeCaseOpens' => [],
         'affiliateCode' => null,
-        'affiliateStats' => ['timesUsed' => 0, 'totalDepositedPln' => 0, 'totalEarnedVirtual' => 0],
+        'affiliateStats' => ['timesUsed' => 0, 'totalDepositedPln' => 0, 'totalEarnedVirtual' => 0, 'totalWithdrawn' => 0],
         'battleHistory' => [],
         'freeCaseCooldowns' => [],
         'xpScaleMigratedV2' => true,

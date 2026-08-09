@@ -136,7 +136,7 @@ try {
         'affiliateCode' => $state['affiliateCode'] ?? null,
         'affiliateStats' => is_array($state['affiliateStats'] ?? null)
             ? $state['affiliateStats']
-            : ['timesUsed' => 0, 'totalDepositedPln' => 0, 'totalEarnedVirtual' => 0],
+            : ['timesUsed' => 0, 'totalDepositedPln' => 0, 'totalEarnedVirtual' => 0, 'totalWithdrawn' => 0],
         'levelWatermark' => max(num_or($body, 'levelWatermark', 0), $state['levelWatermark'] ?? 0),
         'xpScaleMigratedV2' => $isBrandNewAccount ? true : (bool) ($state['xpScaleMigratedV2'] ?? false),
         'adminOverrideAt' => (isset($state['adminOverrideAt']) && is_numeric($state['adminOverrideAt'])) ? $state['adminOverrideAt'] : null,

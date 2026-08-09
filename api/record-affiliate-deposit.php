@@ -82,7 +82,7 @@ try {
         exit;
     }
 
-    $stats = is_array($state['affiliateStats'] ?? null) ? $state['affiliateStats'] : ['timesUsed' => 0, 'totalDepositedPln' => 0, 'totalEarnedVirtual' => 0];
+    $stats = is_array($state['affiliateStats'] ?? null) ? $state['affiliateStats'] : ['timesUsed' => 0, 'totalDepositedPln' => 0, 'totalEarnedVirtual' => 0, 'totalWithdrawn' => 0];
     $stats['timesUsed'] = (int) ($stats['timesUsed'] ?? 0) + 1;
     $stats['totalDepositedPln'] = (float) ($stats['totalDepositedPln'] ?? 0) + $pricePln;
     $stats['totalEarnedVirtual'] = (float) ($stats['totalEarnedVirtual'] ?? 0) + $pricePln * AFFILIATE_VIRTUAL_PER_PLN;

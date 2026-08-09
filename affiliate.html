@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<script src="steam-auth.js?v=13"></script>
+<script src="steam-auth.js?v=14"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CASEGOLD // Program Partnerski</title>
 <link rel="icon" type="image/png" href="casegold_logo.PNG">
@@ -209,6 +209,9 @@
   .aff-stat-label{color:var(--muted); font-size:12px;}
   .aff-stat-value{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:19px; color:var(--good); margin-top:2px;}
 
+  .aff-withdraw-row{display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;}
+  .aff-withdraw-amount{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:24px; color:var(--good); margin-top:4px;}
+
   .aff-note{
     background:var(--hazard-dim); border:1px solid rgba(255,149,0,.35); border-radius:10px;
     padding:12px 14px; font-size:11.5px; color:var(--muted); line-height:1.5; margin-top:20px;
@@ -320,14 +323,25 @@
       <div class="aff-stat-card">
         <div class="aff-stat-icon">🪙</div>
         <div>
-          <div class="aff-stat-label">Twoje zarobki</div>
+          <div class="aff-stat-label">Twoje zarobki (łącznie)</div>
           <div class="aff-stat-value" id="statEarned">0,00 zł</div>
         </div>
       </div>
     </div>
 
+    <div class="aff-panel" id="withdrawPanel" style="display:none;">
+      <div class="aff-withdraw-row">
+        <div>
+          <div class="aff-code-label">Dostępne do wypłaty</div>
+          <div class="aff-withdraw-amount" id="statAvailable">0,00 zł</div>
+        </div>
+        <button type="button" class="aff-submit" id="withdrawBtn">💸 Wypłać pieniądze</button>
+      </div>
+      <div class="aff-msg" id="withdrawMsg"></div>
+    </div>
+
     <div class="aff-note">
-      Za każdą złotówkę "wpłaconą" z Twoim kodem w panelu doładowania dostajesz <strong>1000 wirtualnych złotych</strong> na saldo. Panel doładowania nadal nie obsługuje prawdziwych płatności — powyższe statystyki są prawdziwe i rosną z każdym kliknięciem "Kup" z Twoim kodem, ale same wpłaty są na razie symulowane, nie realne.
+      Za każdą złotówkę "wpłaconą" z Twoim kodem w panelu doładowania dostajesz <strong>1000 wirtualnych złotych</strong>. Panel doładowania nadal nie obsługuje prawdziwych płatności — powyższe statystyki są prawdziwe i rosną z każdym kliknięciem "Kup" z Twoim kodem, ale same wpłaty są na razie symulowane, nie realne. Przycisk "Wypłać pieniądze" przelewa zarobki na Twoje saldo w grze (wirtualną walutę symulatora), nie na prawdziwe konto bankowe.
     </div>
   </div>
 
@@ -410,6 +424,8 @@ function renderAffiliateCode(info){
   document.getElementById("statTimesUsed").textContent = String(info.timesUsed);
   document.getElementById("statDeposited").textContent = fmt(info.totalDepositedPln);
   document.getElementById("statEarned").textContent = fmt(info.totalEarnedVirtual);
+  document.getElementById("statAvailable").textContent = fmt(info.available);
+  document.getElementById("withdrawBtn").disabled = info.available <= 0;
 }
 
 function renderAffiliatePage(){
@@ -423,6 +439,7 @@ function renderAffiliatePage(){
   document.getElementById("setupPanel").style.display = hasCode ? "none" : "block";
   document.getElementById("codePanel").style.display = hasCode ? "block" : "none";
   document.getElementById("statsGrid").style.display = hasCode ? "grid" : "none";
+  document.getElementById("withdrawPanel").style.display = hasCode ? "block" : "none";
   if(hasCode) renderAffiliateCode(info);
 }
 
@@ -485,6 +502,31 @@ function wireCopyButton(btnId, getText){
 }
 wireCopyButton("copyCodeBtn", () => document.getElementById("codeValue").textContent);
 wireCopyButton("copyLinkBtn", () => document.getElementById("linkValue").href);
+
+const WITHDRAW_ERRORS = {
+  nothing_to_withdraw: "Nie masz jeszcze żadnych zarobków do wypłaty.",
+  not_logged_in: "Zaloguj się, aby wypłacić zarobki.",
+};
+document.getElementById("withdrawBtn").onclick = async () => {
+  const btn = document.getElementById("withdrawBtn");
+  const msgEl = document.getElementById("withdrawMsg");
+  const prevLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Wypłacanie...";
+  const res = await window.SteamAuth.withdrawAffiliateEarnings();
+  if(!res.ok){
+    msgEl.textContent = WITHDRAW_ERRORS[res.error] || "Wystąpił błąd. Spróbuj ponownie.";
+    msgEl.className = "aff-msg show err";
+    btn.disabled = false;
+    btn.textContent = prevLabel;
+    return;
+  }
+  msgEl.textContent = `🎉 Wypłacono ${fmt(res.amount)} na Twoje saldo!`;
+  msgEl.className = "aff-msg show ok";
+  btn.textContent = prevLabel;
+  renderBalance();
+  renderAffiliatePage(); // ustawia poprawny stan disabled (available powinno teraz być 0)
+};
 
 renderAffiliatePage();
 </script>
