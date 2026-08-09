@@ -32,6 +32,10 @@
   // Ostatni adminOverrideAt, jaki ta konkretna przeglądarka już przyjęła -
   // patrz sekcja "admin override" niżej.
   const ADMIN_OVERRIDE_KEY = "cs2sim_admin_override_at";
+  // Kod partnerski przechwycony z linku polecającego (?ref=KOD) -
+  // affiliate.html wyświetla link w tej postaci, bo strona nie ma routingu
+  // ładnych URL-i (/r/KOD) - patrz komentarz przy captureReferralFromUrl().
+  const REFERRAL_KEY = "cs2sim_referral_code";
 
   const STEAM_ICON_SVG = '<svg viewBox="0 0 24 24"><path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.03 4.524 4.524s-2.03 4.524-4.524 4.524h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.605.001 11.979.001zM7.54 18.21l-1.473-.61c.262.543.714.999 1.314 1.25 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.455-.397.957-1.497 1.41-2.454 1.012H7.54zm11.415-9.303c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.663 0 3.015-1.35 3.015-3.015zm-5.273-.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.253 0-2.265-1.014-2.265-2.265z"/></svg>';
   function steamIconBadge() { return `<span class="steam-icon-badge">${STEAM_ICON_SVG}</span>`; }
@@ -50,6 +54,23 @@
 
   const me = fetchMeSync();
   window.__STEAM_AUTH__ = me;
+
+  // Przechwytuje ?ref=KOD z adresu (link polecający z affiliate.html,
+  // np. casegold.pl/?ref=PLUTON) i zapamiętuje go w localStorage - "przykleja
+  // się" do przeglądarki niezależnie od tego, na którą podstronę trafi gość
+  // jako pierwszą, żeby panel doładowania mógł go później auto-uzupełnić bez
+  // ręcznego wpisywania (patrz maybeAutofillReferral() w openTopUpModal()).
+  // Ta strona celowo nie ma routingu ładnych URL-i typu /r/KOD (patrz Faza 5
+  // migracji - mod_rewrite został z hostingu usunięty), stąd zwykły
+  // parametr zapytania zamiast ścieżki.
+  (function captureReferralFromUrl() {
+    try {
+      const ref = new URLSearchParams(location.search).get("ref");
+      if (ref && /^[A-Za-z0-9]{3,20}$/.test(ref)) {
+        localStorage.setItem(REFERRAL_KEY, ref.toUpperCase());
+      }
+    } catch (e) {}
+  })();
 
   if (me.loggedIn && me.user && me.user.state) {
     const s = me.user.state;
@@ -995,6 +1016,16 @@
   function openTopUpModal() {
     const overlay = buildTopUpModal();
     overlay.classList.add("show");
+    // Auto-uzupełnienie kodu z linku polecającego (?ref=KOD, patrz
+    // captureReferralFromUrl() na górze pliku) - tylko jeśli gracz jeszcze
+    // ręcznie niczego nie wpisał/nie zastosował w tej sesji modala.
+    let referralCode = null;
+    try { referralCode = localStorage.getItem(REFERRAL_KEY); } catch (e) {}
+    if (referralCode && !topUpPromo.active) {
+      overlay.querySelector(".tu-promo").classList.add("open");
+      overlay.querySelector("#tuPromoInput").value = referralCode;
+      applyTopUpPromo(overlay, referralCode);
+    }
   }
 
   let lvlTooltipDismissWired = false;

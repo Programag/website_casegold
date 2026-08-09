@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<script src="steam-auth.js?v=12"></script>
+<script src="steam-auth.js?v=13"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CASEGOLD // Program Partnerski</title>
 <link rel="icon" type="image/png" href="casegold_logo.PNG">
@@ -181,11 +181,13 @@
   }
   .aff-icon-btn:hover{color:var(--hazard); border-color:var(--hazard);}
   .aff-icon-btn.copied{color:var(--good); border-color:var(--good);}
-  .aff-link-label{color:var(--muted); font-size:11.5px; text-align:center; margin:16px 0 4px;}
+  .aff-link-label{color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:1px; margin:18px 0 10px;}
   .aff-link-value{
-    color:var(--hazard); font-family:'JetBrains Mono',monospace; font-weight:700; font-size:14px;
-    text-align:center; word-break:break-all;
+    flex:1; min-width:0; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:13.5px;
+    color:var(--hazard); background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:10px 14px;
+    overflow-wrap:anywhere; text-decoration:none; display:block;
   }
+  .aff-link-value:hover{text-decoration:underline;}
 
   .aff-edit-box{margin-top:16px; padding-top:16px; border-top:1px solid var(--line); display:none;}
   .aff-edit-box.show{display:block;}
@@ -285,7 +287,10 @@
         <button type="button" class="aff-icon-btn" id="copyCodeBtn" title="Kopiuj kod">📋</button>
       </div>
       <div class="aff-link-label">Twój link polecający</div>
-      <div class="aff-link-value" id="linkValue">—</div>
+      <div class="aff-code-row">
+        <a class="aff-link-value" id="linkValue" href="#">—</a>
+        <button type="button" class="aff-icon-btn" id="copyLinkBtn" title="Kopiuj link">📋</button>
+      </div>
 
       <button type="button" class="aff-edit-toggle" id="editToggleBtn">✎ Zmień kod</button>
       <div class="aff-edit-box" id="editBox">
@@ -388,9 +393,20 @@ const AFF_ERRORS = {
   not_logged_in: "Zaloguj się, aby ustawić kod.",
 };
 
+function referralUrl(code){
+  // Prawdziwy, DZIAŁAJĄCY link - zwykły parametr zapytania (?ref=KOD), nie
+  // ładna ścieżka /r/KOD, bo strona celowo nie ma routingu takich URL-i
+  // (mod_rewrite został usunięty z hostingu). window.SteamAuth
+  // (steam-auth.js) przechwytuje ten parametr na KAŻDEJ stronie i pamięta
+  // go, żeby panel doładowania mógł go później auto-uzupełnić.
+  return `${window.location.origin}/?ref=${encodeURIComponent(code)}`;
+}
 function renderAffiliateCode(info){
   document.getElementById("codeValue").textContent = info.code;
-  document.getElementById("linkValue").textContent = `casegold.pl/r/${info.code}`;
+  const link = referralUrl(info.code);
+  const linkEl = document.getElementById("linkValue");
+  linkEl.textContent = link;
+  linkEl.href = link;
   document.getElementById("statTimesUsed").textContent = String(info.timesUsed);
   document.getElementById("statDeposited").textContent = fmt(info.totalDepositedPln);
   document.getElementById("statEarned").textContent = fmt(info.totalEarnedVirtual);
@@ -456,15 +472,19 @@ document.getElementById("editInput").addEventListener("keydown", (e) => {
   if(e.key === "Enter") document.getElementById("editSubmitBtn").click();
 });
 
-document.getElementById("copyCodeBtn").onclick = () => {
-  const code = document.getElementById("codeValue").textContent;
-  navigator.clipboard.writeText(code).then(() => {
-    const btn = document.getElementById("copyCodeBtn");
-    btn.classList.add("copied");
-    btn.textContent = "✓";
-    setTimeout(() => { btn.classList.remove("copied"); btn.textContent = "📋"; }, 1500);
-  }).catch(() => {});
-};
+function wireCopyButton(btnId, getText){
+  document.getElementById(btnId).onclick = (e) => {
+    e.preventDefault();
+    navigator.clipboard.writeText(getText()).then(() => {
+      const btn = document.getElementById(btnId);
+      btn.classList.add("copied");
+      btn.textContent = "✓";
+      setTimeout(() => { btn.classList.remove("copied"); btn.textContent = "📋"; }, 1500);
+    }).catch(() => {});
+  };
+}
+wireCopyButton("copyCodeBtn", () => document.getElementById("codeValue").textContent);
+wireCopyButton("copyLinkBtn", () => document.getElementById("linkValue").href);
 
 renderAffiliatePage();
 </script>
