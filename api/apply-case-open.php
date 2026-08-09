@@ -17,8 +17,16 @@ const CASE_OPEN_MAX_COUNT = 5;
 // przez klienta w rozsądnych, szerokich granicach względem ceny
 // standardowej - to nie jest anty-cheat, tylko siatka przed oczywiście
 // zepsutym/spreparowanym payloadem (np. cost: 0.01 dla drogiej skrzynki).
+// Górna granica MUSI pokrywać NAJWYŻSZY realny mnożnik computeJesterPrice()
+// spośród wszystkich 23 skrzynek - tanie skrzynki z "długim ogonem"
+// rzadkich, bardzo drogich przedmiotów (np. Dirt Case: 1,60 zł -> 65,60 zł
+// w Jesterze, Jungle Case: 22 zł -> ~1948 zł) legalnie potrzebują mnożnika
+// nawet ~89x. Przy dawnej granicy 20x KAŻDE otwarcie Jestera na 8 z 23
+// skrzynek kończyło się błędem "Nie udało się otworzyć skrzynki" (zgłoszony
+// błąd na Dirt Case) - to była literalnie niemożliwa do przejścia bramka,
+// nie zabezpieczenie przed czymkolwiek.
 const JESTER_PRICE_MIN_MULT = 0.05;
-const JESTER_PRICE_MAX_MULT = 20;
+const JESTER_PRICE_MAX_MULT = 150;
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
