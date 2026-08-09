@@ -124,6 +124,19 @@ try {
             return empty($v) ? new stdClass() : $v;
         })(),
         'battleHistory' => isset($body['battleHistory']) && is_array($body['battleHistory']) ? $body['battleHistory'] : ($state['battleHistory'] ?? []),
+        // affiliateCode/affiliateStats - w przeciwieństwie do WSZYSTKICH pól
+        // wyżej, celowo NIGDY nie honorujemy tu wartości od klienta (nawet
+        // gdyby ją przysłał) - to jedyne pola w całym tym endpointcie z tą
+        // zasadą. Powód: api/set-affiliate-code.php sprawdza unikalność kodu
+        // PRZED zapisem; gdyby zwykły PUT /api/state pozwalał nadpisać
+        // affiliateCode dowolną wartością, dałoby się przez to trywialnie
+        // ominąć tę kontrolę (np. podszyć się pod cudzy kod). affiliateStats
+        // to z kolei czysto serwerowo liczone zarobki (api/record-affiliate-deposit.php)
+        // - klient nie ma tu żadnego legalnego powodu, żeby je nadpisywać.
+        'affiliateCode' => $state['affiliateCode'] ?? null,
+        'affiliateStats' => is_array($state['affiliateStats'] ?? null)
+            ? $state['affiliateStats']
+            : ['timesUsed' => 0, 'totalDepositedPln' => 0, 'totalEarnedVirtual' => 0],
         'levelWatermark' => max(num_or($body, 'levelWatermark', 0), $state['levelWatermark'] ?? 0),
         'xpScaleMigratedV2' => $isBrandNewAccount ? true : (bool) ($state['xpScaleMigratedV2'] ?? false),
         'adminOverrideAt' => (isset($state['adminOverrideAt']) && is_numeric($state['adminOverrideAt'])) ? $state['adminOverrideAt'] : null,

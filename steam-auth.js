@@ -120,6 +120,8 @@
           questClaims: s.questClaims && typeof s.questClaims === "object" ? s.questClaims : {},
           claimedLevelRewards: Array.isArray(s.claimedLevelRewards) ? s.claimedLevelRewards : [],
           freeCaseOpens: s.freeCaseOpens && typeof s.freeCaseOpens === "object" ? s.freeCaseOpens : {},
+          affiliateCode: typeof s.affiliateCode === "string" ? s.affiliateCode : null,
+          affiliateStats: s.affiliateStats && typeof s.affiliateStats === "object" ? s.affiliateStats : { timesUsed: 0, totalDepositedPln: 0, totalEarnedVirtual: 0 },
           battleHistory: Array.isArray(s.battleHistory) ? s.battleHistory : [],
           levelWatermark: typeof s.levelWatermark === "number" ? s.levelWatermark : 0,
           xpScaleMigratedV2: !!s.xpScaleMigratedV2,
@@ -142,6 +144,8 @@
           questClaims: s.questClaims && typeof s.questClaims === "object" ? s.questClaims : {},
           claimedLevelRewards: Array.isArray(s.claimedLevelRewards) ? s.claimedLevelRewards : [],
           freeCaseOpens: s.freeCaseOpens && typeof s.freeCaseOpens === "object" ? s.freeCaseOpens : {},
+          affiliateCode: typeof s.affiliateCode === "string" ? s.affiliateCode : null,
+          affiliateStats: s.affiliateStats && typeof s.affiliateStats === "object" ? s.affiliateStats : { timesUsed: 0, totalDepositedPln: 0, totalEarnedVirtual: 0 },
           battleHistory: Array.isArray(s.battleHistory) ? s.battleHistory : [],
           levelWatermark: mergedWatermark,
           xpScaleMigratedV2: serverXpMigrated || localXpMigrated,
@@ -235,6 +239,9 @@
       questClaims: state.questClaims && typeof state.questClaims === "object" ? state.questClaims : {},
       claimedLevelRewards: Array.isArray(state.claimedLevelRewards) ? state.claimedLevelRewards : [],
       freeCaseOpens: state.freeCaseOpens && typeof state.freeCaseOpens === "object" ? state.freeCaseOpens : {},
+      // affiliateCode/affiliateStats celowo NIE są tu wysyłane -
+      // api/state.php ignoruje je bezwarunkowo (patrz komentarz tam), więc
+      // wysyłanie ich w tym payloadzie byłoby tylko mylące.
       battleHistory: Array.isArray(state.battleHistory) ? state.battleHistory : [],
       levelWatermark: typeof state.levelWatermark === "number" ? state.levelWatermark : 0,
       dailyBonusAt: Number(localStorage.getItem(DAILY_KEY) || 0) || null,
@@ -308,6 +315,8 @@
               questClaims: s.questClaims && typeof s.questClaims === "object" ? s.questClaims : {},
               claimedLevelRewards: Array.isArray(s.claimedLevelRewards) ? s.claimedLevelRewards : [],
               freeCaseOpens: s.freeCaseOpens && typeof s.freeCaseOpens === "object" ? s.freeCaseOpens : {},
+              affiliateCode: typeof s.affiliateCode === "string" ? s.affiliateCode : null,
+              affiliateStats: s.affiliateStats && typeof s.affiliateStats === "object" ? s.affiliateStats : { timesUsed: 0, totalDepositedPln: 0, totalEarnedVirtual: 0 },
               battleHistory: Array.isArray(s.battleHistory) ? s.battleHistory : [],
               levelWatermark: trustServerWatermarkDirectly
                 ? (typeof s.levelWatermark === "number" ? s.levelWatermark : 0)
@@ -438,6 +447,98 @@
       return 0;
     }
   }
+  // Własny kod partnerski (affiliate.html) + statystyki zarobków - czytane
+  // wprost z localStorage, aktualizowane przez applyServerState() po
+  // KAŻDEJ odpowiedzi serwera (dokładnie ten sam wzorzec co
+  // readFreeCaseOpens() wyżej).
+  function readAffiliateInfo() {
+    try {
+      const s = JSON.parse(localStorage.getItem(STATE_KEY) || "{}");
+      const code = typeof s.affiliateCode === "string" ? s.affiliateCode : null;
+      const stats = s.affiliateStats && typeof s.affiliateStats === "object" ? s.affiliateStats : {};
+      return {
+        code,
+        timesUsed: typeof stats.timesUsed === "number" ? stats.timesUsed : 0,
+        totalDepositedPln: typeof stats.totalDepositedPln === "number" ? stats.totalDepositedPln : 0,
+        totalEarnedVirtual: typeof stats.totalEarnedVirtual === "number" ? stats.totalEarnedVirtual : 0,
+      };
+    } catch (e) {
+      return { code: null, timesUsed: 0, totalDepositedPln: 0, totalEarnedVirtual: 0 };
+    }
+  }
+  // Ustawia/zmienia WŁASNY kod partnerski - w pełni serwerowe
+  // (api/set-affiliate-code.php sprawdza format i unikalność). Zwraca
+  // {ok, error} albo {ok:true, code}.
+  async function setAffiliateCode(rawCode) {
+    const code = typeof rawCode === "string" ? rawCode.trim() : "";
+    if (!code) return { ok: false, error: "bad_code_format" };
+    if (!me.loggedIn) return { ok: false, error: "not_logged_in" };
+    try {
+      const res = await fetch("/api/set-affiliate-code.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        keepalive: true,
+        body: JSON.stringify({ code }),
+      });
+      const body = await res.json().catch(() => null);
+      if (!res.ok || !body || !body.ok) {
+        return { ok: false, error: (body && body.error) || "network_error" };
+      }
+      applyServerState(body.state);
+      return { ok: true, code: body.code };
+    } catch (e) {
+      console.error("[cs2sim] set-affiliate-code - błąd sieci:", e);
+      return { ok: false, error: "network_error" };
+    }
+  }
+  // Sprawdza (bez zapisywania niczego), czy wpisany kod partnerski istnieje
+  // - używane w panelu doładowania, żeby od razu potwierdzić kod przed
+  // kliknięciem "Kup" (gdzie faktycznie nalicza się prowizja, patrz
+  // recordAffiliateDeposit() niżej).
+  async function lookupAffiliateCode(rawCode) {
+    const code = typeof rawCode === "string" ? rawCode.trim() : "";
+    if (!code) return { ok: false, error: "bad_request" };
+    if (!me.loggedIn) return { ok: false, error: "not_logged_in" };
+    try {
+      const res = await fetch("/api/lookup-affiliate-code.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ code }),
+      });
+      const body = await res.json().catch(() => null);
+      if (!res.ok || !body) return { ok: false, error: "network_error" };
+      return body;
+    } catch (e) {
+      console.error("[cs2sim] lookup-affiliate-code - błąd sieci:", e);
+      return { ok: false, error: "network_error" };
+    }
+  }
+  // Nalicza twórcy kodu 1000 wirt. zł za każdą (na razie fikcyjną - panel
+  // doładowania dalej nie ma prawdziwych płatności) "wpłaconą" złotówkę.
+  // NIE zmienia salda/stanu OSOBY WPISUJĄCEJ kod - to wyłącznie zapis
+  // statystyk dla właściciela kodu (api/record-affiliate-deposit.php).
+  async function recordAffiliateDeposit(code, packageIndex) {
+    if (!code || !me.loggedIn) return { ok: false };
+    try {
+      const res = await fetch("/api/record-affiliate-deposit.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        keepalive: true,
+        body: JSON.stringify({ code, packageIndex }),
+      });
+      const body = await res.json().catch(() => null);
+      if (!res.ok || !body || !body.ok) {
+        return { ok: false, error: (body && body.error) || "network_error" };
+      }
+      return { ok: true };
+    } catch (e) {
+      console.error("[cs2sim] record-affiliate-deposit - błąd sieci:", e);
+      return { ok: false, error: "network_error" };
+    }
+  }
   // Nadpisuje lokalny cache stanem ZWRÓCONYM przez serwer (odpowiedź nowych,
   // atomowych endpointów claim-*.php/apply-*.php - patrz plan migracji na
   // serwer-autorytatywny) - używa nativeSetItem, żeby nie odpalać zwrotnego
@@ -472,6 +573,8 @@
         questClaims: s.questClaims && typeof s.questClaims === "object" ? s.questClaims : {},
         claimedLevelRewards: Array.isArray(s.claimedLevelRewards) ? s.claimedLevelRewards : [],
         freeCaseOpens: s.freeCaseOpens && typeof s.freeCaseOpens === "object" ? s.freeCaseOpens : {},
+        affiliateCode: typeof s.affiliateCode === "string" ? s.affiliateCode : null,
+        affiliateStats: s.affiliateStats && typeof s.affiliateStats === "object" ? s.affiliateStats : { timesUsed: 0, totalDepositedPln: 0, totalEarnedVirtual: 0 },
         battleHistory: Array.isArray(s.battleHistory) ? s.battleHistory : [],
         levelWatermark: typeof s.levelWatermark === "number" ? s.levelWatermark : 0,
         xpScaleMigratedV2: !!s.xpScaleMigratedV2,
@@ -722,29 +825,59 @@
   ];
   const TOPUP_PROMO_BONUS = 0.35;
   const TOPUP_PROMO_CODES = ["CASEGOLD35", "ZLOTO35", "TWORCA35"];
-  let topUpPromo = { active: false, code: "" };
+  // type "bonus"     - jeden z TOPUP_PROMO_CODES wyżej, czysto kosmetyczne
+  //                    +35% do wyświetlanej kwoty pakietu, nic nie wysyła
+  //                    do serwera.
+  // type "affiliate" - prawdziwy kod partnera (affiliate.html), sprawdzony
+  //                    serwerowo (lookupAffiliateCode). Kliknięcie "Kup"
+  //                    zgłasza serwerowi (recordAffiliateDeposit) fikcyjną
+  //                    "wpłatę" tej kwoty - twórca dostaje 1000 wirt. zł za
+  //                    każdą taką złotówkę. Kupującemu NIC nie jest
+  //                    doliczane - panel dalej nie ma prawdziwych płatności.
+  let topUpPromo = { active: false, type: null, code: "", ownerName: "" };
 
   function renderTopUpPackages(overlay) {
     const grid = overlay.querySelector("#tuPackages");
     grid.innerHTML = "";
-    TOPUP_PACKAGES.forEach((p) => {
-      const finalAmount = topUpPromo.active ? Math.round(p.amount * (1 + TOPUP_PROMO_BONUS)) : p.amount;
+    const bonusActive = topUpPromo.active && topUpPromo.type === "bonus";
+    TOPUP_PACKAGES.forEach((p, index) => {
+      const finalAmount = bonusActive ? Math.round(p.amount * (1 + TOPUP_PROMO_BONUS)) : p.amount;
       const card = document.createElement("div");
       card.className = "tu-pkg" + (p.best ? " best" : "");
       card.innerHTML = `
         ${p.badge ? `<div class="tu-pkg-badge">${p.badge === "POPULARNE" ? "⚡" : "✨"} ${p.badge}</div>` : ""}
-        <div class="tu-pkg-amount">🪙 ${finalAmount.toLocaleString("pl-PL")} zł${topUpPromo.active ? `<span class="tu-pkg-bonus">+35%</span>` : ""}</div>
-        ${topUpPromo.active ? `<div class="tu-pkg-base">zamiast ${p.amount.toLocaleString("pl-PL")} zł</div>` : ""}
+        <div class="tu-pkg-amount">🪙 ${finalAmount.toLocaleString("pl-PL")} zł${bonusActive ? `<span class="tu-pkg-bonus">+35%</span>` : ""}</div>
+        ${bonusActive ? `<div class="tu-pkg-base">zamiast ${p.amount.toLocaleString("pl-PL")} zł</div>` : ""}
         <button type="button" class="tu-pkg-buy">${p.price}</button>
       `;
-      card.querySelector(".tu-pkg-buy").onclick = () => {
+      card.querySelector(".tu-pkg-buy").onclick = async () => {
+        if (topUpPromo.active && topUpPromo.type === "affiliate") {
+          const result = await window.SteamAuth.recordAffiliateDeposit(topUpPromo.code, index);
+          if (result.ok) {
+            alert(`Dzięki za wsparcie ${topUpPromo.ownerName}! Płatności realne będą dostępne wkrótce — na razie to tylko podgląd panelu doładowania.`);
+            return;
+          }
+        }
         alert("Płatności będą dostępne wkrótce — na razie to tylko podgląd panelu doładowania.");
       };
       grid.appendChild(card);
     });
   }
 
-  function applyTopUpPromo(overlay, rawCode) {
+  // Bezpiecznie (bez innerHTML) ustawia "<label><strong>value</strong>" w
+  // #tuPromoSuccessCode - value bywa nazwą gracza Steam ustawioną przez
+  // KOGOŚ INNEGO (właściciel kodu partnerskiego), więc musi iść przez DOM
+  // (createTextNode), nie przez interpolację stringów w innerHTML.
+  function setPromoSuccessCode(overlay, label, value) {
+    const el = overlay.querySelector("#tuPromoSuccessCode");
+    el.textContent = "";
+    el.appendChild(document.createTextNode(label));
+    const strong = document.createElement("strong");
+    strong.textContent = value;
+    el.appendChild(strong);
+  }
+
+  async function applyTopUpPromo(overlay, rawCode) {
     const code = rawCode.trim().toUpperCase();
     const errorEl = overlay.querySelector("#tuPromoError");
     if (!code) {
@@ -752,21 +885,48 @@
       errorEl.classList.add("show");
       return;
     }
-    if (!TOPUP_PROMO_CODES.includes(code)) {
-      errorEl.textContent = "Nieprawidłowy kod promocyjny.";
+    if (TOPUP_PROMO_CODES.includes(code)) {
+      errorEl.classList.remove("show");
+      topUpPromo = { active: true, type: "bonus", code, ownerName: "" };
+      overlay.querySelector("#tuPromoInputRow").classList.add("hidden");
+      overlay.querySelector("#tuPromoSuccess").classList.add("show");
+      overlay.querySelector("#tuPromoSuccessTitle").innerHTML = `Kod aktywowany <span class="tu-promo-success-bonus">+35%</span>`;
+      setPromoSuccessCode(overlay, "Twój kod: ", code);
+      renderTopUpPackages(overlay);
+      return;
+    }
+    // Nie ma w twardej liście demo kodów - sprawdź, czy to prawdziwy kod
+    // partnera (affiliate.html). Przycisk zablokowany na czas zapytania,
+    // żeby nie dało się kliknąć "Zastosuj" kilka razy naraz.
+    const applyBtn = overlay.querySelector("#tuPromoApply");
+    applyBtn.disabled = true;
+    const lookup = await window.SteamAuth.lookupAffiliateCode(code);
+    applyBtn.disabled = false;
+    if (!lookup.ok) {
+      const messages = {
+        self_referral: "Nie możesz użyć własnego kodu partnerskiego.",
+        invalid_affiliate_code: "Nieprawidłowy kod promocyjny.",
+        not_logged_in: "Zaloguj się, aby zastosować kod.",
+      };
+      errorEl.textContent = messages[lookup.error] || "Nieprawidłowy kod promocyjny.";
       errorEl.classList.add("show");
       return;
     }
     errorEl.classList.remove("show");
-    topUpPromo = { active: true, code };
+    topUpPromo = { active: true, type: "affiliate", code, ownerName: lookup.ownerName || code };
     overlay.querySelector("#tuPromoInputRow").classList.add("hidden");
     overlay.querySelector("#tuPromoSuccess").classList.add("show");
-    overlay.querySelector("#tuPromoActiveCode").textContent = code;
+    overlay.querySelector("#tuPromoSuccessTitle").textContent = "Kod partnera aktywowany";
+    // setPromoSuccessCode buduje to przez DOM (createTextNode), NIE
+    // innerHTML - lookup.ownerName to nazwa gracza Steam (dowolny tekst
+    // ustawiony przez INNEGO użytkownika), więc interpolacja w innerHTML
+    // byłaby dziurą XSS.
+    setPromoSuccessCode(overlay, "Wspierasz: ", `${lookup.ownerName} (${code})`);
     renderTopUpPackages(overlay);
   }
 
   function resetTopUpPromo(overlay) {
-    topUpPromo = { active: false, code: "" };
+    topUpPromo = { active: false, type: null, code: "", ownerName: "" };
     overlay.querySelector("#tuPromoInputRow").classList.remove("hidden");
     overlay.querySelector("#tuPromoSuccess").classList.remove("show");
     overlay.querySelector("#tuPromoInput").value = "";
@@ -803,8 +963,8 @@
             <div class="tu-promo-success" id="tuPromoSuccess">
               <div class="tu-promo-success-icon">🎁</div>
               <div class="tu-promo-success-text">
-                <div class="tu-promo-success-title">Kod aktywowany <span class="tu-promo-success-bonus">+35%</span></div>
-                <div class="tu-promo-success-code">Twój kod: <strong id="tuPromoActiveCode"></strong></div>
+                <div class="tu-promo-success-title" id="tuPromoSuccessTitle">Kod aktywowany</div>
+                <div class="tu-promo-success-code" id="tuPromoSuccessCode"></div>
               </div>
               <button type="button" class="tu-promo-edit" id="tuPromoEdit" title="Zmień kod" aria-label="Zmień kod">✎</button>
             </div>
@@ -898,6 +1058,8 @@
         questClaims: s.questClaims && typeof s.questClaims === "object" ? s.questClaims : {},
         claimedLevelRewards: Array.isArray(s.claimedLevelRewards) ? s.claimedLevelRewards : [],
         freeCaseOpens: s.freeCaseOpens && typeof s.freeCaseOpens === "object" ? s.freeCaseOpens : {},
+        affiliateCode: typeof s.affiliateCode === "string" ? s.affiliateCode : null,
+        affiliateStats: s.affiliateStats && typeof s.affiliateStats === "object" ? s.affiliateStats : { timesUsed: 0, totalDepositedPln: 0, totalEarnedVirtual: 0 },
         battleHistory: Array.isArray(s.battleHistory) ? s.battleHistory : [],
         // Musi przetrwać KAŻDY zapis stanu z dowolnej podstrony (equipment,
         // index, battle...), inaczej wskaźnik poziomu cofałby się do 0 przy
@@ -911,7 +1073,7 @@
         updatedAt: Date.now(),
       };
     } catch (e) {
-      return { bestPull: null, upgradeClicks: 0, casesOpened: 0, spentCases: 0, spentUpgrader: 0, battlesPlayed: 0, battlesWon: 0, questClaims: {}, claimedLevelRewards: [], freeCaseOpens: {}, battleHistory: [], levelWatermark: 0, xpScaleMigratedV2: false, updatedAt: Date.now() };
+      return { bestPull: null, upgradeClicks: 0, casesOpened: 0, spentCases: 0, spentUpgrader: 0, battlesPlayed: 0, battlesWon: 0, questClaims: {}, claimedLevelRewards: [], freeCaseOpens: {}, affiliateCode: null, affiliateStats: { timesUsed: 0, totalDepositedPln: 0, totalEarnedVirtual: 0 }, battleHistory: [], levelWatermark: 0, xpScaleMigratedV2: false, updatedAt: Date.now() };
     }
   }
   // ---- Historia bitew Case Battle (do zakładki "Moje bitwy") ----
@@ -1377,6 +1539,7 @@
         border-radius:7px; padding:9px 14px; font-size:12.5px; font-weight:600; cursor:pointer; white-space:nowrap;
       }
       .tu-promo-apply:hover{border-color:var(--hazard,#ff9500); color:var(--hazard,#ff9500);}
+      .tu-promo-apply:disabled{opacity:.6; cursor:default;}
       .tu-promo-error{
         display:none; font-size:11.5px; font-weight:600; color:#ff5c5c;
       }
@@ -1471,6 +1634,14 @@
     const topUpBtn = document.getElementById("topUpBtn");
     if (topUpBtn) {
       topUpBtn.onclick = () => { if (requireLogin()) openTopUpModal(); };
+    }
+
+    // Zakładka "Affiliate" w menu ustawień - dostępna dla KAŻDEGO
+    // zalogowanego (samoobsługa: sam sobie ustawiasz kod na affiliate.html),
+    // nie tylko dla kont z już ustawionym kodem.
+    const affiliateBtn = document.getElementById("affiliateBtn");
+    if (affiliateBtn) {
+      affiliateBtn.onclick = () => { if (requireLogin()) window.location.href = "/affiliate.html"; };
     }
 
     if (me.loggedIn && me.user) {
@@ -1577,6 +1748,10 @@
     levelRewardItem,
     readClaimedLevelRewards,
     readFreeCaseOpens,
+    readAffiliateInfo,
+    setAffiliateCode,
+    lookupAffiliateCode,
+    recordAffiliateDeposit,
     claimLevelReward,
     redeemGiftCode,
     openDailyBonusModal,

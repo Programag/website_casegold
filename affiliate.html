@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <script src="steam-auth.js?v=12"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CASEGOLD // Topka</title>
+<title>CASEGOLD // Program Partnerski</title>
 <link rel="icon" type="image/png" href="casegold_logo.PNG">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
@@ -126,51 +126,91 @@
   @media (max-width:400px){
     .topnav .nav-link{font-size:8.5px;}
   }
-  .page-title{margin-bottom:26px;}
-  h1{font-family:'Oswald',sans-serif;font-weight:700;letter-spacing:2px;text-transform:uppercase;font-size:clamp(28px,4vw,42px);margin:0;line-height:1;}
+  .page-title{margin-bottom:26px; text-align:center;}
+  .page-title .hero-icon{
+    width:52px; height:52px; margin:0 auto 14px; border-radius:12px;
+    background:var(--hazard-dim); border:1px solid var(--hazard);
+    display:flex; align-items:center; justify-content:center; font-size:24px;
+  }
+  h1{font-family:'Oswald',sans-serif;font-weight:700;letter-spacing:2px;text-transform:uppercase;font-size:clamp(24px,4vw,34px);margin:0;line-height:1;}
   h1 span{color:var(--hazard);}
-  .sub{color:var(--muted);font-size:13px;letter-spacing:.5px;margin-top:6px;}
+  .sub{color:var(--muted);font-size:13px;letter-spacing:.5px;margin-top:8px;}
 
-  /* ---------------- leaderboard ---------------- */
-  .lb-panel{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:20px;}
-  .lb-tabs{display:flex; gap:8px; margin-bottom:14px;}
-  .lb-tab{
-    flex:1; background:var(--panel-2); border:1px solid var(--line); color:var(--muted);
-    padding:9px 8px; border-radius:8px; cursor:pointer; font-size:11.5px; font-weight:600;
-    font-family:'Inter',sans-serif; white-space:nowrap;
+  /* ---------------- affiliate panel ---------------- */
+  .aff-panel{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:22px; margin-bottom:20px;}
+  .aff-login-note{color:var(--muted); font-size:13.5px; text-align:center; padding:10px 0;}
+  .aff-login-note button{
+    display:block; margin:14px auto 0; background:var(--hazard); color:#181000; border:none;
+    padding:10px 20px; border-radius:8px; font-family:'Oswald',sans-serif; font-weight:700;
+    text-transform:uppercase; letter-spacing:.5px; font-size:13px; cursor:pointer;
   }
-  @media (max-width:600px){
-    .lb-tabs{display:grid; grid-template-columns:1fr 1fr; gap:6px;}
-    .lb-tab{padding:9px 4px; font-size:10.5px;}
+  .aff-setup-hint{color:var(--muted); font-size:13px; line-height:1.5; margin:0 0 14px;}
+  .aff-setup-row{display:flex; gap:10px; flex-wrap:wrap;}
+  .aff-input{
+    flex:1; min-width:160px; background:var(--panel-2); border:1px solid var(--line); color:var(--text);
+    border-radius:9px; padding:12px 14px; font-size:14px; font-family:'JetBrains Mono',monospace;
+    letter-spacing:1px; text-transform:uppercase;
   }
-  @media (max-width:340px){
-    .lb-tabs{grid-template-columns:1fr;}
+  .aff-input::placeholder{text-transform:none; letter-spacing:normal; font-family:'Inter',sans-serif;}
+  .aff-input:focus{outline:none; border-color:var(--hazard);}
+  .aff-submit{
+    background:var(--hazard); color:#181000; border:none; border-radius:9px;
+    padding:12px 22px; font-family:'Oswald',sans-serif; font-weight:700; text-transform:uppercase; letter-spacing:.5px;
+    font-size:13.5px; cursor:pointer; white-space:nowrap;
   }
-  .lb-tab:hover{color:var(--text); border-color:var(--hazard);}
-  .lb-tab.active{color:var(--hazard); border-color:var(--hazard); background:var(--hazard-dim);}
-  .lb-note{
-    background:var(--panel-2); border:1px solid var(--line); border-radius:8px;
-    padding:10px 12px; font-size:12px; color:var(--muted); margin-bottom:14px; display:none;
+  .aff-submit:hover{filter:brightness(1.08);}
+  .aff-submit:disabled{opacity:.6; cursor:default; filter:none;}
+  .aff-msg{margin-top:12px; font-size:13px; font-weight:600; line-height:1.5; display:none;}
+  .aff-msg.show{display:block;}
+  .aff-msg.ok{color:var(--good);}
+  .aff-msg.err{color:var(--bad);}
+
+  .aff-code-label{color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:1px; margin-bottom:10px;}
+  .aff-code-row{
+    display:flex; align-items:center; gap:10px;
+    background:var(--hazard-dim); border:1px solid var(--hazard); border-radius:12px; padding:10px 10px 10px 16px;
   }
-  .lb-note.show{display:block;}
-  .lb-note strong{color:var(--hazard);}
-  .lb-row.rewarded .lb-rank{color:var(--good);}
-  .lb-list{display:flex; flex-direction:column; gap:6px;}
-  .lb-row{
-    display:flex; align-items:center; gap:10px; padding:8px 10px;
-    background:var(--panel-2); border:1px solid var(--line); border-radius:8px;
-    text-decoration:none;
+  .aff-code-value{
+    flex:1; min-width:0; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:17px;
+    color:var(--text); background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:10px 14px;
+    overflow-wrap:anywhere;
   }
-  .lb-row.empty{opacity:.35;}
-  .lb-rank{width:22px; text-align:center; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:12px; color:var(--muted); flex:none;}
-  .lb-row.rank-1 .lb-rank{color:var(--r-gold);}
-  .lb-row.rank-2 .lb-rank{color:#c8ccd6;}
-  .lb-row.rank-3 .lb-rank{color:#cd8a4d;}
-  .lb-avatar{width:28px; height:28px; border-radius:50%; background:var(--panel); border:1px solid var(--line); object-fit:cover; flex:none;}
-  .lb-name{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; font-weight:600; color:var(--text); text-decoration:none;}
-  a.lb-name:hover{color:var(--hazard);}
-  .lb-value{font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700; color:var(--good); flex:none;}
-  .lb-loading, .lb-error{color:var(--muted); font-size:12.5px; text-align:center; padding:20px;}
+  .aff-icon-btn{
+    width:38px; height:38px; flex:none; border-radius:8px; background:var(--panel-2); border:1px solid var(--line);
+    color:var(--muted); cursor:pointer; font-size:15px;
+  }
+  .aff-icon-btn:hover{color:var(--hazard); border-color:var(--hazard);}
+  .aff-icon-btn.copied{color:var(--good); border-color:var(--good);}
+  .aff-link-label{color:var(--muted); font-size:11.5px; text-align:center; margin:16px 0 4px;}
+  .aff-link-value{
+    color:var(--hazard); font-family:'JetBrains Mono',monospace; font-weight:700; font-size:14px;
+    text-align:center; word-break:break-all;
+  }
+
+  .aff-edit-box{margin-top:16px; padding-top:16px; border-top:1px solid var(--line); display:none;}
+  .aff-edit-box.show{display:block;}
+  .aff-edit-toggle{
+    display:block; margin:14px auto 0; background:none; border:none; color:var(--muted);
+    font-size:12px; text-decoration:underline; cursor:pointer;
+  }
+  .aff-edit-toggle:hover{color:var(--hazard);}
+
+  .aff-stats-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:14px;}
+  .aff-stat-card{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px 20px;
+    display:flex; align-items:center; gap:14px;
+  }
+  .aff-stat-icon{
+    width:44px; height:44px; flex:none; border-radius:10px; background:var(--panel-2);
+    display:flex; align-items:center; justify-content:center; font-size:20px;
+  }
+  .aff-stat-label{color:var(--muted); font-size:12px;}
+  .aff-stat-value{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:19px; color:var(--good); margin-top:2px;}
+
+  .aff-note{
+    background:var(--hazard-dim); border:1px solid rgba(255,149,0,.35); border-radius:10px;
+    padding:12px 14px; font-size:11.5px; color:var(--muted); line-height:1.5; margin-top:20px;
+  }
   footer{text-align:center;color:var(--muted);font-size:11px;margin-top:30px;letter-spacing:.5px;}
 </style>
 </head>
@@ -215,20 +255,75 @@
 <div class="wrap">
 
   <div class="page-title">
-    <h1>🏆 Topka <span>//</span> Casegold</h1>
-    <div class="sub">Ranking graczy — max 20 miejsc, aktualizowany na bieżąco.</div>
+    <div class="hero-icon">🤝</div>
+    <h1>Program <span>//</span> Partnerski</h1>
+    <div class="sub">Twórcy z własnym kodem promocyjnym — udostępnij go, wpłaty widzów zamieniają się w Twoje wirtualne złote.</div>
   </div>
 
-  <div class="lb-panel">
-    <div class="lb-tabs">
-      <button class="lb-tab active" data-lb-tab="balance">💰 Saldo</button>
-      <button class="lb-tab" data-lb-tab="upgrades">🎡 Upgrade'y</button>
-      <button class="lb-tab" data-lb-tab="cases">📦 Skrzynki</button>
-      <button class="lb-tab" data-lb-tab="niefart">😭 Niefart dnia</button>
-      <button class="lb-tab" data-lb-tab="active">🔥 Najaktywniejszy gracz</button>
+  <div class="aff-panel" id="loginGate" style="display:none;">
+    <div class="aff-login-note">
+      Zaloguj się przez Steam, aby ustawić własny kod partnerski.
+      <button type="button" id="affLoginBtn">Zaloguj przez Steam</button>
     </div>
-    <div class="lb-note" id="lbRewardNote"></div>
-    <div class="lb-list" id="leaderboardList"></div>
+  </div>
+
+  <div id="affContent" style="display:none;">
+
+    <div class="aff-panel" id="setupPanel" style="display:none;">
+      <div class="aff-setup-hint">Nie masz jeszcze kodu partnerskiego. Wybierz własny (3-20 znaków, tylko litery i cyfry) — będzie widoczny publicznie jako Twój kod promocyjny.</div>
+      <div class="aff-setup-row">
+        <input type="text" class="aff-input" id="setupInput" placeholder="TWOJNICK" maxlength="20" autocomplete="off">
+        <button type="button" class="aff-submit" id="setupBtn">Zostań partnerem</button>
+      </div>
+      <div class="aff-msg" id="setupMsg"></div>
+    </div>
+
+    <div class="aff-panel" id="codePanel" style="display:none;">
+      <div class="aff-code-label">Twój kod promocyjny</div>
+      <div class="aff-code-row">
+        <div class="aff-code-value" id="codeValue">—</div>
+        <button type="button" class="aff-icon-btn" id="copyCodeBtn" title="Kopiuj kod">📋</button>
+      </div>
+      <div class="aff-link-label">Twój link polecający</div>
+      <div class="aff-link-value" id="linkValue">—</div>
+
+      <button type="button" class="aff-edit-toggle" id="editToggleBtn">✎ Zmień kod</button>
+      <div class="aff-edit-box" id="editBox">
+        <div class="aff-setup-row">
+          <input type="text" class="aff-input" id="editInput" placeholder="NOWYKOD" maxlength="20" autocomplete="off">
+          <button type="button" class="aff-submit" id="editSubmitBtn">Zapisz</button>
+        </div>
+        <div class="aff-msg" id="editMsg"></div>
+      </div>
+    </div>
+
+    <div class="aff-stats-grid" id="statsGrid" style="display:none;">
+      <div class="aff-stat-card">
+        <div class="aff-stat-icon">👥</div>
+        <div>
+          <div class="aff-stat-label">Wykorzystania kodu</div>
+          <div class="aff-stat-value" id="statTimesUsed">0</div>
+        </div>
+      </div>
+      <div class="aff-stat-card">
+        <div class="aff-stat-icon">💳</div>
+        <div>
+          <div class="aff-stat-label">Poleconych wpłat</div>
+          <div class="aff-stat-value" id="statDeposited">0,00 zł</div>
+        </div>
+      </div>
+      <div class="aff-stat-card">
+        <div class="aff-stat-icon">🪙</div>
+        <div>
+          <div class="aff-stat-label">Twoje zarobki</div>
+          <div class="aff-stat-value" id="statEarned">0,00 zł</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="aff-note">
+      Za każdą złotówkę "wpłaconą" z Twoim kodem w panelu doładowania dostajesz <strong>1000 wirtualnych złotych</strong> na saldo. Panel doładowania nadal nie obsługuje prawdziwych płatności — powyższe statystyki są prawdziwe i rosną z każdym kliknięciem "Kup" z Twoim kodem, ale same wpłaty są na razie symulowane, nie realne.
+    </div>
   </div>
 
   <footer>Symulacja edukacyjna / rozrywkowa — fikcyjna waluta, brak realnych transakcji.</footer>
@@ -255,9 +350,6 @@ function renderBalance(){
 renderBalance();
 
 /* ---- shared top-nav widgets: settings dropdown + daily bonus (24h cooldown) ---- */
-document.querySelectorAll("[data-soon]").forEach(el => {
-  el.addEventListener("click", () => {});
-});
 const settingsBtn = document.getElementById("settingsBtn");
 const settingsMenu = document.getElementById("settingsMenu");
 settingsBtn.onclick = (e) => { e.stopPropagation(); settingsMenu.classList.toggle("open"); };
@@ -289,101 +381,92 @@ document.getElementById("dailyBonusBtn").onclick = () => {
 setInterval(renderDailyBonusBtn, 1000);
 renderDailyBonusBtn();
 
-/* ---------------- leaderboard ("Topka") ---------------- */
-const LB_MAX_ROWS = 20;
-const LB_TABS = {
-  balance: { key: "balance", fmtValue: (v) => fmt(v) },
-  upgrades: { key: "upgrades", fmtValue: (v) => String(v) },
-  cases: { key: "cases", fmtValue: (v) => String(v) },
-  niefart: { key: "niefart", fmtValue: (v) => `${v} przegr.` },
-  active: { key: "active", fmtValue: (v) => `${v} bitew` },
+/* ---------------- Program Partnerski ---------------- */
+const AFF_ERRORS = {
+  bad_code_format: "Kod musi mieć 3-20 znaków: tylko litery i cyfry.",
+  code_taken: "Ten kod jest już zajęty przez innego gracza.",
+  not_logged_in: "Zaloguj się, aby ustawić kod.",
 };
-// Ile górnych miejsc danej zakładki faktycznie dostaje nagrodę (podświetlane
-// w topce jako wyróżnione) - patrz check_niefart_payout()/
-// check_active_player_payout() po stronie serwera.
-const LB_REWARDED_TOP = { niefart: 10, active: 1 };
-const LB_REWARD_NOTES = {
-  niefart: 'Najwięcej przegranych bitew Case Battle <strong>dzisiaj</strong>. Tuż po północy górna <strong>10</strong> z tych <strong>20</strong> miejsc dostaje automatycznie <strong>5000 zł</strong> do salda za dzień, który się właśnie skończył.',
-  active: 'Najwięcej rozegranych bitew Case Battle <strong>dzisiaj</strong> (niezależnie od wyniku). Tuż po północy <strong>tylko pierwsze</strong> miejsce z tych <strong>20</strong> dostaje automatycznie <strong>2000 zł</strong> do salda za dzień, który się właśnie skończył.',
-};
-const LB_REWARD_TITLES = {
-  niefart: "Dostanie 5000 zł po północy za dzisiejsze przegrane bitwy",
-  active: "Dostanie 2000 zł po północy za dzisiejszą liczbę rozegranych bitew",
-};
-const lbRewardNote = document.getElementById("lbRewardNote");
-const leaderboardList = document.getElementById("leaderboardList");
-let leaderboardData = null;
-let leaderboardTab = "balance";
 
-document.querySelectorAll(".lb-tab").forEach(tab => {
-  tab.onclick = () => {
-    leaderboardTab = tab.dataset.lbTab;
-    document.querySelectorAll(".lb-tab").forEach(t => t.classList.toggle("active", t === tab));
-    const note = LB_REWARD_NOTES[leaderboardTab];
-    lbRewardNote.innerHTML = note || "";
-    lbRewardNote.classList.toggle("show", !!note);
-    renderLeaderboard();
-  };
+function renderAffiliateCode(info){
+  document.getElementById("codeValue").textContent = info.code;
+  document.getElementById("linkValue").textContent = `casegold.pl/r/${info.code}`;
+  document.getElementById("statTimesUsed").textContent = String(info.timesUsed);
+  document.getElementById("statDeposited").textContent = fmt(info.totalDepositedPln);
+  document.getElementById("statEarned").textContent = fmt(info.totalEarnedVirtual);
+}
+
+function renderAffiliatePage(){
+  const loggedIn = !!(window.__STEAM_AUTH__ && window.__STEAM_AUTH__.loggedIn);
+  document.getElementById("loginGate").style.display = loggedIn ? "none" : "block";
+  document.getElementById("affContent").style.display = loggedIn ? "block" : "none";
+  if(!loggedIn) return;
+
+  const info = window.SteamAuth.readAffiliateInfo();
+  const hasCode = !!info.code;
+  document.getElementById("setupPanel").style.display = hasCode ? "none" : "block";
+  document.getElementById("codePanel").style.display = hasCode ? "block" : "none";
+  document.getElementById("statsGrid").style.display = hasCode ? "grid" : "none";
+  if(hasCode) renderAffiliateCode(info);
+}
+
+document.getElementById("affLoginBtn").onclick = () => { window.SteamAuth.requireLogin(); };
+
+async function submitCode(inputEl, msgEl, btnEl){
+  const raw = inputEl.value.trim();
+  if(!raw){
+    msgEl.textContent = AFF_ERRORS.bad_code_format;
+    msgEl.className = "aff-msg show err";
+    return;
+  }
+  const prevLabel = btnEl.textContent;
+  btnEl.disabled = true;
+  btnEl.textContent = "Zapisywanie...";
+  try{
+    const res = await window.SteamAuth.setAffiliateCode(raw);
+    if(!res.ok){
+      msgEl.textContent = AFF_ERRORS[res.error] || "Wystąpił błąd. Spróbuj ponownie.";
+      msgEl.className = "aff-msg show err";
+      return;
+    }
+    msgEl.textContent = `Kod ${res.code} ustawiony!`;
+    msgEl.className = "aff-msg show ok";
+    inputEl.value = "";
+    renderAffiliatePage();
+  } finally {
+    btnEl.disabled = false;
+    btnEl.textContent = prevLabel;
+  }
+}
+
+document.getElementById("setupBtn").onclick = () => {
+  submitCode(document.getElementById("setupInput"), document.getElementById("setupMsg"), document.getElementById("setupBtn"));
+};
+document.getElementById("setupInput").addEventListener("keydown", (e) => {
+  if(e.key === "Enter") document.getElementById("setupBtn").click();
 });
 
-async function loadLeaderboard(){
-  leaderboardList.innerHTML = `<div class="lb-loading">Ładowanie…</div>`;
-  try{
-    const res = await fetch("/api/leaderboard.php");
-    leaderboardData = await res.json();
-    renderLeaderboard();
-  }catch(e){
-    leaderboardList.innerHTML = `<div class="lb-error">Nie udało się wczytać topki.</div>`;
-  }
-}
+document.getElementById("editToggleBtn").onclick = () => {
+  document.getElementById("editBox").classList.toggle("show");
+};
+document.getElementById("editSubmitBtn").onclick = () => {
+  submitCode(document.getElementById("editInput"), document.getElementById("editMsg"), document.getElementById("editSubmitBtn"));
+};
+document.getElementById("editInput").addEventListener("keydown", (e) => {
+  if(e.key === "Enter") document.getElementById("editSubmitBtn").click();
+});
 
-function renderLeaderboard(){
-  if(!leaderboardData) return;
-  const rows = leaderboardData[leaderboardTab] || [];
-  const cfg = LB_TABS[leaderboardTab];
-  leaderboardList.innerHTML = "";
-  for(let i = 0; i < LB_MAX_ROWS; i++){
-    const entry = rows[i];
-    const rewardedTop = LB_REWARDED_TOP[leaderboardTab] || 0;
-    const row = document.createElement(entry ? "a" : "div");
-    row.className = "lb-row" + (entry ? "" : " empty") + (i < 3 && entry ? ` rank-${i+1}` : "") + (entry && i < rewardedTop ? " rewarded" : "");
-    if(entry && i < rewardedTop){
-      row.title = LB_REWARD_TITLES[leaderboardTab] || "";
-    }
-    if(entry){
-      row.href = `/profile.html?u=${encodeURIComponent(entry.slug || "")}`;
-    }
-    const rank = document.createElement("div");
-    rank.className = "lb-rank";
-    rank.textContent = `#${i+1}`;
-    row.appendChild(rank);
+document.getElementById("copyCodeBtn").onclick = () => {
+  const code = document.getElementById("codeValue").textContent;
+  navigator.clipboard.writeText(code).then(() => {
+    const btn = document.getElementById("copyCodeBtn");
+    btn.classList.add("copied");
+    btn.textContent = "✓";
+    setTimeout(() => { btn.classList.remove("copied"); btn.textContent = "📋"; }, 1500);
+  }).catch(() => {});
+};
 
-    const avatarSrc = entry ? entry.avatar : "";
-    if(avatarSrc){
-      const avatar = document.createElement("img");
-      avatar.className = "lb-avatar";
-      avatar.src = avatarSrc;
-      avatar.alt = "";
-      avatar.onerror = () => { avatar.replaceWith(Object.assign(document.createElement("div"), {className: "lb-avatar"})); };
-      row.appendChild(avatar);
-    } else {
-      row.appendChild(Object.assign(document.createElement("div"), {className: "lb-avatar"}));
-    }
-
-    const name = document.createElement("div");
-    name.className = "lb-name";
-    name.textContent = entry ? (entry.displayName || "Gracz") : "—";
-    row.appendChild(name);
-
-    const value = document.createElement("div");
-    value.className = "lb-value";
-    value.textContent = entry ? cfg.fmtValue(entry.value) : "—";
-    row.appendChild(value);
-
-    leaderboardList.appendChild(row);
-  }
-}
-loadLeaderboard();
+renderAffiliatePage();
 </script>
 </body>
 </html>
