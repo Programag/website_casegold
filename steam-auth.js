@@ -663,10 +663,10 @@
   // serwerze ani nie zmienia prawdziwego salda) ----
   const TOPUP_PACKAGES = [
     { amount: 5000, price: "4,99 zł" },
-    { amount: 12500, price: "9,99 zł" },
-    { amount: 30000, price: "24,99 zł", badge: "POPULARNE" },
-    { amount: 67000, price: "49,99 zł" },
-    { amount: 150000, price: "99,99 zł", badge: "NAJOPŁACALNIEJSZE", best: true },
+    { amount: 12000, price: "9,99 zł" },
+    { amount: 28000, price: "24,99 zł", badge: "POPULARNE" },
+    { amount: 64000, price: "49,99 zł" },
+    { amount: 140000, price: "99,99 zł", badge: "NAJOPŁACALNIEJSZE", best: true },
   ];
   const TOPUP_PROMO_BONUS = 0.35;
   const TOPUP_PROMO_CODES = ["CASEGOLD35", "ZLOTO35", "TWORCA35"];
