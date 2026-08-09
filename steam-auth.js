@@ -657,7 +657,10 @@
 
   // ---- Doładowanie salda (na razie WYŁĄCZNIE wygląd - żadnych prawdziwych
   // płatności ani backendu; przyciski pakietów pokazują komunikat "wkrótce
-  // dostępne" zamiast pozorować udany zakup) ----
+  // dostępne" zamiast pozorować udany zakup. Kod promocyjny DZIAŁA lokalnie
+  // (wizualnie doda +35% do wyświetlanej kwoty pakietu), ale to też tylko
+  // podgląd - lista kodów jest twarda w JS, nic nie zapisuje się na
+  // serwerze ani nie zmienia prawdziwego salda) ----
   const TOPUP_PACKAGES = [
     { amount: 5000, price: "4,99 zł" },
     { amount: 12500, price: "9,99 zł" },
@@ -665,6 +668,60 @@
     { amount: 67000, price: "49,99 zł" },
     { amount: 150000, price: "99,99 zł", badge: "NAJOPŁACALNIEJSZE", best: true },
   ];
+  const TOPUP_PROMO_BONUS = 0.35;
+  const TOPUP_PROMO_CODES = ["CASEGOLD35", "ZLOTO35", "TWORCA35"];
+  let topUpPromo = { active: false, code: "" };
+
+  function renderTopUpPackages(overlay) {
+    const grid = overlay.querySelector("#tuPackages");
+    grid.innerHTML = "";
+    TOPUP_PACKAGES.forEach((p) => {
+      const finalAmount = topUpPromo.active ? Math.round(p.amount * (1 + TOPUP_PROMO_BONUS)) : p.amount;
+      const card = document.createElement("div");
+      card.className = "tu-pkg" + (p.best ? " best" : "");
+      card.innerHTML = `
+        ${p.badge ? `<div class="tu-pkg-badge">${p.badge === "POPULARNE" ? "⚡" : "✨"} ${p.badge}</div>` : ""}
+        <div class="tu-pkg-amount">🪙 ${finalAmount.toLocaleString("pl-PL")} zł${topUpPromo.active ? `<span class="tu-pkg-bonus">+35%</span>` : ""}</div>
+        ${topUpPromo.active ? `<div class="tu-pkg-base">zamiast ${p.amount.toLocaleString("pl-PL")} zł</div>` : ""}
+        <button type="button" class="tu-pkg-buy">${p.price}</button>
+      `;
+      card.querySelector(".tu-pkg-buy").onclick = () => {
+        alert("Płatności będą dostępne wkrótce — na razie to tylko podgląd panelu doładowania.");
+      };
+      grid.appendChild(card);
+    });
+  }
+
+  function applyTopUpPromo(overlay, rawCode) {
+    const code = rawCode.trim().toUpperCase();
+    const errorEl = overlay.querySelector("#tuPromoError");
+    if (!code) {
+      errorEl.textContent = "Wpisz kod promocyjny.";
+      errorEl.classList.add("show");
+      return;
+    }
+    if (!TOPUP_PROMO_CODES.includes(code)) {
+      errorEl.textContent = "Nieprawidłowy kod promocyjny.";
+      errorEl.classList.add("show");
+      return;
+    }
+    errorEl.classList.remove("show");
+    topUpPromo = { active: true, code };
+    overlay.querySelector("#tuPromoInputRow").classList.add("hidden");
+    overlay.querySelector("#tuPromoSuccess").classList.add("show");
+    overlay.querySelector("#tuPromoActiveCode").textContent = code;
+    renderTopUpPackages(overlay);
+  }
+
+  function resetTopUpPromo(overlay) {
+    topUpPromo = { active: false, code: "" };
+    overlay.querySelector("#tuPromoInputRow").classList.remove("hidden");
+    overlay.querySelector("#tuPromoSuccess").classList.remove("show");
+    overlay.querySelector("#tuPromoInput").value = "";
+    overlay.querySelector("#tuPromoError").classList.remove("show");
+    renderTopUpPackages(overlay);
+  }
+
   function buildTopUpModal() {
     injectStyle();
     let overlay = document.getElementById("topUpOverlay");
@@ -686,28 +743,26 @@
         <div class="tu-promo">
           <button type="button" class="tu-promo-toggle" id="tuPromoToggle">🎁 Masz kod promocyjny? <span class="tu-promo-chevron">⌄</span></button>
           <div class="tu-promo-body" id="tuPromoBody">
-            <input type="text" class="tu-promo-input" id="tuPromoInput" placeholder="Wpisz kod promocyjny">
-            <button type="button" class="tu-promo-apply" id="tuPromoApply">Zastosuj</button>
+            <div class="tu-promo-input-row" id="tuPromoInputRow">
+              <input type="text" class="tu-promo-input" id="tuPromoInput" placeholder="Wpisz kod promocyjny twórcy">
+              <button type="button" class="tu-promo-apply" id="tuPromoApply">Zastosuj</button>
+            </div>
+            <div class="tu-promo-error" id="tuPromoError"></div>
+            <div class="tu-promo-success" id="tuPromoSuccess">
+              <div class="tu-promo-success-icon">🎁</div>
+              <div class="tu-promo-success-text">
+                <div class="tu-promo-success-title">Kod aktywowany <span class="tu-promo-success-bonus">+35%</span></div>
+                <div class="tu-promo-success-code">Twój kod: <strong id="tuPromoActiveCode"></strong></div>
+              </div>
+              <button type="button" class="tu-promo-edit" id="tuPromoEdit" title="Zmień kod" aria-label="Zmień kod">✎</button>
+            </div>
           </div>
         </div>
       </div>
     `;
     document.body.appendChild(overlay);
 
-    const grid = overlay.querySelector("#tuPackages");
-    TOPUP_PACKAGES.forEach((p) => {
-      const card = document.createElement("div");
-      card.className = "tu-pkg" + (p.best ? " best" : "");
-      card.innerHTML = `
-        ${p.badge ? `<div class="tu-pkg-badge">${p.badge === "POPULARNE" ? "⚡" : "✨"} ${p.badge}</div>` : ""}
-        <div class="tu-pkg-amount">🪙 ${p.amount.toLocaleString("pl-PL")} zł</div>
-        <button type="button" class="tu-pkg-buy">${p.price}</button>
-      `;
-      card.querySelector(".tu-pkg-buy").onclick = () => {
-        alert("Płatności będą dostępne wkrótce — na razie to tylko podgląd panelu doładowania.");
-      };
-      grid.appendChild(card);
-    });
+    renderTopUpPackages(overlay);
 
     const hide = () => overlay.classList.remove("show");
     overlay.addEventListener("click", (e) => { if (e.target === overlay) hide(); });
@@ -717,8 +772,12 @@
       overlay.querySelector(".tu-promo").classList.toggle("open");
     };
     document.getElementById("tuPromoApply").onclick = () => {
-      alert("Kody promocyjne będą dostępne wkrótce.");
+      applyTopUpPromo(overlay, overlay.querySelector("#tuPromoInput").value);
     };
+    document.getElementById("tuPromoInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") applyTopUpPromo(overlay, e.target.value);
+    });
+    document.getElementById("tuPromoEdit").onclick = () => resetTopUpPromo(overlay);
     return overlay;
   }
   function openTopUpModal() {
@@ -1220,8 +1279,13 @@
       .tu-pkg.best .tu-pkg-badge{background:rgba(61,220,132,.12); color:var(--good,#3ddc84);}
       .tu-pkg-amount{
         font-family:'JetBrains Mono',monospace; font-weight:700; font-size:15.5px;
-        color:var(--text,#e9ecf3); margin-bottom:12px;
+        color:var(--text,#e9ecf3); margin-bottom:4px;
       }
+      .tu-pkg-bonus{
+        display:inline-block; margin-left:5px; font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700;
+        color:var(--good,#3ddc84); background:rgba(61,220,132,.12); padding:2px 6px; border-radius:10px; vertical-align:middle;
+      }
+      .tu-pkg-base{font-size:10.5px; color:var(--muted,#7d879b); text-decoration:line-through; margin-bottom:10px;}
       .tu-pkg-buy{
         width:100%; font-family:'Inter',sans-serif; font-weight:600; font-size:13px;
         background:var(--panel,#141821); border:1px solid var(--line,#262c3a); color:var(--text,#e9ecf3);
@@ -1245,10 +1309,12 @@
       .tu-promo-chevron{color:var(--muted,#7d879b); transition:transform .15s ease;}
       .tu-promo.open .tu-promo-chevron{transform:rotate(180deg);}
       .tu-promo-body{
-        display:flex; gap:8px; padding:0 14px; max-height:0; opacity:0; overflow:hidden;
+        display:flex; flex-direction:column; gap:8px; padding:0 14px; max-height:0; opacity:0; overflow:hidden;
         transition:max-height .18s ease, opacity .18s ease, padding .18s ease;
       }
-      .tu-promo.open .tu-promo-body{max-height:60px; opacity:1; padding:0 14px 14px;}
+      .tu-promo.open .tu-promo-body{max-height:160px; opacity:1; padding:0 14px 14px;}
+      .tu-promo-input-row{display:flex; gap:8px;}
+      .tu-promo-input-row.hidden{display:none;}
       .tu-promo-input{
         flex:1; background:var(--panel,#141821); border:1px solid var(--line,#262c3a); color:var(--text,#e9ecf3);
         border-radius:7px; padding:9px 12px; font-size:13px; font-family:'Inter',sans-serif;
@@ -1258,6 +1324,30 @@
         border-radius:7px; padding:9px 14px; font-size:12.5px; font-weight:600; cursor:pointer; white-space:nowrap;
       }
       .tu-promo-apply:hover{border-color:var(--hazard,#ff9500); color:var(--hazard,#ff9500);}
+      .tu-promo-error{
+        display:none; font-size:11.5px; font-weight:600; color:#ff5c5c;
+      }
+      .tu-promo-error.show{display:block;}
+      .tu-promo-success{
+        display:none; align-items:center; gap:10px;
+        background:rgba(61,220,132,.1); border:1px solid var(--good,#3ddc84); border-radius:8px;
+        padding:10px 12px;
+      }
+      .tu-promo-success.show{display:flex;}
+      .tu-promo-success-icon{font-size:20px; line-height:1;}
+      .tu-promo-success-text{flex:1; min-width:0;}
+      .tu-promo-success-title{font-size:12.5px; font-weight:700; color:var(--good,#3ddc84);}
+      .tu-promo-success-bonus{
+        font-family:'JetBrains Mono',monospace; font-size:10px; margin-left:4px;
+      }
+      .tu-promo-success-code{font-size:11px; color:var(--muted,#7d879b); margin-top:2px;}
+      .tu-promo-success-code strong{color:var(--text,#e9ecf3); font-family:'JetBrains Mono',monospace; font-weight:600;}
+      .tu-promo-edit{
+        width:26px; height:26px; border-radius:7px; flex-shrink:0;
+        background:var(--panel,#141821); border:1px solid var(--line,#262c3a); color:var(--muted,#7d879b);
+        cursor:pointer; font-size:12px;
+      }
+      .tu-promo-edit:hover{color:var(--good,#3ddc84); border-color:var(--good,#3ddc84);}
     `;
     document.head.appendChild(style);
   }
