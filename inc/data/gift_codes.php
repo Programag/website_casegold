@@ -18,7 +18,5 @@
    przestać działać). Każdy kod może zostać wykorzystany raz na konto
    (redeemedGiftCodes w stanie gracza). */
 return [
-    'DISCORD500' => ['type' => 'money', 'amount' => 500],
-    'DISCORD1000' => ['type' => 'money', 'amount' => 1000],
-    'CASEGOLDCASE' => ['type' => 'case', 'caseId' => 'case_gold', 'label' => 'Gold Case'],
+    'ULTRASYF' => ['type' => 'case', 'caseId' => 'case_ultra', 'label' => 'Ultra Case'],
 ];
