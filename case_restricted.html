@@ -6,6 +6,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SKRZYNKA // Symulator</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://cdn.g4skins.com">
+<link rel="preconnect" href="https://casesimulator.eu">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
   :root{
@@ -693,6 +695,26 @@ const CASE_NAME = "Iron Case";
 const CASE_IMAGE = getCaseImage(CASE_NAME);
 
 const CASE_PRICE = 9.60;
+
+// Podgrzewa cache przeglądarki obrazkami przedmiotów z TEJ skrzynki od razu
+// po wejściu na stronę, żeby przy pierwszym kliknięciu "Otwórz skrzynkę"
+// bęben (60+ obrazków w losowej kolejności z ITEMS) nie czekał na pobranie
+// dziesiątek plików naraz z zewnętrznego CDN - w praktyce to właśnie ten
+// moment wyglądał jak "zdjęcia się długo ładują". Nie dotyka DOM-u, więc
+// nie wpływa na wygląd strony, tylko na to, co już siedzi w cache.
+(function preloadItemImages(){
+  const seen = new Set();
+  ITEMS.forEach(it => {
+    const src = typeof getSkinImage === "function" ? getSkinImage(it) : "";
+    if(src && !seen.has(src)){
+      seen.add(src);
+      const img = new Image();
+      img.decoding = "async";
+      if("fetchPriority" in img) img.fetchPriority = "low";
+      img.src = src;
+    }
+  });
+})();
 const JESTER_PRICE = computeJesterPrice(ITEMS, CASE_PRICE);
 let jesterMode = false;
 function currentCasePrice(){ return jesterMode ? JESTER_PRICE : CASE_PRICE; }
