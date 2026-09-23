@@ -373,6 +373,9 @@
     text-align:center; color:var(--muted); font-size:11px; margin-top:34px;
     letter-spacing:.5px;
   }
+  .footer-legal{margin-top:10px;}
+  .footer-legal a{color:var(--muted); text-decoration:underline; margin:0 8px; font-size:11px;}
+  .footer-legal a:hover{color:var(--hazard);}
 
   .toast{
     position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px);
@@ -483,7 +486,7 @@
     <div class="lb-list" id="leaderboardList"></div>
   </div>
 
-  <footer id="footerTxt">Symulacja edukacyjna / rozrywkowa — fikcyjna waluta, brak realnych transakcji.</footer>
+  <footer><span id="footerTxt">Symulacja edukacyjna / rozrywkowa — fikcyjna waluta, brak realnych transakcji.</span><div class="footer-legal"><a href="regulamin.html">Regulamin</a><a href="polityka-prywatnosci.html">Polityka prywatności</a></div></footer>
 </div>
 
 <div class="toast" id="toast"></div>

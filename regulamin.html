@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CASEGOLD // Regulamin</title>
+<link rel="icon" type="image/png" href="casegold_logo.PNG">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0d12; --panel:#141821; --panel-2:#1b202b; --line:#262c3a;
+    --text:#e9ecf3; --muted:#7d879b; --hazard:#ff9500;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:radial-gradient(1200px 500px at 50% -10%, #1a2030 0%, transparent 60%), var(--bg);
+    color:var(--text); font-family:'Inter',sans-serif; min-height:100vh;
+  }
+  .hazard-bar{
+    height:8px;
+    background:repeating-linear-gradient(135deg,var(--hazard) 0 14px,#111 14px 28px);
+    opacity:.9;
+  }
+  .topnav{
+    display:flex; align-items:center; gap:14px;
+    padding:14px 20px; border-bottom:1px solid var(--line);
+    background:rgba(11,13,18,.8); backdrop-filter:blur(10px);
+    position:sticky; top:0; z-index:50;
+  }
+  .brand{
+    display:flex; align-items:center; gap:8px; text-decoration:none; color:inherit;
+    font-family:'Oswald',sans-serif; font-weight:700; letter-spacing:1px; text-transform:uppercase; font-size:18px;
+  }
+  .brand-icon{width:32px; height:32px;}
+  .brand-icon img{width:100%; height:100%; object-fit:contain;}
+  .brand .accent{color:var(--hazard);}
+  .back-link{margin-left:auto; color:var(--muted); text-decoration:none; font-size:13px;}
+  .back-link:hover{color:var(--text);}
+  .page-body{padding:32px 16px 60px;}
+  .wrap{max-width:760px; margin:0 auto;}
+  .doc-panel{background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:32px 28px;}
+  .doc-title{font-family:'Oswald',sans-serif; font-size:24px; margin:0 0 4px;}
+  .doc-date{color:var(--muted); font-size:13px; margin:0 0 26px;}
+  h2{
+    font-family:'Oswald',sans-serif; font-size:16px; color:var(--hazard);
+    margin:28px 0 10px; padding-top:16px; border-top:1px solid var(--line);
+  }
+  h2:first-of-type{border-top:none; padding-top:0; margin-top:0;}
+  ol{margin:0; padding-left:22px;}
+  ol li{margin-bottom:10px; line-height:1.6; color:var(--text); font-size:14.5px;}
+  ol li:last-child{margin-bottom:0;}
+  a.inline-link{color:var(--hazard);}
+  footer{text-align:center; color:var(--muted); font-size:11px; margin-top:34px; letter-spacing:.5px;}
+  .footer-legal{margin-top:10px;}
+  .footer-legal a{color:var(--muted); text-decoration:underline; margin:0 8px; font-size:11px;}
+  .footer-legal a:hover{color:var(--hazard);}
+</style>
+</head>
+<body>
+
+<div class="hazard-bar"></div>
+<nav class="topnav">
+  <a class="brand" href="index.html"><span class="brand-icon"><img src="casegold_logo.PNG" alt="Casegold" onerror="this.outerHTML='📦';"></span>Case<span class="accent">gold</span></a>
+  <a class="back-link" href="index.html">← Wróć do strony głównej</a>
+</nav>
+
+<div class="page-body">
+<div class="wrap">
+  <div class="doc-panel">
+    <h1 class="doc-title">Zasady i Warunki Korzystania z Serwisu casegold.eu</h1>
+    <p class="doc-date">Data wejścia w życie: 2026 r.</p>
+
+    <h2>§ 1. Informacje Wstępne</h2>
+    <ol>
+      <li>Witryna casegold.eu funkcjonuje jako serwis rekreacyjny, który udostępnia symulator otwierania skrzynek z łupami (lootbox).</li>
+      <li>Oficjalnym kanałem komunikacji z obsługą serwisu jest adres e-mail: <a class="inline-link" href="mailto:casegold@gmail.com">casegold@gmail.com</a>.</li>
+    </ol>
+
+    <h2>§ 2. Specyfika i Natura Serwisu</h2>
+    <ol>
+      <li>Platforma służy wyłącznie celom rekreacyjno-rozrywkowym.</li>
+      <li>Przypisane do konta cyfrowe punkty (vPLN) oraz wygrane przedmioty są walutą fikcyjną. Nie reprezentują one żadnej gotówki i nie można ich zamienić na prawdziwe pieniądze.</li>
+      <li>W świetle obowiązujących przepisów prawnych działalność serwisu nie jest kwalifikowana jako gra hazardowa.</li>
+    </ol>
+
+    <h2>§ 3. Zasady Dotyczące Kont Graczy</h2>
+    <ol>
+      <li>Autoryzacja i dostęp do serwisu realizowane są poprzez zewnętrzne interfejsy konta Steam (za pośrednictwem Valve API).</li>
+      <li>Gracz odpowiada we własnym zakresie za zabezpieczenie swoich danych do profilu Steam.</li>
+      <li>W przypadku złamania postanowień niniejszego dokumentu, zarządca platformy ma prawo nałożyć blokadę na konto użytkownika.</li>
+      <li>Świadome i nieuprawnione wykorzystywanie usterek technicznych (tzw. exploitów) do uzyskania korzyści grozi dożywotnim banem. W takiej sytuacji administrator zastrzega sobie również prawo do cofnięcia stanu salda oraz ekwipunku do momentu sprzed wystąpienia błędu (rollback).</li>
+    </ol>
+
+    <h2>§ 4. Transakcje i Płatności</h2>
+    <ol>
+      <li>Użytkownicy mają możliwość nieobowiązkowego doładowania wirtualnego salda lub nabycia statusu premium.</li>
+      <li>Transakcje finansowe przetwarzane są przez zewnętrzny system płatności Przelewy24.</li>
+      <li>Wszystkie odpłatne funkcje stanowią cyfrowe usługi realizowane niezwłocznie po zaksięgowaniu wpłaty.</li>
+    </ol>
+
+    <h2>§ 5. Polityka odstąpienia od umowy i zwrotów</h2>
+    <ol>
+      <li>Ze względu na natychmiastowe spełnienie świadczenia (dostarczenie treści cyfrowej), kupującemu nie przysługuje prawo do odstąpienia od umowy transakcyjnej.</li>
+      <li>Ewentualne wnioski o zwrot środków mogą być uwzględnione wyjątkowo, w ramach indywidualnego rozpatrzenia sprawy przez administratora.</li>
+    </ol>
+
+    <h2>§ 6. Wyłączenie Odpowiedzialności</h2>
+    <ol>
+      <li>Usługodawca nie daje gwarancji co do wygranych ani stopnia losowości przy otwieraniu skrzynek.</li>
+      <li>W funkcjonowaniu platformy mogą sporadycznie występować awarie lub błędy systemowe.</li>
+      <li>Zarządca serwisu pozostawia sobie prawo do wprowadzania modyfikacji w działaniu i funkcjonalnościach witryny.</li>
+    </ol>
+
+    <h2>§ 7. Przepisy Końcowe</h2>
+    <ol>
+      <li>Treść niniejszych zasad może ulec zmianie w przyszłości.</li>
+      <li>Dalsze użytkowanie witryny jest równe z bezwzględną akceptacją aktualnych zapisów regulaminu.</li>
+    </ol>
+  </div>
+
+  <footer>
+    Symulacja edukacyjna / rozrywkowa — fikcyjna waluta, brak realnych transakcji.
+    <div class="footer-legal">
+      <a href="regulamin.html">Regulamin</a>
+      <a href="polityka-prywatnosci.html">Polityka prywatności</a>
+    </div>
+  </footer>
+</div>
+</div>
+
+</body>
+</html>
