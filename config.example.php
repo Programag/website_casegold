@@ -19,4 +19,21 @@ return [
         'user' => 'your_db_user',
         'pass' => 'your_db_password',
     ],
+
+    // Dane sprzedawcy z panelu Przelewy24 (panel.przelewy24.pl ->
+    // "Twoje sklepy" -> ustawienia sklepu -> zakładka "Dane API"). merchant_id
+    // i pos_id są zwykle takie same. crc to osobny klucz z tej samej
+    // zakładki (do podpisywania żądań), api_key to REST API key (Basic Auth
+    // do wywołań register/verify) - NIE to samo, co crc, mimo że oba
+    // wyglądają jak losowe ciągi znaków. Ustaw sandbox=true, dopóki nie
+    // masz zweryfikowanego konta produkcyjnego - sandbox.przelewy24.pl ma
+    // WŁASNE, testowe dane sprzedawcy (inne niż produkcyjne), które
+    // dostajesz po rejestracji konta testowego na przelewy24.pl.
+    'p24' => [
+        'merchant_id' => 0,
+        'pos_id' => 0,
+        'crc' => 'your_p24_crc_key',
+        'api_key' => 'your_p24_rest_api_key',
+        'sandbox' => true,
+    ],
 ];

@@ -519,8 +519,8 @@
   }
   // Sprawdza (bez zapisywania niczego), czy wpisany kod partnerski istnieje
   // - używane w panelu doładowania, żeby od razu potwierdzić kod przed
-  // kliknięciem "Kup" (gdzie faktycznie nalicza się prowizja, patrz
-  // recordAffiliateDeposit() niżej).
+  // kliknięciem "Kup" (prowizja nalicza się dopiero po prawdziwej,
+  // potwierdzonej przez Przelewy24 wpłacie - patrz api/topup-webhook.php).
   async function lookupAffiliateCode(rawCode) {
     const code = typeof rawCode === "string" ? rawCode.trim() : "";
     if (!code) return { ok: false, error: "bad_request" };
@@ -540,27 +540,27 @@
       return { ok: false, error: "network_error" };
     }
   }
-  // Nalicza twórcy kodu 1000 wirt. zł za każdą (na razie fikcyjną - panel
-  // doładowania dalej nie ma prawdziwych płatności) "wpłaconą" złotówkę.
-  // NIE zmienia salda/stanu OSOBY WPISUJĄCEJ kod - to wyłącznie zapis
-  // statystyk dla właściciela kodu (api/record-affiliate-deposit.php).
-  async function recordAffiliateDeposit(code, packageIndex) {
-    if (!code || !me.loggedIn) return { ok: false };
+  // Rejestruje prawdziwą transakcję Przelewy24 dla wybranego pakietu i
+  // zwraca URL, na który trzeba przekierować przeglądarkę (hostowany
+  // checkout P24 - BLIK/karta/przelew). Prowizja partnerska (jeśli podano
+  // kod) nalicza się dopiero po stronie serwera, PO potwierdzeniu wpłaty
+  // przez webhook (api/topup-webhook.php), nigdy tutaj.
+  async function createTopUpOrder(packageIndex, affiliateCode) {
+    if (!me.loggedIn) return { ok: false, error: "not_logged_in" };
     try {
-      const res = await fetch("/api/record-affiliate-deposit.php", {
+      const res = await fetch("/api/topup-create.php", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
-        keepalive: true,
-        body: JSON.stringify({ code, packageIndex }),
+        body: JSON.stringify({ packageIndex, affiliateCode: affiliateCode || undefined }),
       });
       const body = await res.json().catch(() => null);
       if (!res.ok || !body || !body.ok) {
         return { ok: false, error: (body && body.error) || "network_error" };
       }
-      return { ok: true };
+      return { ok: true, redirectUrl: body.redirectUrl };
     } catch (e) {
-      console.error("[cs2sim] record-affiliate-deposit - błąd sieci:", e);
+      console.error("[cs2sim] topup-create - błąd sieci:", e);
       return { ok: false, error: "network_error" };
     }
   }
@@ -859,12 +859,13 @@
     overlay.classList.add("show");
   }
 
-  // ---- Doładowanie salda (na razie WYŁĄCZNIE wygląd - żadnych prawdziwych
-  // płatności ani backendu; przyciski pakietów pokazują komunikat "wkrótce
-  // dostępne" zamiast pozorować udany zakup. Kod promocyjny DZIAŁA lokalnie
-  // (wizualnie doda +35% do wyświetlanej kwoty pakietu), ale to też tylko
-  // podgląd - lista kodów jest twarda w JS, nic nie zapisuje się na
-  // serwerze ani nie zmienia prawdziwego salda) ----
+  // ---- Doładowanie salda (prawdziwe płatności przez Przelewy24 - kliknięcie
+  // "Kup" rejestruje transakcję na serwerze (api/topup-create.php) i
+  // przekierowuje na hostowany checkout P24; saldo księguje WYŁĄCZNIE
+  // webhook po potwierdzonej wpłacie, patrz api/topup-webhook.php. Kod
+  // promocyjny "bonus" (TOPUP_PROMO_CODES) to osobna, czysto kosmetyczna
+  // wizualna zniżka - lista kodów jest twarda w JS i nie ma nic wspólnego
+  // z prawdziwymi kodami partnerskimi "affiliate" niżej) ----
   const TOPUP_PACKAGES = [
     { amount: 5000, price: "4,99 zł" },
     { amount: 12000, price: "9,99 zł" },
@@ -879,10 +880,10 @@
   //                    do serwera.
   // type "affiliate" - prawdziwy kod partnera (affiliate.html), sprawdzony
   //                    serwerowo (lookupAffiliateCode). Kliknięcie "Kup"
-  //                    zgłasza serwerowi (recordAffiliateDeposit) fikcyjną
-  //                    "wpłatę" tej kwoty - twórca dostaje 1000 wirt. zł za
-  //                    każdą taką złotówkę. Kupującemu NIC nie jest
-  //                    doliczane - panel dalej nie ma prawdziwych płatności.
+  //                    wysyła ten kod razem z zamówieniem (topup-create.php);
+  //                    twórca dostaje 1000 wirt. zł za każdą PRAWDZIWIE
+  //                    wpłaconą złotówkę, ale dopiero po potwierdzeniu
+  //                    płatności przez webhook, nie w tym miejscu.
   let topUpPromo = { active: false, type: null, code: "", ownerName: "" };
 
   function renderTopUpPackages(overlay) {
@@ -899,15 +900,20 @@
         ${bonusActive ? `<div class="tu-pkg-base">zamiast ${p.amount.toLocaleString("pl-PL")} zł</div>` : ""}
         <button type="button" class="tu-pkg-buy">${p.price}</button>
       `;
-      card.querySelector(".tu-pkg-buy").onclick = async () => {
-        if (topUpPromo.active && topUpPromo.type === "affiliate") {
-          const result = await window.SteamAuth.recordAffiliateDeposit(topUpPromo.code, index);
-          if (result.ok) {
-            alert(`Dzięki za wsparcie ${topUpPromo.ownerName}! Płatności realne będą dostępne wkrótce — na razie to tylko podgląd panelu doładowania.`);
-            return;
-          }
+      const buyBtn = card.querySelector(".tu-pkg-buy");
+      buyBtn.onclick = async () => {
+        buyBtn.disabled = true;
+        const originalLabel = buyBtn.textContent;
+        buyBtn.textContent = "Łączenie z Przelewy24...";
+        const affiliateCode = topUpPromo.active && topUpPromo.type === "affiliate" ? topUpPromo.code : null;
+        const result = await window.SteamAuth.createTopUpOrder(index, affiliateCode);
+        if (result.ok && result.redirectUrl) {
+          window.location.href = result.redirectUrl;
+          return;
         }
-        alert("Płatności będą dostępne wkrótce — na razie to tylko podgląd panelu doładowania.");
+        buyBtn.disabled = false;
+        buyBtn.textContent = originalLabel;
+        alert("Nie udało się rozpocząć płatności. Spróbuj ponownie za chwilę.");
       };
       grid.appendChild(card);
     });
@@ -1810,7 +1816,7 @@
     readAffiliateInfo,
     setAffiliateCode,
     lookupAffiliateCode,
-    recordAffiliateDeposit,
+    createTopUpOrder,
     withdrawAffiliateEarnings,
     claimLevelReward,
     redeemGiftCode,

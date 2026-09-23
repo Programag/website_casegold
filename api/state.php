@@ -131,8 +131,9 @@ try {
         // PRZED zapisem; gdyby zwykły PUT /api/state pozwalał nadpisać
         // affiliateCode dowolną wartością, dałoby się przez to trywialnie
         // ominąć tę kontrolę (np. podszyć się pod cudzy kod). affiliateStats
-        // to z kolei czysto serwerowo liczone zarobki (api/record-affiliate-deposit.php)
-        // - klient nie ma tu żadnego legalnego powodu, żeby je nadpisywać.
+        // to z kolei czysto serwerowo liczone zarobki (api/topup-webhook.php,
+        // inc/affiliate.php) - klient nie ma tu żadnego legalnego powodu,
+        // żeby je nadpisywać.
         'affiliateCode' => $state['affiliateCode'] ?? null,
         'affiliateStats' => is_array($state['affiliateStats'] ?? null)
             ? $state['affiliateStats']

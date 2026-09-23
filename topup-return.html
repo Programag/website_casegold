@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<script src="steam-auth.js?v=15"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CASEGOLD // Doładowanie</title>
+<link rel="icon" type="image/png" href="casegold_logo.PNG">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0d12; --panel:#141821; --panel-2:#1b202b; --line:#262c3a;
+    --text:#e9ecf3; --muted:#7d879b; --hazard:#ff9500;
+    --good:#3ddc84; --bad:#ff5a5a;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:radial-gradient(1200px 500px at 50% -10%, #1a2030 0%, transparent 60%), var(--bg);
+    color:var(--text); font-family:'Inter',sans-serif;
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  .card{
+    max-width:420px; width:100%; background:var(--panel); border:1px solid var(--line);
+    border-radius:16px; padding:32px 28px; text-align:center;
+  }
+  .brand{
+    display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:20px;
+    font-family:'Oswald',sans-serif; font-weight:700; letter-spacing:1px; text-transform:uppercase; font-size:18px;
+  }
+  .brand-icon{width:32px; height:32px;}
+  .brand-icon img{width:100%; height:100%; object-fit:contain;}
+  .brand .accent{color:var(--hazard);}
+  .spinner{
+    width:40px; height:40px; margin:0 auto 18px; border-radius:50%;
+    border:3px solid var(--line); border-top-color:var(--hazard);
+    animation:spin 0.8s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .status-icon{font-size:40px; margin-bottom:10px;}
+  h1{font-family:'Oswald',sans-serif; font-size:20px; margin:0 0 10px;}
+  p{color:var(--muted); font-size:14px; line-height:1.5; margin:0 0 22px;}
+  .btn{
+    display:inline-block; padding:12px 24px; border-radius:10px; text-decoration:none;
+    font-weight:600; font-size:14px; cursor:pointer; border:none;
+  }
+  .btn-primary{background:var(--hazard); color:#1a1200;}
+  .btn-secondary{background:var(--panel-2); color:var(--text); border:1px solid var(--line);}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand"><span class="brand-icon"><img src="casegold_logo.PNG" alt="Casegold" onerror="this.outerHTML='📦';"></span>Case<span class="accent">gold</span></div>
+    <div id="tuState">
+      <div class="spinner"></div>
+      <h1>Sprawdzamy płatność...</h1>
+      <p>To może potrwać kilka-kilkanaście sekund - poczekaj, prosimy nie zamykaj tej strony.</p>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const params = new URLSearchParams(location.search);
+  const sessionId = params.get('session');
+  const stateEl = document.getElementById('tuState');
+
+  function render(icon, color, title, text, showRetry, showHome) {
+    stateEl.innerHTML =
+      '<div class="status-icon" style="color:' + color + '">' + icon + '</div>' +
+      '<h1>' + title + '</h1>' +
+      '<p>' + text + '</p>' +
+      (showRetry ? '<button class="btn btn-secondary" onclick="location.reload()" style="margin-right:8px;">Sprawdź ponownie</button>' : '') +
+      (showHome ? '<a class="btn btn-primary" href="index.html">Wróć do strony</a>' : '');
+  }
+
+  if (!sessionId) {
+    render('⚠️', 'var(--bad)', 'Brak identyfikatora zamówienia', 'Nie znaleźliśmy informacji o płatności w linku powrotnym.', false, true);
+    return;
+  }
+
+  let attempts = 0;
+  async function poll() {
+    attempts++;
+    try {
+      const res = await fetch('api/topup-status.php?session=' + encodeURIComponent(sessionId), { credentials: 'same-origin' });
+      if (res.status === 401) {
+        render('⚠️', 'var(--bad)', 'Musisz być zalogowany', 'Zaloguj się przez Steam, żeby zobaczyć status swojej płatności.', false, true);
+        return;
+      }
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        render('⚠️', 'var(--bad)', 'Nie znaleziono zamówienia', 'Spróbuj sprawdzić swoje saldo na stronie głównej - jeśli płatność się powiodła, powinno się już zaktualizować.', false, true);
+        return;
+      }
+      if (data.status === 'paid') {
+        render('✅', 'var(--good)', 'Płatność zaksięgowana!', 'Doładowaliśmy Twoje konto o ' + data.virtualAmount.toLocaleString('pl-PL') + ' zł wirtualnych. Miłej gry!', false, true);
+        return;
+      }
+      if (data.status === 'failed') {
+        render('❌', 'var(--bad)', 'Płatność nieudana', 'Transakcja nie została potwierdzona przez Przelewy24. Jeśli pieniądze zostały pobrane, a saldo się nie zmieni, skontaktuj się z nami.', false, true);
+        return;
+      }
+      // wciąż "pending" - odpytuj dalej (P24 czasem wysyła webhook z opóźnieniem)
+      if (attempts >= 20) {
+        render('⏳', 'var(--hazard)', 'To trwa dłużej niż zwykle', 'Płatność jest wciąż przetwarzana. Saldo zaktualizuje się automatycznie, gdy tylko otrzymamy potwierdzenie.', true, true);
+        return;
+      }
+      setTimeout(poll, 3000);
+    } catch (e) {
+      render('⚠️', 'var(--bad)', 'Błąd połączenia', 'Nie udało się sprawdzić statusu płatności.', true, true);
+    }
+  }
+  poll();
+})();
+</script>
+</body>
+</html>

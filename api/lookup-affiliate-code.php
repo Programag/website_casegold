@@ -6,8 +6,8 @@ header('Content-Type: application/json');
 
 // Lekki, tylko-do-odczytu endpoint - używany w panelu doładowania
 // (steam-auth.js), żeby od razu potwierdzić graczowi, że wpisany kod
-// partnera istnieje, ZANIM kliknie "Kup" (gdzie faktycznie nalicza się
-// prowizja - patrz api/record-affiliate-deposit.php). Nic tu nie zapisuje.
+// partnera istnieje, ZANIM kliknie "Kup" (prowizja nalicza się dopiero po
+// prawdziwej wpłacie - patrz api/topup-webhook.php). Nic tu nie zapisuje.
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(['error' => 'method_not_allowed']);

@@ -46,3 +46,28 @@ CREATE TABLE IF NOT EXISTS battle_lobbies (
   INDEX idx_status (status),
   INDEX idx_updated_at (updated_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Zamówienia doładowania przez Przelewy24 (api/topup-create.php,
+-- api/topup-webhook.php, api/topup-status.php). session_id to nasz
+-- identyfikator wysyłany do P24 jako sessionId przy rejestracji transakcji -
+-- MUSI być unikalny w obrębie całego konta sprzedawcy P24, nie tylko tej
+-- tabeli. Wiersz zaczyna życie jako "pending" w chwili kliknięcia "Kup"
+-- (ZANIM klient w ogóle trafi na stronę płatności) i staje się "paid"
+-- dopiero po potwierdzeniu przez p24_verify_transaction() w webhooku -
+-- nigdy przy samym powiadomieniu, bo ono nie jest uwierzytelnione samo w
+-- sobie (patrz komentarz w inc/przelewy24.php).
+CREATE TABLE IF NOT EXISTS topup_orders (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  session_id VARCHAR(64) NOT NULL UNIQUE,
+  steamid VARCHAR(32) NOT NULL,
+  package_index TINYINT UNSIGNED NOT NULL,
+  price_grosze INT UNSIGNED NOT NULL,
+  virtual_amount INT UNSIGNED NOT NULL,
+  affiliate_code VARCHAR(20) NULL,
+  status ENUM('pending','paid','failed') NOT NULL DEFAULT 'pending',
+  p24_order_id VARCHAR(64) NULL,
+  created_at BIGINT NOT NULL,
+  paid_at BIGINT NULL,
+  INDEX idx_steamid (steamid)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+

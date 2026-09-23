@@ -8,8 +8,8 @@ header('Content-Type: application/json');
 // Przelewa jeszcze nie wypłacone zarobki partnerskie (affiliateStats.totalEarnedVirtual
 // minus już wypłacone totalWithdrawn) na WŁASNE saldo gracza - operuje na
 // koncie WOŁAJĄCEGO (nie na cudzym, w przeciwieństwie do
-// api/record-affiliate-deposit.php, które celowo blokuje wiersz WŁAŚCICIELA
-// kodu, bo to on dostaje prowizję).
+// inc/affiliate.php::credit_affiliate_for_deposit(), które celowo blokuje
+// wiersz WŁAŚCICIELA kodu, bo to on dostaje prowizję).
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(['error' => 'method_not_allowed']);
