@@ -866,6 +866,12 @@
   // promocyjny "bonus" (TOPUP_PROMO_CODES) to osobna, czysto kosmetyczna
   // wizualna zniżka - lista kodów jest twarda w JS i nie ma nic wspólnego
   // z prawdziwymi kodami partnerskimi "affiliate" niżej) ----
+  // Backend (api/topup-create.php + Przelewy24) jest gotowy, ale konto
+  // sprzedawcy jeszcze nie istnieje - dopóki ta flaga jest false, przyciski
+  // "Kup" są wyłączone (patrz renderTopUpPackages), żeby gracz nie trafiał
+  // na błąd płatności. Przełącz na true, gdy dane produkcyjne/sandbox P24
+  // trafią do config.php.
+  const TOPUP_PAYMENTS_ENABLED = false;
   const TOPUP_PACKAGES = [
     { amount: 5000, price: "4,99 zł" },
     { amount: 12000, price: "9,99 zł" },
@@ -898,23 +904,25 @@
         ${p.badge ? `<div class="tu-pkg-badge">${p.badge === "POPULARNE" ? "⚡" : "✨"} ${p.badge}</div>` : ""}
         <div class="tu-pkg-amount">🪙 ${finalAmount.toLocaleString("pl-PL")} zł${bonusActive ? `<span class="tu-pkg-bonus">+35%</span>` : ""}</div>
         ${bonusActive ? `<div class="tu-pkg-base">zamiast ${p.amount.toLocaleString("pl-PL")} zł</div>` : ""}
-        <button type="button" class="tu-pkg-buy">${p.price}</button>
+        <button type="button" class="tu-pkg-buy"${TOPUP_PAYMENTS_ENABLED ? "" : " disabled"}>${TOPUP_PAYMENTS_ENABLED ? p.price : "Wkrótce"}</button>
       `;
       const buyBtn = card.querySelector(".tu-pkg-buy");
-      buyBtn.onclick = async () => {
-        buyBtn.disabled = true;
-        const originalLabel = buyBtn.textContent;
-        buyBtn.textContent = "Łączenie z Przelewy24...";
-        const affiliateCode = topUpPromo.active && topUpPromo.type === "affiliate" ? topUpPromo.code : null;
-        const result = await window.SteamAuth.createTopUpOrder(index, affiliateCode);
-        if (result.ok && result.redirectUrl) {
-          window.location.href = result.redirectUrl;
-          return;
-        }
-        buyBtn.disabled = false;
-        buyBtn.textContent = originalLabel;
-        alert("Nie udało się rozpocząć płatności. Spróbuj ponownie za chwilę.");
-      };
+      if (TOPUP_PAYMENTS_ENABLED) {
+        buyBtn.onclick = async () => {
+          buyBtn.disabled = true;
+          const originalLabel = buyBtn.textContent;
+          buyBtn.textContent = "Łączenie z Przelewy24...";
+          const affiliateCode = topUpPromo.active && topUpPromo.type === "affiliate" ? topUpPromo.code : null;
+          const result = await window.SteamAuth.createTopUpOrder(index, affiliateCode);
+          if (result.ok && result.redirectUrl) {
+            window.location.href = result.redirectUrl;
+            return;
+          }
+          buyBtn.disabled = false;
+          buyBtn.textContent = originalLabel;
+          alert("Nie udało się rozpocząć płatności. Spróbuj ponownie za chwilę.");
+        };
+      }
       grid.appendChild(card);
     });
   }
@@ -1002,6 +1010,7 @@
           <h2>💳 Doładuj swoje konto</h2>
           <p>Wybierz pakiet i błyskawicznie zwiększ swoje saldo.</p>
         </div>
+        <div class="tu-soon-notice">⏳ Płatności online będą dostępne wkrótce. Zakup pakietów jest obecnie tymczasowo niedostępny.</div>
         <div class="tu-section-label">💰 Pakiety balansu</div>
         <div class="tu-packages" id="tuPackages"></div>
         <div class="tu-disclaimer">
@@ -1576,6 +1585,14 @@
         background:var(--good,#3ddc84); border-color:var(--good,#3ddc84); color:#062412; font-weight:700;
       }
       .tu-pkg.best .tu-pkg-buy:hover{filter:brightness(1.08); color:#062412;}
+      .tu-pkg-buy:disabled{
+        cursor:not-allowed; opacity:.5; background:var(--panel,#141821) !important;
+        border-color:var(--line,#262c3a) !important; color:var(--muted,#7d879b) !important; filter:none !important;
+      }
+      .tu-soon-notice{
+        background:var(--hazard-dim,#3a2712); border:1px solid rgba(255,149,0,.45); border-radius:10px;
+        padding:12px 14px; font-size:12.5px; font-weight:600; color:var(--hazard,#ff9500); line-height:1.5; margin-bottom:16px;
+      }
       .tu-disclaimer{
         background:var(--hazard-dim,#3a2712); border:1px solid rgba(255,149,0,.35); border-radius:10px;
         padding:12px 14px; font-size:11.5px; color:var(--muted,#7d879b); line-height:1.5; margin-bottom:14px;
