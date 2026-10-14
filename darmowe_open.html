@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<script src="steam-auth.js?v=23"></script>
+<script src="steam-auth.js?v=24"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CASEGOLD // Darmowe</title>
 <link rel="icon" type="image/png" href="casegold_logo.PNG">
@@ -644,6 +644,7 @@ openBtn.onclick = () => {
     state.inventory.push({ weapon: winner.weapon, skin: winner.skin, wear: winner.wear, price: winner.price, img: getSkinImage(winner), _id: state.invCounter });
     window.SteamAuth.recordPull(winner);
     window.SteamAuth.recordCasesOpened(1);
+    window.SteamAuth.reportFreeDrop(CASE_DEFS[caseId] ? caseId : "free", winner);
     localStorage.setItem(CASE.key, String(now));
     saveState(state);
     playWinSound();

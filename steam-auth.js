@@ -564,6 +564,21 @@
       return { ok: false, error: "network_error" };
     }
   }
+  // Zgłasza wygraną z darmowej skrzynki (otwieranej po stronie klienta) do
+  // paska "na żywo" - api/report-free-drop.php sam waliduje przedmiot i cenę.
+  // Fire-and-forget: błąd nie może zepsuć otwarcia skrzynki.
+  function reportFreeDrop(caseId, item) {
+    if (!me.loggedIn || !item) return;
+    try {
+      fetch("/api/report-free-drop.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        keepalive: true,
+        body: JSON.stringify({ caseId, weapon: item.weapon, skin: item.skin, wear: item.wear }),
+      }).catch(() => {});
+    } catch (e) { /* ignorujemy */ }
+  }
   // Przelewa CAŁOŚĆ jeszcze nie wypłaconych zarobków partnerskich
   // (readAffiliateInfo().available) na WŁASNE saldo gracza - w pełni
   // serwerowe (api/withdraw-affiliate-earnings.php), operuje na koncie
@@ -2108,5 +2123,6 @@
     recordBattleHistory,
     readBattleHistory,
     applyCaseOpen,
+    reportFreeDrop,
   };
 })();

@@ -1,0 +1,81 @@
+<?php
+/* Przedmioty darmowych skrzynek (darmowe_open.html, TIER_ITEMS) - lustro po stronie
+   serwera, używane TYLKO przez api/report-free-drop.php do sprawdzenia, czy
+   zgłoszona wygrana do paska "na żywo" naprawdę może wypaść z danej skrzynki
+   (i do pobrania ceny z serwera zamiast od klienta). Samo otwieranie darmowych
+   skrzynek dalej dzieje się po stronie klienta. Kolejność/zawartość musi się
+   zgadzać z TIER_ITEMS w darmowe_open.html; minLevel = próg poziomu skrzynki. */
+return [
+    'free' => ['minLevel' => 0, 'items' => [
+        ['weapon' => 'M4A1-S', 'skin' => 'Basilisk', 'wear' => 'MW', 'price' => 45.36],
+        ['weapon' => 'Five-SeveN', 'skin' => 'Case Hardened', 'wear' => 'FT', 'price' => 66.84],
+        ['weapon' => 'AK-47', 'skin' => 'Point Disarray', 'wear' => 'FT', 'price' => 90.21],
+        ['weapon' => 'AK-47', 'skin' => 'Frontside Misty', 'wear' => 'WW', 'price' => 115.75],
+        ['weapon' => 'FAMAS', 'skin' => 'Styx', 'wear' => 'MW', 'price' => 148.8],
+        ['weapon' => 'M4A1-S', 'skin' => 'Bright Water', 'wear' => 'FT', 'price' => 184.16],
+        ['weapon' => 'Desert Eagle', 'skin' => 'Printstream', 'wear' => 'FT', 'price' => 221.2],
+        ['weapon' => 'AWP', 'skin' => 'Wildfire', 'wear' => 'BS', 'price' => 264.03],
+        ['weapon' => 'Desert Eagle', 'skin' => 'Printstream', 'wear' => 'MW', 'price' => 282.47],
+        ['weapon' => 'CZ75-Auto', 'skin' => 'Emerald', 'wear' => 'FN', 'price' => 291.18],
+    ]],
+    'lvl10' => ['minLevel' => 10, 'items' => [
+        ['weapon' => 'Five-SeveN', 'skin' => 'Case Hardened', 'wear' => 'FT', 'price' => 66.84],
+        ['weapon' => 'USP-S', 'skin' => 'Overgrowth', 'wear' => 'FT', 'price' => 101.48],
+        ['weapon' => 'Desert Eagle', 'skin' => 'Midnight Storm', 'wear' => 'BS', 'price' => 128.05],
+        ['weapon' => 'M4A4', 'skin' => 'Hellish', 'wear' => 'FT', 'price' => 182.66],
+        ['weapon' => 'USP-S', 'skin' => 'Printstream', 'wear' => 'FT', 'price' => 223.63],
+        ['weapon' => 'AWP', 'skin' => 'Printstream', 'wear' => 'FT', 'price' => 290.48],
+        ['weapon' => 'Dual Berettas', 'skin' => 'Emerald', 'wear' => 'FN', 'price' => 340.99],
+        ['weapon' => 'Five-SeveN', 'skin' => 'Fairy Tale', 'wear' => 'MW', 'price' => 384.21],
+        ['weapon' => 'Five-SeveN', 'skin' => 'Crimson Blossom', 'wear' => 'MW', 'price' => 433.52],
+        ['weapon' => 'AWP', 'skin' => 'Printstream', 'wear' => 'MW', 'price' => 469.42],
+    ]],
+    'lvl20' => ['minLevel' => 20, 'items' => [
+        ['weapon' => 'AK-47', 'skin' => 'Point Disarray', 'wear' => 'WW', 'price' => 97.76],
+        ['weapon' => 'FAMAS', 'skin' => 'Styx', 'wear' => 'MW', 'price' => 148.8],
+        ['weapon' => 'M4A4', 'skin' => 'Temukau', 'wear' => 'FT', 'price' => 197.26],
+        ['weapon' => 'Desert Eagle', 'skin' => 'Printstream', 'wear' => 'MW', 'price' => 282.47],
+        ['weapon' => 'FAMAS', 'skin' => 'Waters of Nephthys', 'wear' => 'FT', 'price' => 365.38],
+        ['weapon' => 'AK-47', 'skin' => 'Neon Rider', 'wear' => 'MW', 'price' => 449.64],
+        ['weapon' => 'P2000', 'skin' => 'Fire Elemental', 'wear' => 'FT', 'price' => 482.16],
+        ['weapon' => 'MAC-10', 'skin' => 'Fade', 'wear' => 'FN', 'price' => 556.28],
+        ['weapon' => 'USP-S', 'skin' => 'Kill Confirmed', 'wear' => 'MW', 'price' => 635.63],
+        ['weapon' => 'M4A1-S', 'skin' => 'Master Piece', 'wear' => 'BS', 'price' => 731.22],
+    ]],
+    'lvl30' => ['minLevel' => 30, 'items' => [
+        ['weapon' => 'AWP', 'skin' => 'Pink DDPAT', 'wear' => 'FT', 'price' => 169.2],
+        ['weapon' => 'USP-S', 'skin' => 'Printstream', 'wear' => 'FT', 'price' => 223.63],
+        ['weapon' => 'M4A1-S', 'skin' => 'Dark Water', 'wear' => 'FT', 'price' => 326.68],
+        ['weapon' => 'Five-SeveN', 'skin' => 'Crimson Blossom', 'wear' => 'MW', 'price' => 433.52],
+        ['weapon' => 'MAC-10', 'skin' => 'Fade', 'wear' => 'FN', 'price' => 556.28],
+        ['weapon' => 'USP-S', 'skin' => 'Kill Confirmed', 'wear' => 'MW', 'price' => 635.63],
+        ['weapon' => 'MAG-7', 'skin' => 'Counter Terrace', 'wear' => 'MW', 'price' => 811.72],
+        ['weapon' => 'Gut Knife', 'skin' => 'Fade', 'wear' => 'FN', 'price' => 866.31],
+        ['weapon' => 'AWP', 'skin' => 'Containment Breach', 'wear' => 'FN', 'price' => 969.9],
+        ['weapon' => 'Gut Knife', 'skin' => 'Gamma Doppler Phase 1', 'wear' => 'FN', 'price' => 1035.33],
+    ]],
+    'lvl40' => ['minLevel' => 40, 'items' => [
+        ['weapon' => 'Desert Eagle', 'skin' => 'Printstream', 'wear' => 'FT', 'price' => 221.2],
+        ['weapon' => 'USP-S', 'skin' => 'Printstream', 'wear' => 'MW', 'price' => 375.24],
+        ['weapon' => 'Sawed-Off', 'skin' => 'The Kraken', 'wear' => 'MW', 'price' => 478.32],
+        ['weapon' => 'USP-S', 'skin' => 'Kill Confirmed', 'wear' => 'MW', 'price' => 635.63],
+        ['weapon' => 'Hand Wraps', 'skin' => 'CAUTION!', 'wear' => 'FT', 'price' => 828.66],
+        ['weapon' => 'AWP', 'skin' => 'Containment Breach', 'wear' => 'FN', 'price' => 969.9],
+        ['weapon' => 'M4A1-S', 'skin' => 'Printstream', 'wear' => 'FT', 'price' => 1167.67],
+        ['weapon' => 'Shadow Daggers', 'skin' => 'Gamma Doppler Emerald', 'wear' => 'FN', 'price' => 1393.67],
+        ['weapon' => 'Galil AR', 'skin' => 'Phoenix Blacklight', 'wear' => 'FN', 'price' => 1506.67],
+        ['weapon' => 'AWP', 'skin' => 'Printstream', 'wear' => 'FN', 'price' => 1534.91],
+    ]],
+    'lvl50' => ['minLevel' => 50, 'items' => [
+        ['weapon' => 'AWP', 'skin' => 'Green Energy', 'wear' => 'FN', 'price' => 376.97],
+        ['weapon' => 'MAC-10', 'skin' => 'Fade', 'wear' => 'FN', 'price' => 556.28],
+        ['weapon' => 'M4A1-S', 'skin' => 'Master Piece', 'wear' => 'BS', 'price' => 731.22],
+        ['weapon' => 'Gut Knife', 'skin' => 'Gamma Doppler Phase 1', 'wear' => 'FN', 'price' => 1035.33],
+        ['weapon' => 'Hand Wraps', 'skin' => 'Cobalt Skulls', 'wear' => 'WW', 'price' => 1204.41],
+        ['weapon' => 'AWP', 'skin' => 'Printstream', 'wear' => 'FN', 'price' => 1534.91],
+        ['weapon' => 'M4A1-S', 'skin' => 'Fade', 'wear' => 'FN', 'price' => 1787.29],
+        ['weapon' => 'AWP', 'skin' => 'Oni Taiji', 'wear' => 'MW', 'price' => 2193.58],
+        ['weapon' => 'M4A1-S', 'skin' => 'Icarus Fell', 'wear' => 'FN', 'price' => 2524.28],
+        ['weapon' => 'M4A4', 'skin' => 'Hellfire', 'wear' => 'FN', 'price' => 2608.39],
+    ]],
+];
