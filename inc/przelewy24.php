@@ -17,7 +17,10 @@ function p24_config(): array {
 }
 
 function p24_base_url(): string {
-    return !empty(p24_config()['sandbox']) ? 'https://sandbox.przelewy24.pl' : 'https://secure.przelewy24.pl';
+    $cfg = p24_config();
+    // 'base_url' to opcjonalny override (testy lokalne z atrapą P24) - w produkcji nieustawiany.
+    if (!empty($cfg['base_url'])) return rtrim($cfg['base_url'], '/');
+    return !empty($cfg['sandbox']) ? 'https://sandbox.przelewy24.pl' : 'https://secure.przelewy24.pl';
 }
 
 /* SHA-384 nad JSON-em pól w USTALONEJ kolejności (kolejność kluczy w
@@ -35,14 +38,17 @@ function p24_sign(array $fields): string {
 function p24_request(string $method, string $path, array $body): array {
     $cfg = p24_config();
     $ch = curl_init(p24_base_url() . $path);
-    curl_setopt_array($ch, [
+    $opts = [
         CURLOPT_CUSTOMREQUEST => $method,
-        CURLOPT_POSTFIELDS => json_encode($body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
         CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
         CURLOPT_USERPWD => $cfg['pos_id'] . ':' . $cfg['api_key'],
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_TIMEOUT => 15,
-    ]);
+    ];
+    if ($method !== 'GET') {
+        $opts[CURLOPT_POSTFIELDS] = json_encode($body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
+    curl_setopt_array($ch, $opts);
     $raw = curl_exec($ch);
     if ($raw === false) {
         $err = curl_error($ch);
@@ -111,7 +117,10 @@ function p24_payment_url(string $token): string {
    MY wołamy P24 własnymi, uwierzytelnionymi danymi, więc atakujący
    podszywający się pod webhook nie jest w stanie sfałszować odpowiedzi
    "success" na to zapytanie. */
-function p24_verify_transaction(string $sessionId, string $orderId, int $amountGrosze): bool {
+function p24_verify_transaction(string $sessionId, $orderId, int $amountGrosze): bool {
+    // orderId musi iść jako LICZBA (tak go P24 podpisuje po swojej stronie) -
+    // jako string podpis się nie zgadzał i verify() był odrzucany.
+    $orderId = (int) $orderId;
     $cfg = p24_config();
     $body = [
         'merchantId' => (int) $cfg['merchant_id'],
@@ -129,6 +138,14 @@ function p24_verify_transaction(string $sessionId, string $orderId, int $amountG
     ]);
     $res = p24_request('PUT', '/api/v1/transaction/verify', $body);
     return ($res['data']['status'] ?? null) === 'success';
+}
+
+/* Pyta P24 o transakcję po naszym sessionId (zapasowa ścieżka na wypadek,
+   gdyby powiadomienie webhookiem nie dotarło) - zwraca pole "data" odpowiedzi
+   (m.in. orderId, amount, status: 2 = wpłata dokonana) albo null. */
+function p24_get_transaction_by_session(string $sessionId): ?array {
+    $res = p24_request('GET', '/api/v1/transaction/by/sessionId/' . rawurlencode($sessionId), []);
+    return is_array($res['data'] ?? null) ? $res['data'] : null;
 }
 
 /* Sprawdza podpis PRZYCHODZĄCEGO powiadomienia webhookiem - pierwsza linia

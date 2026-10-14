@@ -103,6 +103,11 @@
         render('❌', 'var(--bad)', 'Płatność nieudana', 'Transakcja nie została potwierdzona przez Przelewy24. Jeśli pieniądze zostały pobrane, a saldo się nie zmieni, skontaktuj się z nami.', false, true);
         return;
       }
+      if (data.note) {
+        let n = document.getElementById('adminNote');
+        if (!n) { n = document.createElement('p'); n.id = 'adminNote'; n.style.cssText = 'font-size:11px;margin:12px 0 0;word-break:break-word;'; stateEl.appendChild(n); }
+        n.textContent = '[diagnostyka admina] ' + data.note;
+      }
       // wciąż "pending" - odpytuj dalej (P24 czasem wysyła webhook z opóźnieniem)
       if (attempts >= 20) {
         render('⏳', 'var(--hazard)', 'To trwa dłużej niż zwykle', 'Płatność jest wciąż przetwarzana. Saldo zaktualizuje się automatycznie, gdy tylko otrzymamy potwierdzenie.', true, true);

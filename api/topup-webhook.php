@@ -31,7 +31,7 @@ if (!p24_verify_webhook_sign($payload)) {
 }
 
 $sessionId = (string) $payload['sessionId'];
-$orderId = (string) $payload['orderId'];
+$orderId = $payload['orderId'];
 $amountGrosze = (int) ($payload['amount'] ?? 0);
 
 $pdo = db();
@@ -45,73 +45,34 @@ if (!$order) {
     echo 'unknown_session';
     exit;
 }
+topup_note($pdo, $sessionId, 'webhook dotarł (orderId=' . $orderId . ')');
 
-// Idempotencja - P24 może wysłać to samo powiadomienie wielokrotnie
-// (retry przy braku/wolnej odpowiedzi). Już opłacone zamówienie kończymy
-// tu, ZANIM cokolwiek zaksięgujemy drugi raz.
 if ($order['status'] === 'paid') {
-    echo 'OK';
+    echo 'OK'; // P24 może powtarzać powiadomienie - idempotentnie
     exit;
 }
 
 if ($amountGrosze !== (int) $order['price_grosze']) {
     error_log("POST /api/topup-webhook niezgodna kwota dla $sessionId: oczekiwano {$order['price_grosze']}, otrzymano $amountGrosze");
+    topup_note($pdo, $sessionId, "webhook: niezgodna kwota ($amountGrosze zamiast {$order['price_grosze']})");
     http_response_code(400);
     echo 'amount_mismatch';
     exit;
 }
 
-try {
-    $confirmed = p24_verify_transaction($sessionId, $orderId, (int) $order['price_grosze']);
-} catch (Throwable $e) {
-    error_log('POST /api/topup-webhook błąd verify(): ' . $e->getMessage());
-    http_response_code(502);
-    echo 'verify_failed';
-    exit;
-}
-
-if (!$confirmed) {
-    error_log("POST /api/topup-webhook verify() zwrócił niepowodzenie dla $sessionId / orderId=$orderId");
-    $fail = $pdo->prepare('UPDATE topup_orders SET status = "failed", p24_order_id = ? WHERE session_id = ? AND status = "pending"');
-    $fail->execute([$orderId, $sessionId]);
-    http_response_code(200); // nie retry'ujemy własnych, potwierdzonych niepowodzeń
-    echo 'not_confirmed';
-    exit;
-}
-
-$pdo->beginTransaction();
-try {
-    // Ponowna kontrola pod blokadą wiersza zamówienia (nie ma FOR UPDATE
-    // bezpośrednio na topup_orders, ale UPDATE ... WHERE status='pending'
-    // jest atomowy - druga, równoległa dostawa tego samego webhooka po
-    // prostu nie zaktualizuje żadnego wiersza i rowCount() wyjdzie 0).
-    $claim = $pdo->prepare('UPDATE topup_orders SET status = "paid", p24_order_id = ?, paid_at = ? WHERE session_id = ? AND status = "pending"');
-    $claim->execute([$orderId, now_ms(), $sessionId]);
-    if ($claim->rowCount() === 0) {
-        // Ktoś inny (równoległa dostawa tego samego webhooka) już to obsłużył.
-        $pdo->rollBack();
+switch (topup_finalize($pdo, $order, $orderId)) {
+    case 'paid':
+    case 'already_paid':
         echo 'OK';
-        exit;
-    }
-
-    $state = state_lock_user_for_update($pdo, $order['steamid']);
-    if ($state === null) {
-        throw new RuntimeException('Użytkownik z zamówienia zniknął: ' . $order['steamid']);
-    }
-    $state['balance'] = (is_numeric($state['balance'] ?? null) ? $state['balance'] : 0) + (int) $order['virtual_amount'];
-    state_save($pdo, $order['steamid'], $state);
-
-    $pdo->commit();
-} catch (Throwable $e) {
-    $pdo->rollBack();
-    error_log('POST /api/topup-webhook błąd księgowania: ' . $e->getMessage());
-    http_response_code(503);
-    echo 'storage_unavailable';
-    exit;
+        break;
+    case 'not_confirmed':
+        echo 'not_confirmed'; // nie retry'ujemy własnych, potwierdzonych niepowodzeń
+        break;
+    case 'verify_error':
+        http_response_code(502);
+        echo 'verify_failed';
+        break;
+    default:
+        http_response_code(503);
+        echo 'storage_unavailable';
 }
-
-// Prowizja partnerska - osobna transakcja (na koncie WŁAŚCICIELA kodu, nie
-// kupującego) - błąd tutaj nie może cofnąć już zaksięgowanej wpłaty kupującego.
-credit_affiliate_for_deposit($pdo, $order['affiliate_code'], $order['steamid'], $order['price_grosze'] / 100);
-
-echo 'OK';
