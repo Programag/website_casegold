@@ -1857,19 +1857,18 @@
     const emptyMsg = bar.querySelector(".lf-empty");
 
     // Każdy wpis z serwera pojawia się na pasku DOKŁADNIE RAZ i pasek stoi w
-    // miejscu, dopóki nic nowego nie wypadnie: nowa karta wjeżdża z prawej
-    // krawędzi i przesuwa pozostałe o jedno miejsce w lewo (najstarsza
-    // wyjeżdża). Nowe wygrane czekają w kolejce, żeby wjeżdżały po kolei.
-    const cards = [];   // { el } - od najstarszej (lewa) do najnowszej (prawa)
+    // miejscu, dopóki nic nowego nie wypadnie: nowa karta wjeżdża z lewej
+    // krawędzi i przesuwa pozostałe o jedno miejsce w prawo (najstarsza
+    // wyjeżdża z prawej). Nowe wygrane czekają w kolejce, żeby wjeżdżały po kolei.
+    const cards = [];   // { el } - od najstarszej do najnowszej (najnowsza z LEWEJ)
     const queue = [];
     let lastId = 0, seeded = false, pumping = false;
 
     const fitCount = () => Math.max(1, Math.floor((viewport.clientWidth + GAP) / STEP));
     function layout() {
-      // Prawe wyrównanie: najnowsza karta zawsze przy prawej krawędzi, starsze
-      // ustawiają się na lewo od niej - pasek "rośnie" od prawej do lewej.
-      const vw = viewport.clientWidth;
-      cards.forEach((c, i) => { c.el.style.transform = `translateX(${vw - CARD_W - (cards.length - 1 - i) * STEP}px)`; });
+      // Lewe wyrównanie: najnowsza karta zawsze przy lewej krawędzi, starsze
+      // ustawiają się na prawo od niej - pasek "rośnie" od lewej do prawej.
+      cards.forEach((c, i) => { c.el.style.transform = `translateX(${(cards.length - 1 - i) * STEP}px)`; });
       emptyMsg.style.display = cards.length ? "none" : "";
     }
 
@@ -1925,13 +1924,13 @@
     function addCard(d, animate) {
       const el = buildCard(d);
       if (!animate) el.style.transition = "none";
-      el.style.transform = `translateX(${viewport.clientWidth}px)`;
+      el.style.transform = `translateX(${-STEP}px)`;
       viewport.appendChild(el);
       cards.push({ el });
       const fit = fitCount();
       while (cards.length > fit) {
         const old = cards.shift();
-        old.el.style.transform = `translateX(${-STEP}px)`;
+        old.el.style.transform = `translateX(${viewport.clientWidth}px)`;
         setTimeout(() => old.el.remove(), 800);
       }
       void viewport.offsetWidth; // zapisz pozycję startową przed animacją
