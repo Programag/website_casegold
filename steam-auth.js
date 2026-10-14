@@ -1896,7 +1896,13 @@
       .lf-lvl{position:absolute; left:-7px; bottom:-7px; background:#1d4ed8; color:#fff; font:700 10px 'JetBrains Mono',monospace; border-radius:6px; padding:1px 5px; border:1px solid #0c0f15;}
       .lf-uname{max-width:100%; font-size:11.5px; font-weight:600; color:#e9ecf3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
       .lf-empty{position:absolute; inset:0; display:flex; align-items:center; padding-left:18px; color:#7d879b; font-size:12.5px;}
-      @media (max-width:600px){ .lf-live{width:64px; font-size:9px;} }
+      @media (max-width:600px){ .lf-live{width:50px; font-size:8px; letter-spacing:.3px; text-align:center;} }
+      .lf-compact .lf-card{padding:4px 3px 3px;}
+      .lf-compact .lf-img{height:40px;}
+      .lf-compact .lf-img img{max-height:40px;}
+      .lf-compact .lf-skin{font-size:9.5px;}
+      .lf-compact .lf-meta{font-size:8.5px;}
+      .lf-compact .lf-fallback{font-size:9px;}
     `;
     document.head.appendChild(style);
 
@@ -1929,9 +1935,13 @@
     let step = CARD_W + GAP;
     function fitCount() {
       const vw = viewport.clientWidth;
-      const fit = Math.max(1, Math.floor((vw + GAP) / (CARD_W + GAP)));
-      const w = (vw - (fit - 1) * GAP) / fit;
-      step = w + GAP;
+      // Na telefonie zawsze 4 węższe karty (zamiast 2 pełnej szerokości).
+      const compact = window.innerWidth <= 600;
+      const gap = compact ? 6 : GAP;
+      const fit = compact ? 4 : Math.max(1, Math.floor((vw + gap) / (CARD_W + gap)));
+      const w = (vw - (fit - 1) * gap) / fit;
+      step = w + gap;
+      bar.classList.toggle("lf-compact", compact);
       bar.style.setProperty("--lf-card-w", `${w}px`);
       return fit;
     }
