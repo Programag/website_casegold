@@ -9,7 +9,7 @@ require_admin();
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
-    $rows = db()->query('SELECT * FROM users')->fetchAll();
+    $rows = db()->query("SELECT * FROM users WHERE steamid NOT LIKE 'bot\\_%'")->fetchAll();
     $list = array_map(function ($row) {
         $u = row_to_user($row);
         $st = $u['state'] ?? [];

@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../inc/db.php';
 require_once __DIR__ . '/../inc/battle.php';
+require_once __DIR__ . '/../inc/bots.php';
 
 header('Content-Type: application/json');
 $payload = json_decode(file_get_contents('php://input'), true);
@@ -38,7 +39,8 @@ try {
         $name = 'Bot ' . ($idx + 1);
     }
 
-    $lobby['slots'][$idx] = ['type' => 'bot', 'name' => $name, 'tabId' => null];
+    $bot = bot_by_name($name);
+    $lobby['slots'][$idx] = ['type' => 'bot', 'name' => $name, 'tabId' => null] + ($bot ? ['botId' => $bot['id'], 'slug' => bot_slug($bot['id'])] : []);
     battle_save($pdo, $lobby);
     $pdo->commit();
     echo json_encode(['ok' => true, 'lobby' => $lobby]);

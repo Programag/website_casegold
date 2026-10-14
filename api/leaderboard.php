@@ -4,7 +4,7 @@ require_once __DIR__ . '/../inc/niefart.php';
 
 header('Content-Type: application/json');
 
-$rows = db()->query('SELECT slug, display_name, avatar, state FROM users WHERE slug IS NOT NULL')->fetchAll();
+$rows = db()->query('SELECT slug, display_name, avatar, state FROM users WHERE slug IS NOT NULL AND steamid NOT LIKE \'bot\\_%\'')->fetchAll();
 $list = [];
 foreach ($rows as $r) {
     $st = $r['state'] !== null ? json_decode($r['state'], true) : [];

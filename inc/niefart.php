@@ -55,7 +55,7 @@ function count_battles_on_date(?array $state, string $dateStr): int {
 /* Zwraca wszystkich graczy ze slugiem: [steamid, slug, display_name,
    avatar, state (zdekodowany)] - do rankingu niefartu i do wypłaty. */
 function all_users_with_slug(): array {
-    $rows = db()->query('SELECT steamid, slug, display_name, avatar, state FROM users WHERE slug IS NOT NULL')->fetchAll();
+    $rows = db()->query('SELECT steamid, slug, display_name, avatar, state FROM users WHERE slug IS NOT NULL AND steamid NOT LIKE \'bot\\_%\'')->fetchAll();
     foreach ($rows as &$r) {
         $r['state'] = $r['state'] !== null ? json_decode($r['state'], true) : null;
     }

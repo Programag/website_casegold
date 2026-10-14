@@ -319,6 +319,15 @@ function renderIdentity(p){
   document.getElementById("profAvatar").src = p.avatar || "";
   document.getElementById("profAvatar").alt = p.displayName || "Steam";
   document.getElementById("profName").textContent = p.displayName || "Gracz";
+  const oldBadge = document.getElementById("profBotBadge");
+  if(oldBadge) oldBadge.remove();
+  if(p.isBot){
+    const badge = document.createElement("span");
+    badge.id = "profBotBadge";
+    badge.textContent = "BOT";
+    badge.style.cssText = "margin-left:10px; padding:2px 8px; border-radius:6px; background:var(--hazard-dim,#3a2712); color:var(--hazard,#ff9500); font-size:12px; font-weight:700; letter-spacing:1px; vertical-align:middle;";
+    document.getElementById("profName").appendChild(badge);
+  }
   const steamLink = document.getElementById("profSteamLink");
   if(p.profileUrl){ steamLink.href = p.profileUrl; steamLink.style.display = ""; }
   else { steamLink.style.display = "none"; }

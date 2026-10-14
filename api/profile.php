@@ -1,10 +1,12 @@
 <?php
 require_once __DIR__ . '/../inc/db.php';
 require_once __DIR__ . '/../inc/users.php';
+require_once __DIR__ . '/../inc/bots.php';
 
 header('Content-Type: application/json');
 
 $slug = $_GET['slug'] ?? '';
+if (is_string($slug) && str_starts_with($slug, 'bot-')) bots_ensure_profiles(db());
 $u = $slug !== '' ? find_user_by_slug($slug) : null;
 if (!$u) {
     echo json_encode(['found' => false]);
@@ -30,6 +32,7 @@ echo json_encode([
         'avatar' => $u['avatar'],
         'profileUrl' => $u['profile_url'],
         'createdAt' => $u['created_at'] ?? null,
+        'isBot' => bot_is_steamid($u['steamid']),
         'level' => $level,
         'bestPull' => $st['bestPull'] ?? null,
         'updatedAt' => is_numeric($st['updatedAt'] ?? null) ? $st['updatedAt'] : null,

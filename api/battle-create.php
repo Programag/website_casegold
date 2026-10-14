@@ -30,7 +30,7 @@ $id = battle_new_id();
 $slots = [];
 for ($i = 0; $i < $totalPlayers; $i++) {
     $slots[] = $i === $hostSlotIdx
-        ? ['type' => 'host', 'name' => $user['display_name'], 'tabId' => $tabId, 'steamid' => $user['steamid'], 'avatar' => $user['avatar'], 'boosted' => (bool) $user['boosted_drop'], 'lastSeen' => now_ms(), 'paid' => $cost]
+        ? ['type' => 'host', 'name' => $user['display_name'], 'tabId' => $tabId, 'steamid' => $user['steamid'], 'avatar' => $user['avatar'], 'boosted' => (bool) $user['boosted_drop'], 'lastSeen' => now_ms(), 'paid' => $cost, 'slug' => $user['slug'] ?? null]
         : ['type' => 'empty'];
 }
 $lobby = [

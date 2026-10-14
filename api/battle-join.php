@@ -65,6 +65,7 @@ try {
         'boosted' => (bool) $user['boosted_drop'],
         'lastSeen' => now_ms(),
         'paid' => (float) $lobby['cost'],
+        'slug' => $user['slug'] ?? null,
     ];
     $lobby['stakedTotal'] = ($lobby['stakedTotal'] ?? $lobby['cost']) + $lobby['cost'];
 

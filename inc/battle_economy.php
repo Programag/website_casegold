@@ -11,6 +11,7 @@
    JS vs PHP. */
 require_once __DIR__ . '/state_ops.php';
 require_once __DIR__ . '/battle.php';
+require_once __DIR__ . '/bots.php';
 
 const BATTLE_XP_PER_ZL = 1 / 10; // XP_PER_ZL ze steam-auth.js
 // Bitwa "running" bez zgłoszenia końca (wszyscy zamknęli karty) jest sama
@@ -322,7 +323,17 @@ function battle_settle(PDO $pdo, array &$lobby): void {
     $winnerSet = array_flip($outcome['winnerIndices']);
 
     $plans = []; // steamid => ['kind','items']
+    $hasBots = false;
     foreach ($lobby['slots'] as $i => $slot) {
+        if (($slot['type'] ?? '') === 'bot' && !empty($slot['botId'])) {
+            // Boty nie dostają przedmiotów - tylko rosną ich statystyki profilu.
+            $hasBots = true;
+            $botValue = $shared ? $wonValue / $lobby['totalPlayers'] : (isset($winnerSet[$i]) ? ($teams ? $wonValue / 2 : $wonValue) : 0.0);
+            $botKind = $shared ? 'shared' : (isset($winnerSet[$i]) ? 'win' : 'loss');
+            $own = array_map(fn($it) => $it['price'], $lobby['results'][$i]['rounds'] ?? []);
+            $plans[bot_steamid((string) $slot['botId'])] = ['kind' => $botKind, 'items' => [], 'bot' => true, 'botValue' => $botValue, 'ownBest' => $own ? max($own) : 0, 'ownCount' => count($own), 'ownBestItem' => null, 'slotIdx' => $i];
+            continue;
+        }
         if (!in_array($slot['type'] ?? '', ['host', 'player'], true) || empty($slot['steamid'])) continue;
         $steamid = (string) $slot['steamid'];
         if ($shared) {
@@ -335,10 +346,32 @@ function battle_settle(PDO $pdo, array &$lobby): void {
         }
     }
 
+    if ($hasBots) bots_ensure_profiles($pdo);
     ksort($plans, SORT_STRING);
     $payouts = [];
     foreach ($plans as $steamid => $plan) {
         $steamid = (string) $steamid;
+        if (!empty($plan['bot'])) {
+            $bstate = state_lock_user_for_update($pdo, $steamid);
+            if ($bstate === null) continue;
+            $bstate['battlesPlayed'] = (is_numeric($bstate['battlesPlayed'] ?? null) ? $bstate['battlesPlayed'] : 0) + 1;
+            if ($plan['kind'] === 'win') $bstate['battlesWon'] = (is_numeric($bstate['battlesWon'] ?? null) ? $bstate['battlesWon'] : 0) + 1;
+            $bstate['casesOpened'] = (is_numeric($bstate['casesOpened'] ?? null) ? $bstate['casesOpened'] : 0) + $plan['ownCount'];
+            if ($plan['botValue'] > 0) {
+                $bstate['xp'] = (is_numeric($bstate['xp'] ?? null) ? $bstate['xp'] : 0) + $plan['botValue'] * BATTLE_XP_PER_ZL;
+                state_bump_level_watermark($bstate);
+                $bstate['level'] = $bstate['levelWatermark'];
+            }
+            $ownRounds = $lobby['results'][$plan['slotIdx']]['rounds'] ?? [];
+            foreach ($ownRounds as $it) {
+                $bp = is_array($bstate['bestPull'] ?? null) ? $bstate['bestPull'] : null;
+                if (!$bp || $it['price'] > ($bp['price'] ?? 0)) {
+                    $bstate['bestPull'] = ['weapon' => $it['weapon'], 'skin' => $it['skin'], 'wear' => $it['wear'], 'price' => $it['price'], 'at' => now_ms()];
+                }
+            }
+            state_save($pdo, $steamid, $bstate);
+            continue;
+        }
         $state = state_lock_user_for_update($pdo, $steamid);
         if ($state === null) continue;
         $inventory = is_array($state['inventory'] ?? null) ? array_values($state['inventory']) : [];
