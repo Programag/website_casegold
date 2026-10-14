@@ -1840,6 +1840,17 @@
       .lf-meta{width:100%; display:flex; justify-content:center; font-size:10px; color:#7d879b; white-space:pre; margin-top:1px;}
       .lf-meta span{min-width:0; overflow:hidden; text-overflow:ellipsis;}
       .lf-meta b{flex:none; color:#e9ecf3; font-weight:600;}
+      .lf-card{text-decoration:none; color:inherit;}
+      a.lf-card{cursor:pointer;}
+      .lf-user{
+        position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px;
+        background:rgba(12,15,21,.97); opacity:0; transition:opacity .15s ease; padding:6px; pointer-events:none;
+      }
+      .lf-card:hover .lf-user{opacity:1;}
+      .lf-av{position:relative; width:46px; height:46px;}
+      .lf-av img, .lf-av .lf-av-ph{width:46px; height:46px; border-radius:9px; object-fit:cover; border:2px solid var(--rc); background:#1b202b; display:flex; align-items:center; justify-content:center; font-size:20px;}
+      .lf-lvl{position:absolute; left:-7px; bottom:-7px; background:#1d4ed8; color:#fff; font:700 10px 'JetBrains Mono',monospace; border-radius:6px; padding:1px 5px; border:1px solid #0c0f15;}
+      .lf-uname{max-width:100%; font-size:11.5px; font-weight:600; color:#e9ecf3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
       .lf-empty{position:absolute; inset:0; display:flex; align-items:center; padding-left:18px; color:#7d879b; font-size:12.5px;}
       @media (max-width:600px){ .lf-live{width:64px; font-size:9px;} }
     `;
@@ -1895,10 +1906,11 @@
 
     function buildCard(d) {
       const priceTxt = d.price.toLocaleString("pl-PL", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " zł";
-      const card = document.createElement("div");
+      const card = document.createElement(d.slug ? "a" : "div");
       card.className = "lf-card";
+      if (d.slug) card.href = `/profile.html?u=${encodeURIComponent(d.slug)}`;
       card.style.setProperty("--rc", rarityOf(d));
-      card.title = `${d.display_name} — ${d.weapon} | ${d.skin} (${d.wear}) — ${priceTxt}`;
+      card.setAttribute("aria-label", `${d.display_name} — ${d.weapon} | ${d.skin} (${d.wear}) — ${priceTxt}`);
       const imgWrap = document.createElement("div");
       imgWrap.className = "lf-img";
       const src = typeof getSkinImage === "function" ? getSkinImage(d) : "";
@@ -1928,7 +1940,39 @@
       const price = document.createElement("b");
       price.textContent = priceTxt;
       meta.append(name, price);
-      card.append(imgWrap, skin, meta);
+      // Nakładka po najechaniu: kto trafił skina (avatar, poziom, nick).
+      const user = document.createElement("div");
+      user.className = "lf-user";
+      const av = document.createElement("div");
+      av.className = "lf-av";
+      const avPh = () => {
+        av.querySelector("img")?.remove();
+        const ph = document.createElement("div");
+        ph.className = "lf-av-ph";
+        ph.textContent = "🙂";
+        av.prepend(ph);
+      };
+      if (d.avatar) {
+        const aimg = document.createElement("img");
+        aimg.alt = "";
+        aimg.referrerPolicy = "no-referrer";
+        aimg.onerror = avPh;
+        aimg.src = d.avatar;
+        av.appendChild(aimg);
+      } else {
+        avPh();
+      }
+      if (d.level != null) {
+        const lvl = document.createElement("span");
+        lvl.className = "lf-lvl";
+        lvl.textContent = d.level;
+        av.appendChild(lvl);
+      }
+      const uname = document.createElement("div");
+      uname.className = "lf-uname";
+      uname.textContent = d.display_name;
+      user.append(av, uname);
+      card.append(imgWrap, skin, meta, user);
       return card;
     }
 
