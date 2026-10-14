@@ -18,6 +18,15 @@ if (!$me) {
     exit;
 }
 
+// Na sandboxie P24 płatności są testowe (bez prawdziwych pieniędzy), więc
+// zamawiać może tylko admin - patrz komentarz w api/me.php.
+$p24cfg = cs2_config()['p24'] ?? null;
+if (!is_array($p24cfg) || (!empty($p24cfg['sandbox']) && $me['steamid'] !== (cs2_config()['admin_steamid'] ?? null))) {
+    http_response_code(403);
+    echo json_encode(['error' => 'payments_unavailable']);
+    exit;
+}
+
 $body = json_decode(file_get_contents('php://input'), true);
 if (!is_array($body)) $body = [];
 $packageIndex = isset($body['packageIndex']) && is_numeric($body['packageIndex']) ? (int) $body['packageIndex'] : null;

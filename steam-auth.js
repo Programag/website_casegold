@@ -881,12 +881,10 @@
   // promocyjny "bonus" (TOPUP_PROMO_CODES) to osobna, czysto kosmetyczna
   // wizualna zniżka - lista kodów jest twarda w JS i nie ma nic wspólnego
   // z prawdziwymi kodami partnerskimi "affiliate" niżej) ----
-  // Backend (api/topup-create.php + Przelewy24) jest gotowy, ale konto
-  // sprzedawcy jeszcze nie istnieje - dopóki ta flaga jest false, przyciski
-  // "Kup" są wyłączone (patrz renderTopUpPackages), żeby gracz nie trafiał
-  // na błąd płatności. Przełącz na true, gdy dane produkcyjne/sandbox P24
-  // trafią do config.php.
-  const TOPUP_PAYMENTS_ENABLED = false;
+  // Czy przyciski "Kup" są aktywne, rozstrzyga serwer (api/me.php ->
+  // topupEnabled): na produkcyjnym koncie Przelewy24 dla wszystkich, na
+  // sandboxie (testowe płatności) tylko dla admina.
+  const topUpPaymentsEnabled = () => !!(me.loggedIn && me.topupEnabled);
   const TOPUP_PACKAGES = [
     { amount: 5000, price: "4,99 zł" },
     { amount: 12000, price: "9,99 zł" },
@@ -920,10 +918,10 @@
         <div class="tu-pkg-amount">🪙 ${finalAmount.toLocaleString("pl-PL")} zł${bonusActive ? `<span class="tu-pkg-bonus">+35%</span>` : ""}</div>
         ${bonusActive ? `<div class="tu-pkg-base">zamiast ${p.amount.toLocaleString("pl-PL")} zł</div>` : ""}
         <div class="tu-pkg-price">Cena: <b>${p.price}</b> brutto</div>
-        <button type="button" class="tu-pkg-buy" disabled>${TOPUP_PAYMENTS_ENABLED ? "Zamawiam i płacę " + p.price : "Wkrótce"}</button>
+        <button type="button" class="tu-pkg-buy" disabled>${topUpPaymentsEnabled() ? "Zamawiam i płacę " + p.price : "Wkrótce"}</button>
       `;
       const buyBtn = card.querySelector(".tu-pkg-buy");
-      if (TOPUP_PAYMENTS_ENABLED) {
+      if (topUpPaymentsEnabled()) {
         buyBtn.onclick = async () => {
           if (!topUpConsentsOk(overlay)) return;
           buyBtn.disabled = true;
@@ -954,7 +952,7 @@
     return !!(overlay.querySelector("#tuConsentTerms")?.checked && overlay.querySelector("#tuConsentWaiver")?.checked);
   }
   function syncTopUpBuyButtons(overlay) {
-    const ok = TOPUP_PAYMENTS_ENABLED && topUpConsentsOk(overlay);
+    const ok = topUpPaymentsEnabled() && topUpConsentsOk(overlay);
     overlay.querySelectorAll(".tu-pkg-buy").forEach((b) => { b.disabled = !ok || b.dataset.busy === "1"; });
   }
 
@@ -1041,7 +1039,7 @@
           <h2>💳 Doładuj swoje konto</h2>
           <p>Wybierz pakiet i błyskawicznie zwiększ swoje saldo.</p>
         </div>
-        <div class="tu-soon-notice">⏳ Płatności online będą dostępne wkrótce. Zakup pakietów jest obecnie tymczasowo niedostępny.</div>
+        ${topUpPaymentsEnabled() ? "" : `<div class="tu-soon-notice">⏳ Płatności online będą dostępne wkrótce. Zakup pakietów jest obecnie tymczasowo niedostępny.</div>`}
         <div class="tu-section-label">💰 Pakiety balansu</div>
         <div class="tu-packages" id="tuPackages"></div>
         <div class="tu-consents">

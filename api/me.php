@@ -25,8 +25,16 @@ $isAdmin = $adminId && $u['steamid'] === $adminId;
 // przy najbliższym PUT /api/state (patrz komentarz w server.js).
 $u['state'] = ensure_level_watermark($u['state']);
 
+// Przyciski doładowania są aktywne dla wszystkich dopiero na PRODUKCYJNYM
+// koncie Przelewy24. Dopóki w config.php jest p24.sandbox = true (płatności
+// testowe, bez prawdziwych pieniędzy), płacić może tylko admin - inaczej
+// każdy odwiedzający mógłby "kupić" saldo za darmo testową płatnością.
+$p24cfg = cs2_config()['p24'] ?? null;
+$topupEnabled = is_array($p24cfg) && (empty($p24cfg['sandbox']) || $isAdmin);
+
 echo json_encode([
     'loggedIn' => true,
     'user' => public_user($u),
     'isAdmin' => $isAdmin,
+    'topupEnabled' => $topupEnabled,
 ]);
