@@ -4,12 +4,12 @@
    Bez tych danych (nazwa firmy, adres, NIP) operatorzy płatności zwykle nie
    zweryfikują sklepu. */
 const COMPANY = {
-  name: "",     // pełna nazwa firmy, np. "Jan Kowalski CASEGOLD" lub "XYZ Sp. z o.o."
-  address: "",  // adres siedziby/miejsca wykonywania działalności
-  nip: "",      // NIP
-  regon: "",    // REGON (jeśli posiadasz)
+  name: "Piotr Koenig",     // pełna nazwa firmy, np. "Jan Kowalski CASEGOLD" lub "XYZ Sp. z o.o."
+  address: "Lwowska 7F, 05-120 Legionowo",  // adres siedziby/miejsca wykonywania działalności
+  nip: "6911994221",      // NIP
+  regon: "390748408",    // REGON (jeśli posiadasz)
   krs: "",      // KRS (tylko spółki) - zostaw puste dla jednoosobowej działalności
-  phone: "",    // telefon kontaktowy
+  phone: "601 760 222",    // telefon kontaktowy
 };
 document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll("[data-company]").forEach((el) => {
