@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../inc/db.php';
 require_once __DIR__ . '/../inc/auth.php';
 require_once __DIR__ . '/../inc/przelewy24.php';
+require_once __DIR__ . '/../inc/topup.php';
 
 header('Content-Type: application/json');
 
@@ -78,6 +79,7 @@ $fail_json = function (int $status, string $code, ?Throwable $e = null) use ($is
 
 try {
 $pdo = db();
+topup_ensure_table($pdo);
 // sessionId musi być unikalny w obrębie CAŁEGO konta sprzedawcy P24 (nie
 // tylko naszej tabeli) - losowy token + steamid jest wystarczająco
 // jednoznaczny; UNIQUE na session_id w topup_orders i tak łapie kolizję,

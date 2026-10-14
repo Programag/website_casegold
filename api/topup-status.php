@@ -4,6 +4,7 @@
    sam w sobie nigdy niczego nie księguje. */
 require_once __DIR__ . '/../inc/db.php';
 require_once __DIR__ . '/../inc/auth.php';
+require_once __DIR__ . '/../inc/topup.php';
 
 header('Content-Type: application/json');
 
@@ -22,6 +23,7 @@ if (!is_string($sessionId) || $sessionId === '') {
 }
 
 $pdo = db();
+topup_ensure_table($pdo);
 // steamid w warunku - zamówienie musi należeć do zalogowanego gracza, żeby
 // ktoś nie mógł podejrzeć statusu cudzej płatności po zgadniętym session id.
 $find = $pdo->prepare('SELECT status, virtual_amount FROM topup_orders WHERE session_id = ? AND steamid = ? LIMIT 1');

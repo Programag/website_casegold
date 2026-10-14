@@ -8,6 +8,7 @@ require_once __DIR__ . '/../inc/db.php';
 require_once __DIR__ . '/../inc/state_ops.php';
 require_once __DIR__ . '/../inc/przelewy24.php';
 require_once __DIR__ . '/../inc/affiliate.php';
+require_once __DIR__ . '/../inc/topup.php';
 
 header('Content-Type: text/plain');
 
@@ -34,6 +35,7 @@ $orderId = (string) $payload['orderId'];
 $amountGrosze = (int) ($payload['amount'] ?? 0);
 
 $pdo = db();
+topup_ensure_table($pdo);
 $find = $pdo->prepare('SELECT * FROM topup_orders WHERE session_id = ? LIMIT 1');
 $find->execute([$sessionId]);
 $order = $find->fetch();
