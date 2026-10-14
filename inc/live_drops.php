@@ -46,3 +46,54 @@ function live_drops_record(PDO $pdo, string $steamid, string $displayName, strin
         error_log('live_drops_record błąd: ' . $e->getMessage());
     }
 }
+
+/* Wygrana w Case Battle: bitwy liczą się po stronie klienta, ale wynik
+   (results + outcome) trafia do api/battle-finish.php, więc tam - raz, przy
+   pierwszym zakończeniu lobby - dopisujemy do strumienia najdroższy
+   przedmiot z puli każdemu zwycięzcy-człowiekowi. Pomijamy remisy i tryb
+   "shared" (pula dzielona na wszystkich, nikt nie wygrywa konkretnego
+   skina). Boty nie mają steamid, więc same się odfiltrowują. */
+function live_drops_record_battle(PDO $pdo, array $lobby): void {
+    try {
+        $outcome = $lobby['outcome'] ?? null;
+        if (!is_array($outcome) || !empty($outcome['shared']) || !empty($outcome['tie'])) return;
+        if (!isset($lobby['results']) || !is_array($lobby['results'])) return;
+
+        if (!empty($outcome['winnerIndices']) && is_array($outcome['winnerIndices'])) {
+            $winnerIdx = $outcome['winnerIndices'];
+        } elseif (isset($outcome['winnerIdx']) && is_numeric($outcome['winnerIdx'])) {
+            $winnerIdx = [(int) $outcome['winnerIdx']];
+        } else {
+            return;
+        }
+
+        $best = null;
+        foreach ($lobby['results'] as $r) {
+            foreach (($r['rounds'] ?? []) as $it) {
+                if (!is_array($it)
+                    || !isset($it['weapon'], $it['skin'], $it['wear'], $it['price'])
+                    || !is_string($it['weapon']) || $it['weapon'] === '' || strlen($it['weapon']) > 100
+                    || !is_string($it['skin']) || $it['skin'] === '' || strlen($it['skin']) > 100
+                    || !is_string($it['wear']) || strlen($it['wear']) > 20
+                    || !is_numeric($it['price']) || $it['price'] < 0 || !is_finite((float) $it['price'])
+                ) continue;
+                if (!$best || (float) $it['price'] > $best['price']) {
+                    $best = ['weapon' => $it['weapon'], 'skin' => $it['skin'], 'wear' => $it['wear'], 'price' => (float) $it['price']];
+                }
+            }
+        }
+        if (!$best) return;
+
+        $seen = [];
+        foreach ($winnerIdx as $i) {
+            $slot = $lobby['slots'][$i] ?? null;
+            if (!$slot || !in_array($slot['type'] ?? '', ['host', 'player'], true)) continue;
+            $steamid = $slot['steamid'] ?? null;
+            if (!is_string($steamid) || $steamid === '' || isset($seen[$steamid])) continue;
+            $seen[$steamid] = true;
+            live_drops_record($pdo, $steamid, (string) ($slot['name'] ?? 'Gracz'), 'battle', [$best]);
+        }
+    } catch (Throwable $e) {
+        error_log('live_drops_record_battle błąd: ' . $e->getMessage());
+    }
+}

@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../inc/db.php';
 require_once __DIR__ . '/../inc/battle.php';
+require_once __DIR__ . '/../inc/live_drops.php';
 
 header('Content-Type: application/json');
 $payload = json_decode(file_get_contents('php://input'), true);
@@ -39,6 +40,7 @@ try {
     // Poza transakcją zapisu lobby - to osobny zapis do daily_top (własna
     // transakcja w battle_record_daily_top), zapasowy TTL sprząta resztę.
     battle_record_daily_top($lobby);
+    live_drops_record_battle($pdo, $lobby);
 
     echo json_encode(['ok' => true, 'lobby' => $lobby]);
 } catch (Throwable $e) {
