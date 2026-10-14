@@ -1811,7 +1811,7 @@
   function initLiveFeed() {
     if (document.querySelector('meta[name="no-live-feed"]') || document.getElementById("liveFeedBar")) return;
 
-    const CARD_W = 124, GAP = 8, STEP = CARD_W + GAP, SPEED = 45, MAX_DROPS = 40, POLL_MS = 5000;
+    const CARD_W = 124, GAP = 8, SPEED = 55, POLL_MS = 3000, MAX_QUEUE = 30, INITIAL = 20;
 
     const style = document.createElement("style");
     style.textContent = `
@@ -1822,16 +1822,15 @@
       }
       .lf-live{
         flex:none; width:92px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
-        background:#11151d; border-right:1px solid #262c3a; color:#e9ecf3; font-size:11px; font-weight:700; letter-spacing:1px;
+        background:#11151d; border-right:1px solid #262c3a; color:#e9ecf3; font-size:11px; font-weight:700; letter-spacing:1px; position:relative; z-index:2;
       }
       .lf-dot{width:10px; height:10px; border-radius:50%; background:#3ddc84; box-shadow:0 0 0 0 rgba(61,220,132,.6); animation:lf-pulse 1.8s infinite;}
       @keyframes lf-pulse{70%{box-shadow:0 0 0 8px rgba(61,220,132,0);} 100%{box-shadow:0 0 0 0 rgba(61,220,132,0);}}
-      .lf-viewport{flex:1; min-width:0; position:relative; overflow:hidden; padding:8px 0;}
-      .lf-track{display:flex; gap:${GAP}px; will-change:transform; width:max-content;}
+      .lf-viewport{flex:1; min-width:0; position:relative; overflow:hidden;}
       .lf-card{
-        --rc:#4b69ff; flex:none; width:${CARD_W}px; height:92px; border-radius:8px; background:#161a24; position:relative;
+        --rc:#4b69ff; position:absolute; top:8px; left:0; width:${CARD_W}px; height:92px; border-radius:8px; background:#161a24;
         box-shadow:inset 0 -26px 26px -20px var(--rc); border-bottom:2px solid var(--rc);
-        display:flex; flex-direction:column; align-items:center; padding:5px 6px 4px; overflow:hidden; cursor:default;
+        display:flex; flex-direction:column; align-items:center; padding:5px 6px 4px; overflow:hidden; cursor:default; will-change:transform;
       }
       .lf-img{height:46px; width:100%; display:flex; align-items:center; justify-content:center;}
       .lf-img img{max-width:100%; max-height:46px; object-fit:contain;}
@@ -1850,18 +1849,19 @@
     bar.id = "liveFeedBar";
     bar.innerHTML = `
       <div class="lf-live"><span class="lf-dot"></span>NA ŻYWO</div>
-      <div class="lf-viewport"><div class="lf-track"></div><div class="lf-empty">Czekamy na pierwsze wygrane graczy…</div></div>
+      <div class="lf-viewport"><div class="lf-empty">Czekamy na pierwsze wygrane graczy…</div></div>
     `;
     document.body.insertBefore(bar, document.body.firstChild);
     const viewport = bar.querySelector(".lf-viewport");
-    const track = bar.querySelector(".lf-track");
     const emptyMsg = bar.querySelector(".lf-empty");
 
-    const drops = [];
-    let nextIdx = 0, offset = 0, lastId = 0, paused = false, lastTs = 0;
-
-    bar.addEventListener("mouseenter", () => { paused = true; });
-    bar.addEventListener("mouseleave", () => { paused = false; });
+    // Każdy wpis z serwera pojawia się na pasku DOKŁADNIE RAZ: wjeżdża z
+    // prawej krawędzi, przesuwa się w lewo i znika - nic się nie zapętla.
+    // Nowe wygrane czekają w kolejce, aż na prawej krawędzi zrobi się
+    // miejsce, więc karty zawsze jadą jedna za drugą bez nakładania.
+    const cards = [];   // { el, x } - x to lewa krawędź karty względem viewportu
+    const queue = [];
+    let lastId = 0, lastTs = 0, seeded = false;
 
     function rarityOf(d) {
       const known = typeof getSkinRarityColor === "function" ? getSkinRarityColor(d.weapon, d.skin) : null;
@@ -1912,56 +1912,73 @@
       return card;
     }
 
-    function addDrops(list) {
-      let ins = nextIdx;
+    function place(d, x) {
+      const el = buildCard(d);
+      el.style.transform = `translateX(${x}px)`;
+      viewport.appendChild(el);
+      cards.push({ el, x });
+    }
+
+    function enqueue(list) {
       for (const d of list) {
         if (d.id <= lastId) continue;
         lastId = d.id;
-        drops.splice(ins++, 0, d);
+        queue.push(d);
       }
-      while (drops.length > MAX_DROPS) {
-        let minI = 0;
-        for (let i = 1; i < drops.length; i++) if (drops[i].id < drops[minI].id) minI = i;
-        drops.splice(minI, 1);
-        if (minI < nextIdx) nextIdx--;
-      }
-      if (nextIdx >= drops.length) nextIdx = 0;
-      emptyMsg.style.display = drops.length ? "none" : "";
+      while (queue.length > MAX_QUEUE) queue.shift();
     }
 
     function tick(ts) {
       const dt = lastTs ? Math.min(0.1, (ts - lastTs) / 1000) : 0;
       lastTs = ts;
-      if (drops.length) {
-        if (!paused) offset -= SPEED * dt;
-        while (track.firstElementChild && -offset >= STEP) {
-          track.removeChild(track.firstElementChild);
-          offset += STEP;
-        }
-        const need = viewport.clientWidth + STEP;
-        let guard = 0;
-        while (track.children.length * STEP + offset < need && guard++ < 200) {
-          track.appendChild(buildCard(drops[nextIdx]));
-          nextIdx = (nextIdx + 1) % drops.length;
-        }
-        track.style.transform = `translateX(${offset}px)`;
+      const vw = viewport.clientWidth;
+      for (const c of cards) c.x -= SPEED * dt;
+      while (cards.length && cards[0].x < -CARD_W) {
+        cards.shift().el.remove();
       }
+      // Wpuszczamy kolejną kartę, gdy poprzednia już w całości wjechała
+      // (jej prawa krawędź + odstęp mieści się w viewportcie).
+      while (queue.length) {
+        const last = cards[cards.length - 1];
+        const lastRight = last ? last.x + CARD_W : -Infinity;
+        if (lastRight + GAP > vw) break;
+        place(queue.shift(), Math.max(vw, lastRight + GAP));
+      }
+      for (const c of cards) c.el.style.transform = `translateX(${c.x}px)`;
+      emptyMsg.style.display = cards.length || queue.length || lastId ? "none" : "";
       requestAnimationFrame(tick);
     }
 
-    async function poll(initial) {
+    async function poll() {
+      const initial = !seeded;
       if (document.hidden && !initial) return;
       try {
-        const res = await fetch(initial ? "/api/live-drops.php?limit=20" : `/api/live-drops.php?after=${lastId}`, { credentials: "same-origin" });
+        const url = initial ? `/api/live-drops.php?limit=${INITIAL}&_=${Date.now()}` : `/api/live-drops.php?after=${lastId}&_=${Date.now()}`;
+        const res = await fetch(url, { credentials: "same-origin", cache: "no-store" });
         const body = await res.json().catch(() => null);
-        if (res.ok && body && Array.isArray(body.drops)) addDrops(body.drops);
+        if (!res.ok || !body || !Array.isArray(body.drops)) return;
+        seeded = true;
+        if (initial) {
+          // Start: ostatnie wygrane od razu rozłożone na pasku (najnowsza
+          // przy prawej krawędzi), reszta wjeżdża już jako "na żywo".
+          const vw = viewport.clientWidth;
+          const fit = Math.max(1, Math.floor((vw + GAP) / (CARD_W + GAP)));
+          const shown = body.drops.slice(-fit);
+          shown.forEach((d, i) => {
+            lastId = Math.max(lastId, d.id);
+            place(d, vw - (shown.length - i) * (CARD_W + GAP) + GAP);
+          });
+        } else {
+          enqueue(body.drops);
+        }
       } catch (e) {
         // sieć chwilowo niedostępna - następne odpytanie spróbuje ponownie
       }
     }
 
-    poll(true);
-    setInterval(() => poll(false), POLL_MS);
+    poll();
+    setInterval(poll, POLL_MS);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) poll(); });
     requestAnimationFrame(tick);
   }
 
