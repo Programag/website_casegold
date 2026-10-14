@@ -1811,7 +1811,7 @@
   function initLiveFeed() {
     if (document.querySelector('meta[name="no-live-feed"]') || document.getElementById("liveFeedBar")) return;
 
-    const CARD_W = 124, GAP = 8, SPEED = 55, POLL_MS = 3000, MAX_QUEUE = 30, INITIAL = 20;
+    const CARD_W = 124, GAP = 8, STEP = CARD_W + GAP, POLL_MS = 3000, MAX_QUEUE = 10, INITIAL = 20;
 
     const style = document.createElement("style");
     style.textContent = `
@@ -1831,6 +1831,7 @@
         --rc:#4b69ff; position:absolute; top:8px; left:0; width:${CARD_W}px; height:92px; border-radius:8px; background:#161a24;
         box-shadow:inset 0 -26px 26px -20px var(--rc); border-bottom:2px solid var(--rc);
         display:flex; flex-direction:column; align-items:center; padding:5px 6px 4px; overflow:hidden; cursor:default; will-change:transform;
+        transition:transform .6s cubic-bezier(.22,.8,.3,1);
       }
       .lf-img{height:46px; width:100%; display:flex; align-items:center; justify-content:center;}
       .lf-img img{max-width:100%; max-height:46px; object-fit:contain;}
@@ -1855,13 +1856,19 @@
     const viewport = bar.querySelector(".lf-viewport");
     const emptyMsg = bar.querySelector(".lf-empty");
 
-    // Każdy wpis z serwera pojawia się na pasku DOKŁADNIE RAZ: wjeżdża z
-    // prawej krawędzi, przesuwa się w lewo i znika - nic się nie zapętla.
-    // Nowe wygrane czekają w kolejce, aż na prawej krawędzi zrobi się
-    // miejsce, więc karty zawsze jadą jedna za drugą bez nakładania.
-    const cards = [];   // { el, x } - x to lewa krawędź karty względem viewportu
+    // Każdy wpis z serwera pojawia się na pasku DOKŁADNIE RAZ i pasek stoi w
+    // miejscu, dopóki nic nowego nie wypadnie: nowa karta wjeżdża z prawej
+    // krawędzi i przesuwa pozostałe o jedno miejsce w lewo (najstarsza
+    // wyjeżdża). Nowe wygrane czekają w kolejce, żeby wjeżdżały po kolei.
+    const cards = [];   // { el } - od najstarszej (lewa) do najnowszej (prawa)
     const queue = [];
-    let lastId = 0, lastTs = 0, seeded = false;
+    let lastId = 0, seeded = false, pumping = false;
+
+    const fitCount = () => Math.max(1, Math.floor((viewport.clientWidth + GAP) / STEP));
+    function layout() {
+      cards.forEach((c, i) => { c.el.style.transform = `translateX(${i * STEP}px)`; });
+      emptyMsg.style.display = cards.length ? "none" : "";
+    }
 
     function rarityOf(d) {
       const known = typeof getSkinRarityColor === "function" ? getSkinRarityColor(d.weapon, d.skin) : null;
@@ -1912,11 +1919,24 @@
       return card;
     }
 
-    function place(d, x) {
+    function addCard(d, animate) {
       const el = buildCard(d);
-      el.style.transform = `translateX(${x}px)`;
+      if (!animate) el.style.transition = "none";
+      el.style.transform = `translateX(${viewport.clientWidth}px)`;
       viewport.appendChild(el);
-      cards.push({ el, x });
+      cards.push({ el });
+      const fit = fitCount();
+      while (cards.length > fit) {
+        const old = cards.shift();
+        old.el.style.transform = `translateX(${-STEP}px)`;
+        setTimeout(() => old.el.remove(), 800);
+      }
+      void viewport.offsetWidth; // zapisz pozycję startową przed animacją
+      layout();
+      if (!animate) {
+        void viewport.offsetWidth;
+        el.style.transition = "";
+      }
     }
 
     function enqueue(list) {
@@ -1926,27 +1946,18 @@
         queue.push(d);
       }
       while (queue.length > MAX_QUEUE) queue.shift();
+      pump();
     }
 
-    function tick(ts) {
-      const dt = lastTs ? Math.min(0.1, (ts - lastTs) / 1000) : 0;
-      lastTs = ts;
-      const vw = viewport.clientWidth;
-      for (const c of cards) c.x -= SPEED * dt;
-      while (cards.length && cards[0].x < -CARD_W) {
-        cards.shift().el.remove();
-      }
-      // Wpuszczamy kolejną kartę, gdy poprzednia już w całości wjechała
-      // (jej prawa krawędź + odstęp mieści się w viewportcie).
-      while (queue.length) {
-        const last = cards[cards.length - 1];
-        const lastRight = last ? last.x + CARD_W : -Infinity;
-        if (lastRight + GAP > vw) break;
-        place(queue.shift(), Math.max(vw, lastRight + GAP));
-      }
-      for (const c of cards) c.el.style.transform = `translateX(${c.x}px)`;
-      emptyMsg.style.display = cards.length || queue.length || lastId ? "none" : "";
-      requestAnimationFrame(tick);
+    function pump() {
+      if (pumping) return;
+      pumping = true;
+      (function next() {
+        const d = queue.shift();
+        if (!d) { pumping = false; return; }
+        addCard(d, true);
+        setTimeout(next, queue.length > 4 ? 250 : 900);
+      })();
     }
 
     async function poll() {
@@ -1959,14 +1970,10 @@
         if (!res.ok || !body || !Array.isArray(body.drops)) return;
         seeded = true;
         if (initial) {
-          // Start: ostatnie wygrane od razu rozłożone na pasku (najnowsza
-          // przy prawej krawędzi), reszta wjeżdża już jako "na żywo".
-          const vw = viewport.clientWidth;
-          const fit = Math.max(1, Math.floor((vw + GAP) / (CARD_W + GAP)));
-          const shown = body.drops.slice(-fit);
-          shown.forEach((d, i) => {
+          // Start: ostatnie wygrane od razu rozłożone na pasku (bez animacji).
+          body.drops.slice(-fitCount()).forEach((d) => {
             lastId = Math.max(lastId, d.id);
-            place(d, vw - (shown.length - i) * (CARD_W + GAP) + GAP);
+            addCard(d, false);
           });
         } else {
           enqueue(body.drops);
@@ -1979,7 +1986,11 @@
     poll();
     setInterval(poll, POLL_MS);
     document.addEventListener("visibilitychange", () => { if (!document.hidden) poll(); });
-    requestAnimationFrame(tick);
+    window.addEventListener("resize", () => {
+      const fit = fitCount();
+      while (cards.length > fit) cards.shift().el.remove();
+      layout();
+    });
   }
 
   function startLiveFeed() {
