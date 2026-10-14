@@ -46,20 +46,6 @@
     opacity:.9;
   }
 
-  /* ---------------- side floating widgets ---------------- */
-  .side-widgets{
-    position:fixed; left:16px; top:82px; z-index:40;
-    display:flex; flex-direction:column; gap:10px;
-  }
-  .side-pill{
-    background:var(--panel); border:1px solid var(--line); color:var(--text);
-    padding:9px 14px; border-radius:10px; cursor:pointer; font-size:13px; font-weight:500;
-    display:flex; align-items:center; gap:8px; box-shadow:0 6px 20px -8px rgba(0,0,0,.6);
-    font-family:'Inter',sans-serif;
-  }
-  .side-pill:hover{border-color:var(--hazard); color:var(--hazard);}
-  @media (max-width:900px){ .side-widgets{display:none;} }
-
   /* ---------------- top navigation ---------------- */
   .topnav{
     display:flex; align-items:center; gap:14px;
@@ -391,10 +377,6 @@
 
 <div class="hazard-bar"></div>
 
-<div class="side-widgets">
-  <button class="side-pill" id="chatBtn">💬 Chat</button>
-  <button class="side-pill" id="friendsBtn">👥 Znajomi</button>
-</div>
 
 <nav class="topnav">
   <div class="brand"><span class="brand-icon"><img src="casegold_logo.PNG" alt="Casegold" onerror="this.outerHTML='📦';"></span>Case<span class="accent">gold</span></div>
@@ -767,8 +749,6 @@ function showToast(msg){
 document.querySelectorAll("[data-soon]").forEach(el => {
   el.addEventListener("click", () => showToast("Wkrótce dostępne!"));
 });
-document.getElementById("chatBtn").onclick = () => showToast("Czat będzie dostępny wkrótce.");
-document.getElementById("friendsBtn").onclick = () => showToast("Lista znajomych będzie dostępna wkrótce.");
 
 /* ---- settings dropdown ---- */
 const settingsBtn = document.getElementById("settingsBtn");
@@ -940,7 +920,7 @@ const CATEGORY_LABELS_EN = {
 };
 const I18N = {
   pl: {
-    friendsBtn:"👥 Znajomi", navCases:"Skrzynki", navFree:"Darmowe", navTasks:"Zadania", navInventory:"Ekwipunek",
+    navCases:"Skrzynki", navFree:"Darmowe", navTasks:"Zadania", navInventory:"Ekwipunek",
     inventoryBtn:"Ekwipunek",
     heroTitle:"Skrzynki", heroSub:"Otwórz skrzynkę, zobacz co Ci wpadnie. Czysta symulacja — żadnych prawdziwych pieniędzy.",
     fbTxt:'Odbierz <span class="accent">darmową skrzynkę</span> co 3h!',
@@ -955,7 +935,7 @@ const I18N = {
     categories: CATEGORIES.reduce((o,c)=>(o[c.key]=c.label, o), {}),
   },
   en: {
-    friendsBtn:"👥 Friends", navCases:"Cases", navFree:"Free", navTasks:"Tasks", navInventory:"Inventory",
+    navCases:"Cases", navFree:"Free", navTasks:"Tasks", navInventory:"Inventory",
     inventoryBtn:"Inventory",
     heroTitle:"Cases", heroSub:"Open a case, see what drops. Pure simulation — no real money involved.",
     fbTxt:'Claim a <span class="accent">free case</span> every 3h!',
@@ -976,7 +956,6 @@ function applyLang(lang){
   currentLang = lang;
   localStorage.setItem(LANG_KEY, lang);
   const t = I18N[lang];
-  document.getElementById("friendsBtn").textContent = t.friendsBtn;
   document.getElementById("navCases").textContent = t.navCases;
   document.getElementById("navFree").textContent = t.navFree;
   document.getElementById("navTasks").textContent = t.navTasks;
