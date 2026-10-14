@@ -1833,7 +1833,7 @@
       .lf-bar{
         --r-milspec:#4b69ff; --r-restricted:#8847ff; --r-classified:#d32ce6; --r-covert:#eb4b4b; --r-gold:#ffd700;
         display:flex; align-items:stretch; height:108px; background:#0c0f15; border-bottom:1px solid #262c3a;
-        font-family:'Inter',sans-serif; overflow:hidden; position:relative; z-index:60;
+        font-family:'Inter',sans-serif; overflow:hidden; position:relative; z-index:40;
       }
       .lf-live{
         flex:none; width:92px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
@@ -1878,7 +1878,11 @@
       <div class="lf-live"><span class="lf-dot"></span>NA ŻYWO</div>
       <div class="lf-viewport"><div class="lf-empty">Czekamy na pierwsze wygrane graczy…</div></div>
     `;
-    document.body.insertBefore(bar, document.body.firstChild);
+    // Pod nawigacją (logo + napis CASEGOLD), nie na samej górze strony; strony
+    // bez nawigacji dostają pasek na górze.
+    const nav = document.querySelector("nav.topnav");
+    if (nav) nav.insertAdjacentElement("afterend", bar);
+    else document.body.insertBefore(bar, document.body.firstChild);
     const viewport = bar.querySelector(".lf-viewport");
     const emptyMsg = bar.querySelector(".lf-empty");
 
