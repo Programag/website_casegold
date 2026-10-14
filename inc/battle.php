@@ -74,14 +74,15 @@ function battle_public_list(): array {
    poczekalni kasuje całe lobby (tak jak jawne battle:leave hosta); zwykły
    gracz tylko zwalnia własne miejsce. Zwraca [lobby, changed, deleted]. */
 function battle_sweep_stale(array $lobby): array {
-    if ($lobby['status'] !== 'lobby') return [$lobby, false, false];
+    if ($lobby['status'] !== 'lobby') return [$lobby, false, false, []];
     $now = now_ms();
     $changed = false;
+    $refunds = []; // [steamid => kwota] do zwrotu wpisowego graczom, którym zwolniono miejsce
 
     foreach ($lobby['slots'] as $s) {
         if (($s['tabId'] ?? null) === $lobby['hostTabId']) {
             if (isset($s['lastSeen']) && ($now - $s['lastSeen']) > BATTLE_DISCONNECT_GRACE_MS) {
-                return [$lobby, false, true]; // host zniknął - całe lobby przepada
+                return [$lobby, false, true, []]; // host zniknął - całe lobby przepada (wołający zwraca wpisowe wszystkim)
             }
             break;
         }
@@ -90,11 +91,14 @@ function battle_sweep_stale(array $lobby): array {
         $type = $s['type'] ?? 'empty';
         if ($type === 'empty' || $type === 'bot' || ($s['tabId'] ?? null) === $lobby['hostTabId']) continue;
         if (isset($s['lastSeen']) && ($now - $s['lastSeen']) > BATTLE_DISCONNECT_GRACE_MS) {
+            if (!empty($s['steamid']) && ($s['paid'] ?? 0) > 0) {
+                $refunds[$s['steamid']] = ($refunds[$s['steamid']] ?? 0) + (float) $s['paid'];
+            }
             $lobby['slots'][$i] = ['type' => 'empty'];
             $changed = true;
         }
     }
-    return [$lobby, $changed, false];
+    return [$lobby, $changed, false, $refunds];
 }
 
 function battle_touch_slot(array $lobby, string $tabId): array {

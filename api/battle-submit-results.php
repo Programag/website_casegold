@@ -1,13 +1,16 @@
 <?php
+/* Start bitwy: wywołuje go host, gdy wszystkie miejsca są zajęte. Wyniki
+   LOSUJE SERWER (inc/battle_economy.php) - to, co host-klient mógłby tu
+   przysłać, jest ignorowane, więc nie da się ustawić sobie wygranej. */
 require_once __DIR__ . '/../inc/db.php';
 require_once __DIR__ . '/../inc/battle.php';
+require_once __DIR__ . '/../inc/battle_economy.php';
 
 header('Content-Type: application/json');
 $payload = json_decode(file_get_contents('php://input'), true);
 if (!is_array($payload)) $payload = [];
 $lobbyId = (string) ($payload['lobbyId'] ?? '');
 $tabId = (string) ($payload['tabId'] ?? '');
-$results = $payload['results'] ?? null;
 
 $pdo = db();
 $pdo->beginTransaction();
@@ -25,13 +28,15 @@ try {
             exit;
         }
     }
-    if (!is_array($results) || count($results) !== count($lobby['slots'])) {
-        $pdo->rollBack();
-        echo json_encode(['ok' => false]);
-        exit;
+    foreach ($lobby['rounds'] as $key) {
+        if (!battle_case_def((string) $key)) {
+            $pdo->rollBack();
+            echo json_encode(['ok' => false]);
+            exit;
+        }
     }
 
-    $lobby['results'] = $results;
+    $lobby['results'] = battle_generate_results($lobby);
     $lobby['status'] = 'running';
     $lobby['startedAt'] = now_ms();
 

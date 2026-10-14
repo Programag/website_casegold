@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../inc/db.php';
 require_once __DIR__ . '/../inc/users.php';
 require_once __DIR__ . '/../inc/auth.php';
+require_once __DIR__ . '/../inc/state_ops.php';
 
 header('Content-Type: application/json');
 
@@ -87,9 +88,15 @@ try {
         // 0/[] - inaczej jeden niekompletny/wadliwy push (np. urwane w
         // połowie żądanie) trwale zeruje saldo gracza zamiast po prostu nic
         // nie zmieniać w tym polu.
-        'balance' => num_or($body, 'balance', $state['balance'] ?? 0),
-        'inventory' => isset($body['inventory']) && is_array($body['inventory']) ? $body['inventory'] : ($state['inventory'] ?? []),
-        'invCounter' => max(num_or($body, 'invCounter', $invCounterFloor), $invCounterFloor),
+        // SALDO I EKWIPUNEK należą wyłącznie do serwera: zmieniają je tylko
+        // endpointy (api/apply-*.php, claim-*, inventory-*, open-free-case,
+        // battle-*, topup-webhook, admin). Wartości od klienta są ignorowane -
+        // dawniej każde urządzenie wypychało własną kopię, więc saldo
+        // rozjeżdżało się między komputerem a telefonem (i dało się je
+        // dowolnie ustawić). Nowe konto dostaje saldo startowe.
+        'balance' => $state ? ($state['balance'] ?? 0) : STATE_START_BALANCE,
+        'inventory' => $state['inventory'] ?? [],
+        'invCounter' => $invCounterFloor,
         'level' => num_or($body, 'level', $state['level'] ?? 0),
         'xp' => max(num_or($body, 'xp', 0), $xpFloor),
         'dailyBonusAt' => num_or($body, 'dailyBonusAt', null),
@@ -123,6 +130,11 @@ try {
             $v = isset($body['freeCaseOpens']) && is_array($body['freeCaseOpens']) ? $body['freeCaseOpens'] : ($state['freeCaseOpens'] ?? []);
             return empty($v) ? new stdClass() : $v;
         })(),
+        // Cooldowny darmowych skrzynek (api/open-free-case.php) - tak jak
+        // affiliate*, wyłącznie serwerowe: klient ich nie ustawia, ale ten
+        // endpoint buduje stan od zera, więc bez tej linijki każdy push
+        // kasowałby zapisane cooldowny.
+        'freeCaseCooldowns' => is_array($state['freeCaseCooldowns'] ?? null) ? $state['freeCaseCooldowns'] : [],
         'battleHistory' => isset($body['battleHistory']) && is_array($body['battleHistory']) ? $body['battleHistory'] : ($state['battleHistory'] ?? []),
         // affiliateCode/affiliateStats - w przeciwieństwie do WSZYSTKICH pól
         // wyżej, celowo NIGDY nie honorujemy tu wartości od klienta (nawet

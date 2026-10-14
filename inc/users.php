@@ -86,6 +86,9 @@ function fix_state_object_fields(?array $state): ?array {
     if (isset($state['freeCaseOpens']) && is_array($state['freeCaseOpens']) && empty($state['freeCaseOpens'])) {
         $state['freeCaseOpens'] = new stdClass();
     }
+    if (isset($state['freeCaseCooldowns']) && is_array($state['freeCaseCooldowns']) && empty($state['freeCaseCooldowns'])) {
+        $state['freeCaseCooldowns'] = new stdClass();
+    }
     return $state;
 }
 

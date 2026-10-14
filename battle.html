@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<script src="steam-auth.js?v=32"></script>
+<script src="steam-auth.js?v=33"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CASEGOLD // Bitwy</title>
 <link rel="icon" type="image/png" href="casegold_logo.PNG">
@@ -2476,21 +2476,6 @@ let xp = s0.xp;
 let level = window.SteamAuth.effectiveLevel(xp);
 /* 10 zł wygranych w bitwie = 1 EXP (formuła i progi poziomów są wspólne
    dla całej strony, patrz window.SteamAuth w steam-auth.js). */
-function awardBattleXp(amountWon){
-  reloadSharedState();
-  const gained = amountWon * window.SteamAuth.xpPerZl;
-  if(!(gained > 0)) return;
-  const oldLevel = window.SteamAuth.effectiveLevel(xp);
-  xp += gained;
-  level = window.SteamAuth.effectiveLevel(xp);
-  saveState();
-  window.SteamAuth.refreshLevelBadge();
-  const leveledUp = level > oldLevel;
-  const p = window.SteamAuth.xpProgress(xp);
-  if(leveledUp) log(`🎉 Awans! Nowy poziom: ${level} (+${gained.toFixed(2)} EXP za wygraną)`);
-  else log(`+${gained.toFixed(2)} EXP za wygraną (${p.into.toFixed(2)}/${p.needed.toFixed(2)} do poziomu ${level+1}).`);
-}
-
 const balanceEl = document.getElementById("balance");
 const logEl = document.getElementById("log");
 function log(msg){}
@@ -2765,6 +2750,8 @@ socket.on("battle:closed", ({lobbyId}) => {
     updateBattleUrl(null);
     log("Bitwa została zamknięta.");
     showLandingView();
+    // Serwer zwrócił wpisowe przy zamknięciu poczekalni - dociągnij saldo.
+    window.SteamAuth.refreshStateFromServer().then(() => { reloadSharedState(); renderBalance(); });
   }
 });
 socket.on("connect", () => {
@@ -2792,29 +2779,6 @@ function reloadSharedState(){
   const s = loadState();
   balance = s.balance; inventory = s.inventory; invCounter = s.invCounter; level = s.level; xp = s.xp;
 }
-function spendShared(amount){
-  reloadSharedState();
-  balance -= amount;
-  saveState();
-  renderBalance();
-}
-function creditShared(amount){
-  reloadSharedState();
-  balance += amount;
-  saveState();
-  renderBalance();
-}
-function awardItemsShared(items){
-  reloadSharedState();
-  items.forEach(it => {
-    invCounter++;
-    inventory.push({ weapon:it.weapon, skin:it.skin, wear:it.wear, price:it.price, img:getSkinImage(it), _id: invCounter });
-    window.SteamAuth.recordPull(it);
-    window.SteamAuth.recordCasesOpened(1);
-  });
-  saveState();
-}
-
 let myLobbyId = sessionStorage.getItem("myLobbyId_v1") || null;
 let animatingLobbyId = null; // guards against re-triggering the reveal animation
 // Bumped every time a fresh runLobbyRounds() chain starts (startLiveRounds/
@@ -3446,13 +3410,16 @@ startBattleBtn.onclick = () => {
         console.error("battle:create bad_json_response, http status:", res.httpStatus, "raw:", res.raw);
         return;
       }
+      if(res && res.reason === "insufficient_funds"){ alert("Masz za mało środków na wejście do tej bitwy."); return; }
       alert("Nie udało się utworzyć bitwy — spróbuj ponownie." + (res && res.reason ? ` (${res.reason})` : ""));
       return;
     }
     const lobby = res.lobby;
     myLobbyObj = lobby;
-    spendShared(cost); // host's own seat is paid for immediately
-    window.SteamAuth.flushPush(); // don't leave this behind the 500ms debounce — see finishConclusion() for why
+    // Wpisowe hosta pobrał już serwer (battle-create.php) - tylko przyjmujemy stan konta.
+    if(res.state) window.SteamAuth.applyServerState(res.state);
+    reloadSharedState();
+    renderBalance();
 
     myLobbyId = lobby.id;
     sessionStorage.setItem("myLobbyId_v1", lobby.id);
@@ -3779,14 +3746,17 @@ function joinSlot(lobbyId, idx){
         renderOpenLobbies();
         return;
       }
+      if(res && res.reason === "insufficient_funds"){ alert("Masz za mało środków na wejście do tej bitwy."); renderOpenLobbies(); return; }
       alert("To miejsce zostało już zajęte.");
       renderOpenLobbies();
       return;
     }
     const lobby = res.lobby;
     myLobbyObj = lobby;
-    spendShared(lobby.cost);
-    window.SteamAuth.flushPush(); // don't leave this behind the 500ms debounce — see finishConclusion() for why
+    // Wpisowe pobrał serwer (battle-join.php) razem z zajęciem miejsca.
+    if(res.state) window.SteamAuth.applyServerState(res.state);
+    reloadSharedState();
+    renderBalance();
     myLobbyId = lobby.id;
     sessionStorage.setItem("myLobbyId_v1", lobby.id);
     animatingLobbyId = null;
@@ -4392,102 +4362,45 @@ function finishConclusion(lobby, outcome, mySlotIdx){
 
   renderOutcomeBanner(lobby, outcome);
 
-  // Each participant settles their OWN result on their OWN wallet — nobody else's
-  // client ever touches your balance/inventory. There's no single "host pays
-  // everyone out" step anymore, because real players each have a separate
-  // account now (that used to be safe when host+joiner shared one localStorage
-  // wallet on the same browser, but it isn't once they're different people).
-  // EXP is earned only on actual winnings (10 zł won = 1 EXP) — a tie/loss
-  // gives nothing beyond what cases you separately opened.
+  // Rozliczenie robi SERWER: battle-finish.php sam liczy wynik z zapisanych
+  // wyników i wypłaca zwycięzców (przedmioty, EXP) na ich konta - saldo i
+  // ekwipunek są wspólne dla wszystkich urządzeń, klient niczego już tu nie
+  // księguje lokalnie. Zgłaszają to wszyscy (także widzowie) - serwer jest
+  // idempotentny, a odpowiedź niesie rozliczenie tego gracza i jego stan.
   if(mySlotIdx !== -1){
-    reloadSharedState();
-    let historyOutcome = "loss";
-    let historyValue = 0;
-    let historyItem = null;
-    if(outcome.shared){
-      const allItems = [];
-      lobby.results.forEach(r => r.rounds.forEach(it => allItems.push(it)));
-      const wonValue = allItems.reduce((s,it)=>s+it.price,0);
-      const perPlayer = wonValue / lobby.totalPlayers;
-      const myShare = pickItemsForValue(perPlayer);
-      awardItemsShared(myShare);
+    socket.emit("battle:finish", { lobbyId: lobby.id, tabId: myTabId }, (res) => {
+      if(res && res.state) window.SteamAuth.applyServerState(res.state);
+      reloadSharedState();
       renderBalance();
-      const myValue = myShare.reduce((s,it)=>s+it.price,0);
-      awardBattleXp(myValue);
-      log(`Bitwa: Shared. Pula (${allItems.length} przedmiotów, ${fmt(wonValue)}) podzielona po równo między ${lobby.totalPlayers} graczy. Twoja część: ${myShare.length} przedmiotów o wartości ${fmt(myValue)}.`);
-      historyOutcome = "shared";
-      historyValue = myValue;
-      historyItem = myShare.reduce((top, it) => (!top || it.price > top.price) ? it : top, null);
-    } else if(outcome.tie){
-      balance += lobby.cost; // refund only what I personally staked
-      saveState();
-      renderBalance();
-      log(`Bitwa: remis. Zwrócono Twoje wejście: ${fmt(lobby.cost)}.`);
-      historyOutcome = "tie";
-    } else {
-      const winners = outcome.winnerIndices.map(i => lobby.slots[i]);
-      const winLabel = isTeamsMode(lobby) ? `${outcome.winnerTeam === 0 ? "CT" : "T"} (${winners.map(w=>w.name).join(", ")})` : winners[0].name;
-      const iAmWinner = outcome.winnerIndices.includes(mySlotIdx);
-      if(iAmWinner){
-        const allItems = [];
-        lobby.results.forEach(r => r.rounds.forEach(it => allItems.push(it)));
-        const wonValue = allItems.reduce((s,it)=>s+it.price,0);
-        historyOutcome = "win";
-        if(isTeamsMode(lobby)){
-          // the winning team gets the whole pot, but a human member only keeps
-          // their own half — represented as fresh, value-matched skins from the
-          // general database rather than literally splitting the drops in two
-          const myShare = pickItemsForValue(wonValue / 2);
-          awardItemsShared(myShare);
-          renderBalance();
-          const myValue = myShare.reduce((s,it)=>s+it.price,0);
-          awardBattleXp(myValue);
-          log(`Bitwa: wygrana dla ${winLabel}. Twoja połowa puli: ${myShare.length} przedmiotów o wartości ${fmt(myValue)} (drużyna zgarnęła łącznie ${allItems.length} przedmiotów o wartości ${fmt(wonValue)}).`);
-          historyValue = myValue;
-          historyItem = myShare.reduce((top, it) => (!top || it.price > top.price) ? it : top, null);
-        } else {
-          awardItemsShared(allItems);
-          renderBalance();
-          awardBattleXp(wonValue);
-          log(`Bitwa: wygrana dla ${winLabel}. Przyznano ${allItems.length} przedmiotów o wartości ${fmt(wonValue)}.`);
-          historyValue = wonValue;
-          historyItem = allItems.reduce((top, it) => (!top || it.price > top.price) ? it : top, null);
-        }
-      } else {
-        log(`Bitwa: wygrywa ${winLabel}. Wejścia przepadają.`);
-        historyOutcome = "loss";
+      window.SteamAuth.refreshLevelBadge();
+      const payout = res && res.payout ? res.payout : null;
+      let historyOutcome = "loss";
+      let historyValue = 0;
+      let historyItem = null;
+      if(payout){
+        historyOutcome = payout.kind === "win" ? "win" : payout.kind === "shared" ? "shared" : "loss";
+        historyValue = payout.value || 0;
+        const items = payout.items || [];
+        historyItem = items.reduce((top, it) => (!top || it.price > top.price) ? it : top, null);
+        if(payout.xp > 0) log(`+${payout.xp.toFixed(2)} EXP za wygraną.`);
       }
-    }
-    window.SteamAuth.recordBattleHistory({
-      lobbyId: lobby.id,
-      cost: lobby.cost,
-      totalPlayers: lobby.totalPlayers,
-      teams: !!lobby.teams,
-      rounds: lobby.rounds ? lobby.rounds.length : 0,
-      players: lobby.slots.map(s => ({ name: s.name, avatar: s.avatar || null, type: s.type })),
-      outcome: historyOutcome,
-      value: historyValue,
-      item: historyItem ? { weapon: historyItem.weapon, skin: historyItem.skin, wear: historyItem.wear, price: historyItem.price } : null,
+      window.SteamAuth.recordBattleHistory({
+        lobbyId: lobby.id,
+        cost: lobby.cost,
+        totalPlayers: lobby.totalPlayers,
+        teams: !!lobby.teams,
+        rounds: lobby.rounds ? lobby.rounds.length : 0,
+        players: lobby.slots.map(s => ({ name: s.name, avatar: s.avatar || null, type: s.type })),
+        outcome: historyOutcome,
+        value: historyValue,
+        item: historyItem ? { weapon: historyItem.weapon, skin: historyItem.skin, wear: historyItem.wear, price: historyItem.price } : null,
+      });
+      window.SteamAuth.recordBattleResult(historyOutcome === "win");
+      window.SteamAuth.flushPush();
     });
-    window.SteamAuth.recordBattleResult(historyOutcome === "win");
-    // Gracze zwykle klikają w inną zakładkę nawigacji od razu po zobaczeniu
-    // wyniku - zwykły 500ms debounce (schedulePush) potrafi nie zdążyć nawet
-    // wystartować przed odładowaniem strony, przez co ostatni zapis (nowe
-    // saldo/przedmioty/XP) nigdy nie trafia na serwer i po powrocie widać
-    // stan sprzed bitwy. Flush od razu, żeby request faktycznie wystartował
-    // (keepalive w środku dokończy go w tle nawet po nawigacji).
-    window.SteamAuth.flushPush();
+  } else {
+    socket.emit("battle:finish", { lobbyId: lobby.id, tabId: myTabId });
   }
-
-  // Reported by WHOEVER's tab first reaches the end of the animation, not just
-  // the host — determineOutcome() is fully deterministic (seeded off lobby.id),
-  // so every viewer computes the exact same outcome. Restricting this to the
-  // host meant a lobby stayed stuck as "running" forever (and kept re-playing
-  // the last round's spin for every new viewer instead of showing the instant
-  // final state) whenever the host's tab closed before its own animation
-  // finished — see battle-finish.php for the idempotency guard that keeps
-  // multiple simultaneous reporters from double-recording the daily top.
-  socket.emit("battle:finish", { lobbyId: lobby.id, tabId: myTabId, outcome });
 }
 
 function renderInstantFinalState(lobby){
@@ -4767,8 +4680,12 @@ document.getElementById("cancelBattleBtn").onclick = () => {
     ? `Na pewno chcesz anulować tę bitwę? Wpłacone wejście (${fmt(lobby.cost)}) zostanie zwrócone na Twoje saldo.`
     : `Na pewno chcesz anulować swój udział w tej bitwie? Wpłacone wejście (${fmt(lobby.cost)}) zostanie zwrócone na Twoje saldo.`;
   if(!confirm(confirmMsg)) return;
-  socket.emit("battle:leave", { lobbyId: myLobbyId, tabId: myTabId });
-  creditShared(lobby.cost);
+  // Zwrot wpisowego robi serwer (battle-leave.php) - dociągamy stan konta.
+  socket.emit("battle:leave", { lobbyId: myLobbyId, tabId: myTabId }, (res) => {
+    if(res && res.state) window.SteamAuth.applyServerState(res.state);
+    reloadSharedState();
+    renderBalance();
+  });
   log(isHost ? `Anulowano bitwę. Zwrócono wejście: ${fmt(lobby.cost)}.` : `Anulowano udział w bitwie. Zwrócono wejście: ${fmt(lobby.cost)}.`);
   myLobbyId = null;
   myLobbyObj = null;

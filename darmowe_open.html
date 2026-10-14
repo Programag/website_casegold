@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<script src="steam-auth.js?v=32"></script>
+<script src="steam-auth.js?v=33"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CASEGOLD // Darmowe</title>
 <link rel="icon" type="image/png" href="casegold_logo.PNG">
@@ -624,7 +624,7 @@ function renderCountdown(){
 setInterval(renderCountdown, 1000);
 renderCountdown();
 
-openBtn.onclick = () => {
+openBtn.onclick = async () => {
   if(!window.SteamAuth.requireLogin()) return;
   const now = Date.now();
   if(spinning || now - Number(localStorage.getItem(CASE.key) || 0) < CASE.cooldownMs) return;
@@ -632,7 +632,20 @@ openBtn.onclick = () => {
   openBtn.disabled = true;
   openBtn.textContent = "Otwieranie…";
 
-  const winner = weightedRoll(CASE.items);
+  // Poziom, cooldown (wspólny dla wszystkich urządzeń), LOSOWANIE i zapis do
+  // ekwipunku robi serwer (api/open-free-case.php); tu animujemy wynik.
+  const res = await window.SteamAuth.serverAction("/api/open-free-case.php", { caseId: CASE_DEFS[caseId] ? caseId : "free" });
+  if(!res.ok){
+    spinning = false;
+    await window.SteamAuth.refreshStateFromServer();
+    Object.assign(state, loadState());
+    renderBalance();
+    renderCountdown();
+    showToast(res.error === "cooldown" ? "Ta skrzynka jest jeszcze niedostępna." : res.error === "level_too_low" ? "Masz zbyt niski poziom na tę skrzynkę." : "Nie udało się otworzyć skrzynki - spróbuj ponownie.");
+    return;
+  }
+  localStorage.setItem(CASE.key, String(res.openedAt));
+  const winner = CASE.items.find(it => it.weapon === res.item.weapon && it.skin === res.item.skin && it.wear === res.item.wear) || res.item;
   const winnerIndex = buildReel(winner);
   const duration = fastMode ? 650 : 5300;
   playSpinSound(duration);
@@ -640,13 +653,8 @@ openBtn.onclick = () => {
 
   setTimeout(() => {
     spinning = false;
-    state.invCounter++;
-    state.inventory.push({ weapon: winner.weapon, skin: winner.skin, wear: winner.wear, price: winner.price, img: getSkinImage(winner), _id: state.invCounter });
-    window.SteamAuth.recordPull(winner);
-    window.SteamAuth.recordCasesOpened(1);
-    window.SteamAuth.reportFreeDrop(CASE_DEFS[caseId] ? caseId : "free", winner);
-    localStorage.setItem(CASE.key, String(now));
-    saveState(state);
+    Object.assign(state, loadState()); // serwer już zapisał przedmiot i cooldown
+    renderBalance();
     playWinSound();
     showToast(`Wypadło: ${winner.weapon} | ${winner.skin} (${winner.wear}) — ${fmt(winner.price)}! Sprawdź ekwipunek.`);
     renderCountdown();

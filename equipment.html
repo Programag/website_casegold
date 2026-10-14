@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<script src="steam-auth.js?v=32"></script>
+<script src="steam-auth.js?v=33"></script>
 <script src="sound.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CASEGOLD // Ekwipunek</title>
@@ -376,13 +376,22 @@ function itemNode(it, cls){
   div.appendChild(btn);
   return div;
 }
-function toggleLock(id){
+async function toggleLock(id){
   const it = inventory.find(i => i._id === id);
   if(!it) return;
-  it.locked = !it.locked;
-  saveState();
+  // Blokada żyje na serwerze razem z ekwipunkiem (api/inventory-lock.php).
+  const res = await window.SteamAuth.setItemLocked(id, !it.locked);
+  if(!res.ok){
+    await window.SteamAuth.refreshStateFromServer();
+    reloadSharedState();
+    renderInventory();
+    log("Nie udało się zmienić blokady - odświeżono ekwipunek.");
+    return;
+  }
+  reloadSharedState();
   renderInventory();
-  log(`${it.locked ? "Zablokowano" : "Odblokowano"}: ${it.weapon} | ${it.skin} (${it.wear})`);
+  const now = inventory.find(i => i._id === id);
+  log(`${now && now.locked ? "Zablokowano" : "Odblokowano"}: ${it.weapon} | ${it.skin} (${it.wear})`);
 }
 function getRarityColor(it){
   const known = getSkinRarityColor(it.weapon, it.skin);
@@ -415,20 +424,27 @@ function renderInventory(){
   }
   sorted.forEach(it => inventoryEl.appendChild(itemNode(it, "inv-item")));
 }
-function sellItem(id){
+async function sellItem(id){
   try{
-    const idx = inventory.findIndex(i => i._id === id);
-    if(idx === -1){ log(`Nie znaleziono przedmiotu do sprzedaży (id ${id}).`); return; }
-    const it = inventory[idx];
+    const it = inventory.find(i => i._id === id);
+    if(!it){ log(`Nie znaleziono przedmiotu do sprzedaży (id ${id}).`); return; }
     if(it.locked){ log(`Przedmiot "${it.weapon} | ${it.skin}" jest zablokowany - odblokuj go, żeby sprzedać.`); return; }
-    const price = (typeof it.price === "number" && isFinite(it.price)) ? it.price : 0;
-    if(price !== it.price) log(`Uwaga: "${it.weapon || "?"} | ${it.skin || "?"}" miał nieprawidłową cenę (${it.price}) - sprzedano za 0,00 zł. Zgłoś to.`);
-    balance += price;
-    inventory.splice(idx, 1);
+    // Sprzedaż liczy serwer (api/inventory-sell.php) - cena pochodzi z jego
+    // własnej kopii przedmiotu, saldo i ekwipunek są wspólne dla wszystkich urządzeń.
+    const res = await window.SteamAuth.sellItems({ ids: [id] });
+    if(!res.ok){
+      await window.SteamAuth.refreshStateFromServer();
+      reloadSharedState();
+      renderBalance();
+      renderInventory();
+      log("Nie udało się sprzedać przedmiotu - odświeżono ekwipunek.");
+      return;
+    }
+    reloadSharedState();
     renderBalance();
     renderInventory();
     playSellSound();
-    log(`Sprzedano: ${it.weapon} | ${it.skin} (${it.wear}) za ${fmt(price)}`);
+    log(`Sprzedano: ${it.weapon} | ${it.skin} (${it.wear}) za ${fmt(res.total)}`);
   }catch(e){
     log(`Błąd sprzedaży: ${e.message}`);
   }
@@ -533,18 +549,23 @@ async function claimAllLevelRewards(){
 
 function init(){
   document.getElementById("claimAllRewardsBtn").onclick = claimAllLevelRewards;
-  document.getElementById("sellAllBtn").onclick = () => {
+  document.getElementById("sellAllBtn").onclick = async () => {
     if(inventory.length === 0) return;
-    const sellable = inventory.filter(i => !i.locked);
-    const lockedCount = inventory.length - sellable.length;
-    if(sellable.length === 0){ log("Wszystkie przedmioty są zablokowane - odblokuj je, żeby je sprzedać."); return; }
-    const total = sellable.reduce((s,i) => s + (typeof i.price === "number" && isFinite(i.price) ? i.price : 0), 0);
-    balance += total;
-    inventory = inventory.filter(i => i.locked);
+    if(inventory.every(i => i.locked)){ log("Wszystkie przedmioty są zablokowane - odblokuj je, żeby je sprzedać."); return; }
+    const res = await window.SteamAuth.sellItems({ all: true });
+    if(!res.ok){
+      await window.SteamAuth.refreshStateFromServer();
+      reloadSharedState();
+      renderBalance();
+      renderInventory();
+      log("Nie udało się sprzedać przedmiotów - odświeżono ekwipunek.");
+      return;
+    }
+    reloadSharedState();
     renderBalance();
     renderInventory();
     playSellSound();
-    log(`Sprzedano wszystko za ${fmt(total)}` + (lockedCount > 0 ? ` (pominięto ${lockedCount} zablokowanych)` : ""));
+    log(`Sprzedano wszystko za ${fmt(res.total)}` + (res.skippedLocked > 0 ? ` (pominięto ${res.skippedLocked} zablokowanych)` : ""));
   };
   document.getElementById("sortSelect").onchange = (e) => { sortMode = e.target.value; renderInventory(); };
   document.getElementById("inventoryBtn").onclick = () => { window.location.href = "/equipment.html"; };

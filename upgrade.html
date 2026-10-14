@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<script src="steam-auth.js?v=32"></script>
+<script src="steam-auth.js?v=33"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CASEGOLD // Ulepszenia</title>
 <link rel="icon" type="image/png" href="casegold_logo.PNG">
@@ -1568,7 +1568,7 @@ function resetNeedleInstant(){
   void wheelNeedleEl.offsetHeight; // force reflow
 }
 
-upgradeBtn.onclick = () => {
+upgradeBtn.onclick = async () => {
   if(!window.SteamAuth.requireLogin()) return;
   const inItems = getInputItems();
   const tgIt = getTargetItem();
@@ -1581,8 +1581,6 @@ upgradeBtn.onclick = () => {
   if(chance > MAX_SELECTABLE_CHANCE) return; // safety net, shouldn't happen via normal UI flow
   const winDeg = chance/100*360;
 
-  window.SteamAuth.recordUpgradeClick();
-  window.SteamAuth.recordUpgradeSpend(inTotal);
   spinning = true;
   updateAll();
   outcomeBanner.classList.remove("show", "win", "lose");
@@ -1590,13 +1588,43 @@ upgradeBtn.onclick = () => {
 
   const itemsLabel = inItems.map(it => `${it.weapon} | ${it.skin} (${it.wear})`).join(", ");
 
-  // spend: remove all input items from inventory + deduct cash used
-  const idsToRemove = new Set(inItems.map(it => it._id));
-  inventory = inventory.filter(i => !idsToRemove.has(i._id));
-  balance -= cashUsed;
+  // Całe ulepszenie (własność przedmiotów, saldo, szansa, LOSOWANIE i
+  // księgowanie) liczy serwer - api/apply-upgrade.php; tu tylko animujemy
+  // wynik, który zwrócił. Saldo i ekwipunek są wspólne dla wszystkich urządzeń.
+  const res = await window.SteamAuth.serverAction("/api/apply-upgrade.php", {
+    itemIds: inItems.map(it => it._id),
+    cash: cashUsed,
+    targetIndex: UPGRADE_TARGET_ITEMS.indexOf(tgIt),
+    weapon: tgIt.weapon, skin: tgIt.skin, wear: tgIt.wear,
+  });
+  if(!res.ok){
+    spinning = false;
+    await window.SteamAuth.refreshStateFromServer();
+    const fresh = loadState();
+    balance = fresh.balance; inventory = fresh.inventory; invCounter = fresh.invCounter;
+    selectedInputIds.clear();
+    cashUsed = 0;
+    selectedTargetKey = null;
+    selectedChancePreset = null;
+    renderBalance();
+    refreshFundsBounds();
+    renderInvGrid();
+    renderTargetGrid();
+    updateAll();
+    outcomeBanner.classList.add("show", "lose");
+    outcomeBanner.textContent = res.error === "insufficient_funds" ? "Za mało środków na koncie." : "Nie udało się wykonać ulepszenia - spróbuj ponownie.";
+    return;
+  }
+  const afterServer = loadState();
+  balance = afterServer.balance;
+  invCounter = afterServer.invCounter;
+  // Wygrany przedmiot pojawia się w ekwipunku dopiero po animacji (serwer ma
+  // go już zapisanego) - do tego czasu go chowamy.
+  const newItemId = res.item ? res.item._id : null;
+  inventory = afterServer.inventory.filter(i => i._id !== newItemId);
   renderBalance();
 
-  const won = Math.random()*100 < chance;
+  const won = res.won;
 
   playSpinSound(SPIN_MS);
 
@@ -1620,9 +1648,7 @@ upgradeBtn.onclick = () => {
     spinning = false;
     stopSpinSound();
     if(won){
-      invCounter++;
-      inventory.push({ weapon:tgIt.weapon, skin:tgIt.skin, wear:tgIt.wear, price:tgIt.price, img:getSkinImage(tgIt), _id: invCounter });
-      window.SteamAuth.recordPull(tgIt);
+      inventory.push({ ...res.item, img:getSkinImage(tgIt) });
       outcomeBanner.classList.add("show", "win");
       outcomeBanner.textContent = `Wygrana! Otrzymujesz ${tgIt.weapon} | ${tgIt.skin} (${tgIt.wear}) za ${fmt(tgIt.price)}`;
       playWinSound();

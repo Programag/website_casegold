@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../inc/db.php';
 require_once __DIR__ . '/../inc/battle.php';
+require_once __DIR__ . '/../inc/battle_economy.php';
 
 header('Content-Type: application/json');
 
@@ -27,13 +28,16 @@ try {
         exit;
     }
 
-    [$lobby, $changed, $deleted] = battle_sweep_stale($lobby);
+    [$lobby, $changed, $deleted, $refunds] = battle_sweep_stale($lobby);
     if ($deleted) {
+        battle_refund_all_seated($pdo, $lobby);
         battle_delete($pdo, $id);
         $pdo->commit();
         echo json_encode(['ok' => false, 'reason' => 'not_found']);
         exit;
     }
+
+    foreach ($refunds as $steamid => $amount) battle_refund_user($pdo, (string) $steamid, $amount);
 
     if ($tabId !== null && $tabId !== '' && battle_find_slot_idx($lobby, $tabId) !== -1) {
         $lobby = battle_touch_slot($lobby, $tabId);

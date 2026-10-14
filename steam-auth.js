@@ -52,6 +52,21 @@
     return { loggedIn: false };
   }
 
+  // Cooldowny darmowych skrzynek żyją na serwerze (state.freeCaseCooldowns) i
+  // są odbijane w kluczach localStorage, z których czytają darmowe.html i
+  // darmowe_open.html - dzięki temu odliczanie jest wspólne dla urządzeń.
+  function syncFreeCaseCooldowns(s) {
+    try {
+      const map = s && s.freeCaseCooldowns;
+      if (!map || typeof map !== "object" || Array.isArray(map)) return;
+      Object.keys(map).forEach((id) => {
+        if (/^[a-z0-9]{2,12}$/.test(id) && typeof map[id] === "number") {
+          localStorage.setItem("cs2sim_darmowe_" + id + "_at", String(map[id]));
+        }
+      });
+    } catch (e) {}
+  }
+
   const me = fetchMeSync();
   window.__STEAM_AUTH__ = me;
 
@@ -181,9 +196,23 @@
         localState.levelWatermark = mergedWatermark;
         localStorage.setItem(STATE_KEY, JSON.stringify(localState));
       }
+      // SALDO i EKWIPUNEK: serwer jest jedynym źródłem prawdy - przy każdym
+      // wczytaniu strony bierzemy je z serwera, niezależnie od tego, która kopia
+      // ("świeższa" według znacznika czasu) wygrała powyżej. Dawna reguła
+      // "świeższy wygrywa" powodowała, że urządzenie z lokalnymi zapisami
+      // potrafiło trzymać inne saldo niż reszta (np. 37 tys. na komputerze i
+      // 29 tys. na telefonie).
+      try {
+        const cur = JSON.parse(localStorage.getItem(STATE_KEY) || "{}");
+        cur.balance = s.balance;
+        cur.inventory = s.inventory;
+        cur.invCounter = s.invCounter;
+        localStorage.setItem(STATE_KEY, JSON.stringify(cur));
+      } catch (e5) {}
       if (s.dailyBonusAt) localStorage.setItem(DAILY_KEY, String(s.dailyBonusAt));
       if (typeof s.dailyStreak === "number") localStorage.setItem(DAILY_STREAK_KEY, String(s.dailyStreak));
       if (s.freeCaseAt) localStorage.setItem(FREE_CASE_KEY, String(s.freeCaseAt));
+      syncFreeCaseCooldowns(s);
     } catch (e) {}
   }
 
@@ -213,7 +242,7 @@
   function schedulePush() {
     if (!me.loggedIn) return;
     clearTimeout(pushTimer);
-    pushTimer = setTimeout(pushNow, 500);
+    pushTimer = setTimeout(() => { pushTimer = null; pushNow(); }, 500);
   }
   // Dla zdarzeń, po których gracz zwykle NATYCHMIAST nawiguje gdzie indziej
   // (koniec bitwy -> klik w inną zakładkę nawigacji) zwykły 500ms debounce to
@@ -244,10 +273,9 @@
   function buildPushPayload() {
     let state = {};
     try { state = JSON.parse(localStorage.getItem(STATE_KEY) || "{}"); } catch (e) {}
+    // balance/inventory/invCounter celowo NIE są wysyłane - należą wyłącznie do
+    // serwera (api/state.php i tak je ignoruje).
     return {
-      balance: state.balance,
-      inventory: state.inventory,
-      invCounter: state.invCounter,
       level: typeof state.level === "number" ? state.level : 0,
       xp: typeof state.xp === "number" ? state.xp : 0,
       bestPull: state.bestPull || null,
@@ -564,21 +592,6 @@
       return { ok: false, error: "network_error" };
     }
   }
-  // Zgłasza wygraną z darmowej skrzynki (otwieranej po stronie klienta) do
-  // paska "na żywo" - api/report-free-drop.php sam waliduje przedmiot i cenę.
-  // Fire-and-forget: błąd nie może zepsuć otwarcia skrzynki.
-  function reportFreeDrop(caseId, item) {
-    if (!me.loggedIn || !item) return;
-    try {
-      fetch("/api/report-free-drop.php", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        keepalive: true,
-        body: JSON.stringify({ caseId, weapon: item.weapon, skin: item.skin, wear: item.wear }),
-      }).catch(() => {});
-    } catch (e) { /* ignorujemy */ }
-  }
   // Przelewa CAŁOŚĆ jeszcze nie wypłaconych zarobków partnerskich
   // (readAffiliateInfo().available) na WŁASNE saldo gracza - w pełni
   // serwerowe (api/withdraw-affiliate-earnings.php), operuje na koncie
@@ -618,6 +631,7 @@
       if (s.dailyBonusAt) localStorage.setItem(DAILY_KEY, String(s.dailyBonusAt));
       if (typeof s.dailyStreak === "number") localStorage.setItem(DAILY_STREAK_KEY, String(s.dailyStreak));
       if (s.freeCaseAt) localStorage.setItem(FREE_CASE_KEY, String(s.freeCaseAt));
+      syncFreeCaseCooldowns(s);
     } catch (e) {}
     const setItem = nativeSetItem || localStorage.setItem.bind(localStorage);
     try {
@@ -676,6 +690,47 @@
     } catch (e) {
       console.error("[cs2sim] apply-case-open - błąd sieci:", e);
       return null;
+    }
+  }
+
+  // Ogólny, atomowy zapis po stronie serwera (sprzedaż, blokada, ulepszacz,
+  // darmowe skrzynki...): POST JSON -> serwer liczy na własnym, zablokowanym
+  // stanie i zwraca świeży stan, który tu od razu trafia do lokalnego cache.
+  // Zwraca ciało odpowiedzi ({ok:true, ...}) albo {ok:false, error}.
+  async function serverAction(path, payload) {
+    if (!me.loggedIn) return { ok: false, error: "not_logged_in" };
+    try {
+      const res = await fetch(path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify(payload || {}),
+      });
+      const body = await res.json().catch(() => null);
+      if (!res.ok || !body || !body.ok) {
+        return { ok: false, error: (body && body.error) || "network_error", status: res.status };
+      }
+      if (body.state) applyServerState(body.state);
+      return body;
+    } catch (e) {
+      console.error("[cs2sim] " + path + " - błąd sieci:", e);
+      return { ok: false, error: "network_error" };
+    }
+  }
+  const sellItems = (payload) => serverAction("/api/inventory-sell.php", payload);
+  const setItemLocked = (id, locked) => serverAction("/api/inventory-lock.php", { id, locked: !!locked });
+  // Dociąga świeży stan z serwera do lokalnego cache (np. gdy akcja się nie
+  // powiodła, bo przedmiot zniknął po zmianie na innym urządzeniu).
+  async function refreshStateFromServer() {
+    if (!me.loggedIn) return false;
+    try {
+      const res = await fetch("/api/me.php", { credentials: "same-origin", cache: "no-store" });
+      const body = await res.json().catch(() => null);
+      if (!res.ok || !body || !body.loggedIn || !body.user || !body.user.state) return false;
+      applyServerState(body.user.state);
+      return true;
+    } catch (e) {
+      return false;
     }
   }
 
@@ -2207,6 +2262,48 @@
     initCookieNotice();
   }
 
+  // ---- Wspólne saldo na wszystkich urządzeniach: stan konta jest tylko na
+  // serwerze, więc otwarta karta okresowo (i po powrocie na nią) dociąga
+  // świeże saldo/ekwipunek i odświeża widok. Strony mają własne zmienne
+  // lokalne, więc jeśli udostępniają reloadSharedState()/renderBalance()
+  // (case_*, equipment, battle...), wołamy je; w pozostałych przypadkach
+  // podmieniamy sam tekst salda w nawigacji. ----
+  (function initBalanceSync() {
+    if (!me.loggedIn) return;
+    const POLL_MS = 20000;
+    let lastBalance = null;
+    let busy = false;
+    function readBalance() {
+      try { const v = JSON.parse(localStorage.getItem(STATE_KEY) || "{}").balance; return typeof v === "number" ? v : null; } catch (e) { return null; }
+    }
+    async function syncNow() {
+      // Nie nadpisuj lokalnych liczników, jeśli właśnie czeka/leci push.
+      if (busy || document.hidden || pushTimer || pendingPush) return;
+      busy = true;
+      try {
+        const ok = await refreshStateFromServer();
+        if (!ok) return;
+        const b = readBalance();
+        if (b === null || b === lastBalance) return;
+        lastBalance = b;
+        if (typeof window.reloadSharedState === "function") { try { window.reloadSharedState(); } catch (e) {} }
+        if (typeof window.renderInventory === "function") { try { window.renderInventory(); } catch (e) {} }
+        if (typeof window.renderBalance === "function") {
+          try { window.renderBalance(); } catch (e) {}
+        } else {
+          const el = document.getElementById("balance");
+          if (el) el.textContent = b.toLocaleString("pl-PL", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " zł";
+        }
+      } finally {
+        busy = false;
+      }
+    }
+    lastBalance = readBalance();
+    setInterval(syncNow, POLL_MS);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) syncNow(); });
+    window.addEventListener("focus", syncNow);
+  })();
+
   window.SteamAuth = {
     getUser: () => (me.loggedIn ? me.user : null),
     refreshUI: buildUI,
@@ -2246,6 +2343,10 @@
     recordBattleHistory,
     readBattleHistory,
     applyCaseOpen,
-    reportFreeDrop,
+    applyServerState,
+    serverAction,
+    sellItems,
+    setItemLocked,
+    refreshStateFromServer,
   };
 })();

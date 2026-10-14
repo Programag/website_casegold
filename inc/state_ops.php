@@ -13,6 +13,8 @@
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/users.php';
 
+const STATE_START_BALANCE = 50; // START_BALANCE z klienta - saldo nowego konta
+
 function state_default_shape(): array {
     return [
         'balance' => 0,
@@ -54,8 +56,13 @@ function state_lock_user_for_update(PDO $pdo, string $steamid): ?array {
     $row = $stmt->fetch();
     if (!$row) return null;
     $state = $row['state'] !== null ? json_decode($row['state'], true) : null;
+    $isNew = $state === null;
     $state = ensure_level_watermark($state);
-    return array_merge(state_default_shape(), $state ?? []);
+    $merged = array_merge(state_default_shape(), $state ?? []);
+    // Konto bez zapisanego stanu (jeszcze nic nie zapisano) startuje z saldem
+    // początkowym - serwer jest jedynym źródłem salda, klient go nie ustawia.
+    if ($isNew) $merged['balance'] = STATE_START_BALANCE;
+    return $merged;
 }
 
 /* Zapisuje stan (znaczy własny updatedAt = now_ms()) i zwraca zapisaną
