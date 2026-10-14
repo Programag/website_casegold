@@ -556,7 +556,7 @@
       });
       const body = await res.json().catch(() => null);
       if (!res.ok || !body || !body.ok) {
-        return { ok: false, error: (body && body.error) || "network_error" };
+        return { ok: false, error: (body && body.error) || "network_error", detail: body && body.detail };
       }
       return { ok: true, redirectUrl: body.redirectUrl };
     } catch (e) {
@@ -937,7 +937,7 @@
           delete buyBtn.dataset.busy;
           buyBtn.textContent = originalLabel;
           syncTopUpBuyButtons(overlay);
-          alert("Nie udało się rozpocząć płatności. Spróbuj ponownie za chwilę.");
+          alert("Nie udało się rozpocząć płatności. Spróbuj ponownie za chwilę." + (result.detail ? "\n\n[diagnostyka admina] " + result.error + ": " + result.detail : (result.error ? "\n\n(" + result.error + ")" : "")));
         };
       }
       grid.appendChild(card);

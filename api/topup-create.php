@@ -65,6 +65,18 @@ $siteUrl = rtrim(cs2_config()['site_url'], '/');
 // nie e-mailem.
 $syntheticEmail = $me['steamid'] . '@users.' . preg_replace('#^https?://#', '', $siteUrl);
 
+// Szczegóły błędu (np. odpowiedź Przelewy24) zwracamy wyłącznie adminowi -
+// do diagnozy konfiguracji; zwykły gracz dostaje tylko kod błędu.
+$isAdminCaller = (cs2_config()['admin_steamid'] ?? null) === $me['steamid'];
+$fail_json = function (int $status, string $code, ?Throwable $e = null) use ($isAdminCaller) {
+    http_response_code($status);
+    $out = ['error' => $code];
+    if ($e && $isAdminCaller) $out['detail'] = $e->getMessage();
+    echo json_encode($out);
+    exit;
+};
+
+try {
 $pdo = db();
 // sessionId musi być unikalny w obrębie CAŁEGO konta sprzedawcy P24 (nie
 // tylko naszej tabeli) - losowy token + steamid jest wystarczająco
@@ -75,6 +87,10 @@ $now = now_ms();
 
 $insert = $pdo->prepare('INSERT INTO topup_orders (session_id, steamid, package_index, price_grosze, virtual_amount, affiliate_code, status, created_at, consent_at) VALUES (?, ?, ?, ?, ?, ?, "pending", ?, ?)');
 $insert->execute([$sessionId, $me['steamid'], $packageIndex, $package['priceGrosze'], $package['virtualAmount'], $affiliateCode, $now, $now]);
+} catch (Throwable $e) {
+    error_log('POST /api/topup-create błąd zapisu zamówienia: ' . $e->getMessage());
+    $fail_json(500, 'order_storage_failed', $e);
+}
 
 try {
     $token = p24_register_transaction(
@@ -89,9 +105,7 @@ try {
     error_log('POST /api/topup-create błąd rejestracji P24: ' . $e->getMessage());
     $fail = $pdo->prepare('UPDATE topup_orders SET status = "failed" WHERE session_id = ?');
     $fail->execute([$sessionId]);
-    http_response_code(502);
-    echo json_encode(['error' => 'payment_provider_unavailable']);
-    exit;
+    $fail_json(502, 'payment_provider_unavailable', $e);
 }
 
 echo json_encode(['ok' => true, 'redirectUrl' => p24_payment_url($token)]);
