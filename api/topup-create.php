@@ -29,7 +29,7 @@ $affiliateCode = isset($body['affiliateCode']) && is_string($body['affiliateCode
     ? strtoupper(trim($body['affiliateCode']))
     : null;
 
-// Bez obu oświadczeń nie tworzymy zamówienia: (1) pełnoletność + akceptacja
+// Bez obu oświadczeń nie tworzymy zamówienia: (1) akceptacja
 // regulaminu i polityki prywatności, (2) żądanie natychmiastowego
 // świadczenia usługi cyfrowej z przyjęciem do wiadomości utraty prawa
 // odstąpienia (art. 38 pkt 13 ustawy o prawach konsumenta). Moment

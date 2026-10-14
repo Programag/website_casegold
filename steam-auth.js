@@ -948,7 +948,7 @@
   }
 
   // Przyciski "Kup" są aktywne dopiero po zaznaczeniu obu oświadczeń
-  // (pełnoletność + regulamin oraz zgoda na natychmiastowe świadczenie z
+  // (akceptacja regulaminu oraz zgoda na natychmiastowe świadczenie z
   // utratą prawa odstąpienia) i tylko gdy płatności są włączone.
   function topUpConsentsOk(overlay) {
     return !!(overlay.querySelector("#tuConsentTerms")?.checked && overlay.querySelector("#tuConsentWaiver")?.checked);
@@ -1045,7 +1045,7 @@
         <div class="tu-section-label">💰 Pakiety balansu</div>
         <div class="tu-packages" id="tuPackages"></div>
         <div class="tu-consents">
-          <label class="tu-check"><input type="checkbox" id="tuConsentTerms"><span>Oświadczam, że mam ukończone 18 lat oraz akceptuję <a href="/regulamin.html" target="_blank" rel="noopener">Regulamin</a> i <a href="/polityka-prywatnosci.html" target="_blank" rel="noopener">Politykę prywatności</a>.</span></label>
+          <label class="tu-check"><input type="checkbox" id="tuConsentTerms"><span>Akceptuję <a href="/regulamin.html" target="_blank" rel="noopener">Regulamin</a> i <a href="/polityka-prywatnosci.html" target="_blank" rel="noopener">Politykę prywatności</a>.</span></label>
           <label class="tu-check"><input type="checkbox" id="tuConsentWaiver"><span>Żądam rozpoczęcia świadczenia usługi cyfrowej (dopisania vPLN do konta) przed upływem 14-dniowego terminu odstąpienia od umowy. Przyjmuję do wiadomości, że po jej wykonaniu utracę prawo odstąpienia od umowy.</span></label>
           <div class="tu-price-note">Ceny podane w PLN są cenami brutto. Płatność obsługuje Przelewy24 (BLIK, karty, przelewy online).</div>
         </div>
@@ -1394,14 +1394,14 @@
       wallTitle: "Wymagane logowanie",
       wallDesc: "Zaloguj się przez Steam, aby korzystać z tej funkcji.",
       wallSteamBtn: "Zaloguj się przez Steam",
-      wallNote: "Logując się, potwierdzasz, że masz ukończone 18 lat i akceptujesz <a href=\"/regulamin.html\" target=\"_blank\" rel=\"noopener\">Regulamin</a> oraz <a href=\"/polityka-prywatnosci.html\" target=\"_blank\" rel=\"noopener\">Politykę prywatności</a>. Symulator używa wirtualnej waluty.",
+      wallNote: "Logując się, akceptujesz <a href=\"/regulamin.html\" target=\"_blank\" rel=\"noopener\">Regulamin</a> oraz <a href=\"/polityka-prywatnosci.html\" target=\"_blank\" rel=\"noopener\">Politykę prywatności</a>. Symulator używa wirtualnej waluty.",
     },
     en: {
       login: "Log in with Steam", logout: "Log out", myProfile: "My profile",
       wallTitle: "Login required",
       wallDesc: "Log in with Steam to use this feature.",
       wallSteamBtn: "Log in with Steam",
-      wallNote: "By logging in you confirm that you are at least 18 and accept the <a href=\"/regulamin.html\" target=\"_blank\" rel=\"noopener\">Terms</a> and <a href=\"/polityka-prywatnosci.html\" target=\"_blank\" rel=\"noopener\">Privacy Policy</a>. The simulator uses virtual currency.",
+      wallNote: "By logging in you accept the <a href=\"/regulamin.html\" target=\"_blank\" rel=\"noopener\">Terms</a> and <a href=\"/polityka-prywatnosci.html\" target=\"_blank\" rel=\"noopener\">Privacy Policy</a>. The simulator uses virtual currency.",
     },
   };
   function getLang() { return localStorage.getItem(LANG_KEY) === "en" ? "en" : "pl"; }
