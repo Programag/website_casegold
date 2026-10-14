@@ -923,7 +923,7 @@
       const buyBtn = card.querySelector(".tu-pkg-buy");
       if (topUpPaymentsEnabled()) {
         buyBtn.onclick = async () => {
-          if (!topUpConsentsOk(overlay)) return;
+          if (!topUpConsentsOk(overlay)) { flagMissingConsents(overlay); return; }
           buyBtn.disabled = true;
           buyBtn.dataset.busy = "1";
           const originalLabel = buyBtn.textContent;
@@ -945,15 +945,33 @@
     syncTopUpBuyButtons(overlay);
   }
 
-  // Przyciski "Kup" są aktywne dopiero po zaznaczeniu obu oświadczeń
-  // (akceptacja regulaminu oraz zgoda na natychmiastowe świadczenie z
-  // utratą prawa odstąpienia) i tylko gdy płatności są włączone.
+  // Przyciski "Kup" są klikalne, gdy płatności są włączone; brak któregoś z
+  // dwóch oświadczeń (regulamin oraz zgoda na natychmiastowe świadczenie z
+  // utratą prawa odstąpienia) sprawdzamy dopiero po kliknięciu - panel
+  // "trzęsie się" i podświetla niezaznaczone pola (flagMissingConsents).
   function topUpConsentsOk(overlay) {
     return !!(overlay.querySelector("#tuConsentTerms")?.checked && overlay.querySelector("#tuConsentWaiver")?.checked);
   }
   function syncTopUpBuyButtons(overlay) {
-    const ok = topUpPaymentsEnabled() && topUpConsentsOk(overlay);
+    const ok = topUpPaymentsEnabled();
     overlay.querySelectorAll(".tu-pkg-buy").forEach((b) => { b.disabled = !ok || b.dataset.busy === "1"; });
+  }
+  function flagMissingConsents(overlay) {
+    const panel = overlay.querySelector(".tu-panel");
+    const missing = [...overlay.querySelectorAll(".tu-check")].filter((l) => !l.querySelector("input").checked);
+    missing.forEach((l) => {
+      l.classList.remove("missing");
+      void l.offsetWidth; // restart animacji przy kolejnym kliknięciu
+      l.classList.add("missing");
+      clearTimeout(l._missingTimer);
+      l._missingTimer = setTimeout(() => l.classList.remove("missing"), 2200);
+    });
+    panel.classList.remove("shake");
+    void panel.offsetWidth;
+    panel.classList.add("shake");
+    clearTimeout(panel._shakeTimer);
+    panel._shakeTimer = setTimeout(() => panel.classList.remove("shake"), 600);
+    if (missing[0]) missing[0].scrollIntoView({ block: "center", behavior: "smooth" });
   }
 
   // Bezpiecznie (bez innerHTML) ustawia "<label><strong>value</strong>" w
@@ -1073,7 +1091,7 @@
     document.body.appendChild(overlay);
 
     renderTopUpPackages(overlay);
-    overlay.querySelectorAll("#tuConsentTerms, #tuConsentWaiver").forEach((c) => c.addEventListener("change", () => syncTopUpBuyButtons(overlay)));
+    overlay.querySelectorAll("#tuConsentTerms, #tuConsentWaiver").forEach((c) => c.addEventListener("change", () => { c.closest(".tu-check").classList.remove("missing"); syncTopUpBuyButtons(overlay); }));
 
     const hide = () => overlay.classList.remove("show");
     overlay.addEventListener("click", (e) => { if (e.target === overlay) hide(); });
@@ -1635,8 +1653,8 @@
         background:var(--hazard-dim,#3a2712); border:1px solid rgba(255,149,0,.45); border-radius:10px;
         padding:12px 14px; font-size:12.5px; font-weight:600; color:var(--hazard,#ff9500); line-height:1.5; margin-bottom:16px;
       }
-      .tu-consents{margin-bottom:14px; display:flex; flex-direction:column; gap:9px;}
-      .tu-check{display:flex; gap:9px; align-items:flex-start; font-size:11.5px; line-height:1.45; color:var(--muted,#7d879b); cursor:pointer;}
+      .tu-consents{margin:18px 0 14px; padding:0 9px; display:flex; flex-direction:column; gap:22px;}
+      .tu-check{padding:7px 9px; margin:-7px -9px; border-radius:9px; border:1px solid transparent; transition:background .2s ease, border-color .2s ease; display:flex; gap:9px; align-items:flex-start; font-size:11.5px; line-height:1.45; color:var(--muted,#7d879b); cursor:pointer;}
       .tu-check input{
         -webkit-appearance:none; appearance:none; flex:none; width:18px; height:18px; margin:1px 0 0;
         border-radius:5px; border:1.5px solid #3a4256; background:#0f131b; cursor:pointer;
@@ -1645,6 +1663,15 @@
       .tu-check input::after{
         content:""; width:10px; height:10px; background:#1a1200; transform:scale(0); transition:transform .12s ease;
         clip-path:polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+      }
+      .tu-check.missing{background:rgba(255,90,90,.1); border-color:rgba(255,90,90,.6); animation:tu-flash .55s ease 3;}
+      .tu-check.missing input{border-color:var(--bad,#ff5a5a); box-shadow:0 0 0 3px rgba(255,90,90,.2);}
+      @keyframes tu-flash{50%{background:rgba(255,90,90,.24);}}
+      #topUpOverlay.show .tu-panel.shake{animation:tu-shake .55s cubic-bezier(.36,.07,.19,.97);}
+      @keyframes tu-shake{
+        0%,100%{transform:translateX(0);}
+        15%{transform:translateX(-9px);} 30%{transform:translateX(8px);} 45%{transform:translateX(-6px);}
+        60%{transform:translateX(5px);} 75%{transform:translateX(-3px);} 90%{transform:translateX(2px);}
       }
       .tu-check input:hover{border-color:var(--hazard,#ff9500);}
       .tu-check input:checked{background:var(--hazard,#ff9500); border-color:var(--hazard,#ff9500); box-shadow:0 0 0 3px rgba(255,149,0,.15);}
