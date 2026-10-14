@@ -67,6 +67,9 @@ CREATE TABLE IF NOT EXISTS topup_orders (
   status ENUM('pending','paid','failed') NOT NULL DEFAULT 'pending',
   p24_order_id VARCHAR(64) NULL,
   created_at BIGINT NOT NULL,
+  -- Chwila złożenia oświadczeń (regulamin/18+ i zgoda na natychmiastowe
+  -- świadczenie z utratą prawa odstąpienia) - dowód zgody konsumenta.
+  consent_at BIGINT NULL,
   paid_at BIGINT NULL,
   INDEX idx_steamid (steamid)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -29,6 +29,17 @@ $affiliateCode = isset($body['affiliateCode']) && is_string($body['affiliateCode
     ? strtoupper(trim($body['affiliateCode']))
     : null;
 
+// Bez obu oświadczeń nie tworzymy zamówienia: (1) pełnoletność + akceptacja
+// regulaminu i polityki prywatności, (2) żądanie natychmiastowego
+// świadczenia usługi cyfrowej z przyjęciem do wiadomości utraty prawa
+// odstąpienia (art. 38 pkt 13 ustawy o prawach konsumenta). Moment
+// złożenia oświadczeń zapisujemy na zamówieniu (consent_at) jako dowód.
+if (($body['acceptTerms'] ?? false) !== true || ($body['waiveWithdrawal'] ?? false) !== true) {
+    http_response_code(400);
+    echo json_encode(['error' => 'consent_required']);
+    exit;
+}
+
 $packages = require __DIR__ . '/../inc/data/topup_packages.php';
 if ($packageIndex === null || !isset($packages[$packageIndex])) {
     http_response_code(400);
@@ -53,8 +64,8 @@ $pdo = db();
 $sessionId = 'cg_' . $me['steamid'] . '_' . bin2hex(random_bytes(16));
 $now = now_ms();
 
-$insert = $pdo->prepare('INSERT INTO topup_orders (session_id, steamid, package_index, price_grosze, virtual_amount, affiliate_code, status, created_at) VALUES (?, ?, ?, ?, ?, ?, "pending", ?)');
-$insert->execute([$sessionId, $me['steamid'], $packageIndex, $package['priceGrosze'], $package['virtualAmount'], $affiliateCode, $now]);
+$insert = $pdo->prepare('INSERT INTO topup_orders (session_id, steamid, package_index, price_grosze, virtual_amount, affiliate_code, status, created_at, consent_at) VALUES (?, ?, ?, ?, ?, ?, "pending", ?, ?)');
+$insert->execute([$sessionId, $me['steamid'], $packageIndex, $package['priceGrosze'], $package['virtualAmount'], $affiliateCode, $now, $now]);
 
 try {
     $token = p24_register_transaction(

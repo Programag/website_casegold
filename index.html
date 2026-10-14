@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<script src="steam-auth.js?v=25"></script>
+<script src="steam-auth.js?v=26"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CASEGOLD</title>
 <link rel="icon" type="image/png" href="casegold_logo.PNG">
@@ -420,7 +420,7 @@
 
   <div class="hero-title">
     <h1 id="heroTitle">Skrzynki</h1>
-    <div class="sub" id="heroSub">Otwórz skrzynkę, zobacz co Ci wpadnie. Czysta symulacja — żadnych prawdziwych pieniędzy.</div>
+    <div class="sub" id="heroSub">Otwórz skrzynkę, zobacz co Ci wpadnie. Rozrywka z wirtualną walutą — bez prawdziwych wygranych.</div>
   </div>
 
   <div class="free-banner">
@@ -469,7 +469,7 @@
     <div class="lb-list" id="leaderboardList"></div>
   </div>
 
-  <footer><span id="footerTxt">Symulacja edukacyjna / rozrywkowa — fikcyjna waluta, brak realnych transakcji.</span><div class="footer-legal"><a href="regulamin.html">Regulamin</a><a href="polityka-prywatnosci.html">Polityka prywatności</a></div></footer>
+  <footer><span id="footerTxt">Serwis rozrywkowy dla osób pełnoletnich (18+). Waluta wirtualna (vPLN) — nie można jej wypłacić ani wymienić na prawdziwe pieniądze.</span><div class="footer-legal"><a href="regulamin.html">Regulamin</a><a href="polityka-prywatnosci.html">Polityka prywatności</a></div></footer>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -923,7 +923,7 @@ const I18N = {
   pl: {
     navCases:"Skrzynki", navFree:"Darmowe", navTasks:"Zadania", navInventory:"Ekwipunek",
     inventoryBtn:"Ekwipunek",
-    heroTitle:"Skrzynki", heroSub:"Otwórz skrzynkę, zobacz co Ci wpadnie. Czysta symulacja — żadnych prawdziwych pieniędzy.",
+    heroTitle:"Skrzynki", heroSub:"Otwórz skrzynkę, zobacz co Ci wpadnie. Rozrywka z wirtualną walutą — bez prawdziwych wygranych.",
     fbTxt:'Odbierz <span class="accent">darmową skrzynkę</span> co 3h!',
     freeCaseBtnReady:"Otwórz skrzynki", freeCaseBtnClaimed:"Odebrano",
     freeStatusReady:"Dostępne teraz!", freeStatusWait:(t)=>`Dostępne za ${t}`,
@@ -932,13 +932,13 @@ const I18N = {
     budgetToggle:"📁 W twoim budżecie",
     pbEyebrow:"Oficjalne", pbTitle:"Skrzynki",
     emptyMsg:"Brak skrzynek w tej kategorii — wkrótce dostępne.",
-    footerTxt:"Symulacja edukacyjna / rozrywkowa — fikcyjna waluta, brak realnych transakcji.",
+    footerTxt:"Serwis rozrywkowy dla osób pełnoletnich (18+). Waluta wirtualna (vPLN) — nie można jej wypłacić ani wymienić na prawdziwe pieniądze.",
     categories: CATEGORIES.reduce((o,c)=>(o[c.key]=c.label, o), {}),
   },
   en: {
     navCases:"Cases", navFree:"Free", navTasks:"Tasks", navInventory:"Inventory",
     inventoryBtn:"Inventory",
-    heroTitle:"Cases", heroSub:"Open a case, see what drops. Pure simulation — no real money involved.",
+    heroTitle:"Cases", heroSub:"Open a case, see what drops. Entertainment with virtual currency — no real-money prizes.",
     fbTxt:'Claim a <span class="accent">free case</span> every 3h!',
     freeCaseBtnReady:"Open cases", freeCaseBtnClaimed:"Claimed",
     freeStatusReady:"Available now!", freeStatusWait:(t)=>`Available in ${t}`,
@@ -947,7 +947,7 @@ const I18N = {
     budgetToggle:"📁 Within your budget",
     pbEyebrow:"Official", pbTitle:"Cases",
     emptyMsg:"No cases in this category yet — coming soon.",
-    footerTxt:"Educational / entertainment simulation — fictional currency, no real transactions.",
+    footerTxt:"Entertainment service for adults (18+). Virtual currency (vPLN) cannot be withdrawn or exchanged for real money.",
     categories: CATEGORY_LABELS_EN,
   }
 };

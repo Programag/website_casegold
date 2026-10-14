@@ -545,14 +545,14 @@
   // checkout P24 - BLIK/karta/przelew). Prowizja partnerska (jeśli podano
   // kod) nalicza się dopiero po stronie serwera, PO potwierdzeniu wpłaty
   // przez webhook (api/topup-webhook.php), nigdy tutaj.
-  async function createTopUpOrder(packageIndex, affiliateCode) {
+  async function createTopUpOrder(packageIndex, affiliateCode, consents) {
     if (!me.loggedIn) return { ok: false, error: "not_logged_in" };
     try {
       const res = await fetch("/api/topup-create.php", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
-        body: JSON.stringify({ packageIndex, affiliateCode: affiliateCode || undefined }),
+        body: JSON.stringify({ packageIndex, affiliateCode: affiliateCode || undefined, acceptTerms: !!(consents && consents.acceptTerms), waiveWithdrawal: !!(consents && consents.waiveWithdrawal) }),
       });
       const body = await res.json().catch(() => null);
       if (!res.ok || !body || !body.ok) {
@@ -919,27 +919,43 @@
         ${p.badge ? `<div class="tu-pkg-badge">${p.badge === "POPULARNE" ? "⚡" : "✨"} ${p.badge}</div>` : ""}
         <div class="tu-pkg-amount">🪙 ${finalAmount.toLocaleString("pl-PL")} zł${bonusActive ? `<span class="tu-pkg-bonus">+35%</span>` : ""}</div>
         ${bonusActive ? `<div class="tu-pkg-base">zamiast ${p.amount.toLocaleString("pl-PL")} zł</div>` : ""}
-        <button type="button" class="tu-pkg-buy"${TOPUP_PAYMENTS_ENABLED ? "" : " disabled"}>${TOPUP_PAYMENTS_ENABLED ? p.price : "Wkrótce"}</button>
+        <div class="tu-pkg-price">Cena: <b>${p.price}</b> brutto</div>
+        <button type="button" class="tu-pkg-buy" disabled>${TOPUP_PAYMENTS_ENABLED ? "Zamawiam i płacę " + p.price : "Wkrótce"}</button>
       `;
       const buyBtn = card.querySelector(".tu-pkg-buy");
       if (TOPUP_PAYMENTS_ENABLED) {
         buyBtn.onclick = async () => {
+          if (!topUpConsentsOk(overlay)) return;
           buyBtn.disabled = true;
+          buyBtn.dataset.busy = "1";
           const originalLabel = buyBtn.textContent;
           buyBtn.textContent = "Łączenie z Przelewy24...";
           const affiliateCode = topUpPromo.active && topUpPromo.type === "affiliate" ? topUpPromo.code : null;
-          const result = await window.SteamAuth.createTopUpOrder(index, affiliateCode);
+          const result = await window.SteamAuth.createTopUpOrder(index, affiliateCode, { acceptTerms: true, waiveWithdrawal: true });
           if (result.ok && result.redirectUrl) {
             window.location.href = result.redirectUrl;
             return;
           }
-          buyBtn.disabled = false;
+          delete buyBtn.dataset.busy;
           buyBtn.textContent = originalLabel;
+          syncTopUpBuyButtons(overlay);
           alert("Nie udało się rozpocząć płatności. Spróbuj ponownie za chwilę.");
         };
       }
       grid.appendChild(card);
     });
+    syncTopUpBuyButtons(overlay);
+  }
+
+  // Przyciski "Kup" są aktywne dopiero po zaznaczeniu obu oświadczeń
+  // (pełnoletność + regulamin oraz zgoda na natychmiastowe świadczenie z
+  // utratą prawa odstąpienia) i tylko gdy płatności są włączone.
+  function topUpConsentsOk(overlay) {
+    return !!(overlay.querySelector("#tuConsentTerms")?.checked && overlay.querySelector("#tuConsentWaiver")?.checked);
+  }
+  function syncTopUpBuyButtons(overlay) {
+    const ok = TOPUP_PAYMENTS_ENABLED && topUpConsentsOk(overlay);
+    overlay.querySelectorAll(".tu-pkg-buy").forEach((b) => { b.disabled = !ok || b.dataset.busy === "1"; });
   }
 
   // Bezpiecznie (bez innerHTML) ustawia "<label><strong>value</strong>" w
@@ -1028,6 +1044,11 @@
         <div class="tu-soon-notice">⏳ Płatności online będą dostępne wkrótce. Zakup pakietów jest obecnie tymczasowo niedostępny.</div>
         <div class="tu-section-label">💰 Pakiety balansu</div>
         <div class="tu-packages" id="tuPackages"></div>
+        <div class="tu-consents">
+          <label class="tu-check"><input type="checkbox" id="tuConsentTerms"><span>Oświadczam, że mam ukończone 18 lat oraz akceptuję <a href="/regulamin.html" target="_blank" rel="noopener">Regulamin</a> i <a href="/polityka-prywatnosci.html" target="_blank" rel="noopener">Politykę prywatności</a>.</span></label>
+          <label class="tu-check"><input type="checkbox" id="tuConsentWaiver"><span>Żądam rozpoczęcia świadczenia usługi cyfrowej (dopisania vPLN do konta) przed upływem 14-dniowego terminu odstąpienia od umowy. Przyjmuję do wiadomości, że po jej wykonaniu utracę prawo odstąpienia od umowy.</span></label>
+          <div class="tu-price-note">Ceny podane w PLN są cenami brutto. Płatność obsługuje Przelewy24 (BLIK, karty, przelewy online).</div>
+        </div>
         <div class="tu-disclaimer">
           Doładowanie służy wyłącznie do zakupu wirtualnej waluty wykorzystywanej w symulatorze lootboxów o charakterze rozrywkowym.
         </div>
@@ -1054,6 +1075,7 @@
     document.body.appendChild(overlay);
 
     renderTopUpPackages(overlay);
+    overlay.querySelectorAll("#tuConsentTerms, #tuConsentWaiver").forEach((c) => c.addEventListener("change", () => syncTopUpBuyButtons(overlay)));
 
     const hide = () => overlay.classList.remove("show");
     overlay.addEventListener("click", (e) => { if (e.target === overlay) hide(); });
@@ -1372,14 +1394,14 @@
       wallTitle: "Wymagane logowanie",
       wallDesc: "Zaloguj się przez Steam, aby korzystać z tej funkcji.",
       wallSteamBtn: "Zaloguj się przez Steam",
-      wallNote: "Nie są wymagane żadne dane płatności. Symulator używa wirtualnej waluty.",
+      wallNote: "Logując się, potwierdzasz, że masz ukończone 18 lat i akceptujesz <a href=\"/regulamin.html\" target=\"_blank\" rel=\"noopener\">Regulamin</a> oraz <a href=\"/polityka-prywatnosci.html\" target=\"_blank\" rel=\"noopener\">Politykę prywatności</a>. Symulator używa wirtualnej waluty.",
     },
     en: {
       login: "Log in with Steam", logout: "Log out", myProfile: "My profile",
       wallTitle: "Login required",
       wallDesc: "Log in with Steam to use this feature.",
       wallSteamBtn: "Log in with Steam",
-      wallNote: "No payment details required. The simulator uses virtual currency.",
+      wallNote: "By logging in you confirm that you are at least 18 and accept the <a href=\"/regulamin.html\" target=\"_blank\" rel=\"noopener\">Terms</a> and <a href=\"/polityka-prywatnosci.html\" target=\"_blank\" rel=\"noopener\">Privacy Policy</a>. The simulator uses virtual currency.",
     },
   };
   function getLang() { return localStorage.getItem(LANG_KEY) === "en" ? "en" : "pl"; }
@@ -1595,6 +1617,8 @@
         background:var(--panel,#141821); border:1px solid var(--line,#262c3a); color:var(--text,#e9ecf3);
         padding:9px 10px; border-radius:8px; cursor:pointer; transition:border-color .12s ease, color .12s ease;
       }
+      .tu-pkg-price{font-size:11.5px; color:var(--muted,#7d879b); margin:2px 0 8px;}
+      .tu-pkg-price b{color:var(--text,#e9ecf3); font-family:'JetBrains Mono',monospace;}
       .tu-pkg-buy:hover{border-color:var(--hazard,#ff9500); color:var(--hazard,#ff9500);}
       .tu-pkg.best .tu-pkg-buy{
         background:var(--good,#3ddc84); border-color:var(--good,#3ddc84); color:#062412; font-weight:700;
@@ -1608,6 +1632,11 @@
         background:var(--hazard-dim,#3a2712); border:1px solid rgba(255,149,0,.45); border-radius:10px;
         padding:12px 14px; font-size:12.5px; font-weight:600; color:var(--hazard,#ff9500); line-height:1.5; margin-bottom:16px;
       }
+      .tu-consents{margin-bottom:14px; display:flex; flex-direction:column; gap:9px;}
+      .tu-check{display:flex; gap:9px; align-items:flex-start; font-size:11.5px; line-height:1.45; color:var(--muted,#7d879b); cursor:pointer;}
+      .tu-check input{margin-top:2px; flex:none; accent-color:var(--hazard,#ff9500); width:15px; height:15px;}
+      .tu-check a, .auth-wall-note a{color:var(--hazard,#ff9500);}
+      .tu-price-note{font-size:11px; color:var(--muted,#7d879b);}
       .tu-disclaimer{
         background:var(--hazard-dim,#3a2712); border:1px solid rgba(255,149,0,.35); border-radius:10px;
         padding:12px 14px; font-size:11.5px; color:var(--muted,#7d879b); line-height:1.5; margin-bottom:14px;
@@ -2086,6 +2115,44 @@
     document.addEventListener("DOMContentLoaded", startLiveFeed);
   } else {
     startLiveFeed();
+  }
+
+  // ---- Informacja o plikach cookies (jednorazowa). Serwis używa wyłącznie
+  // cookies/localStorage niezbędnych do działania (sesja logowania, ustawienia,
+  // stan gry) - bez analityki i reklam - więc to informacja z potwierdzeniem,
+  // a nie wybór zgód. Jeśli kiedyś dojdą cookies wymagające zgody, tu trzeba
+  // dodać prawdziwy wybór (akceptuję/odrzucam) i zaktualizować politykę. ----
+  function initCookieNotice() {
+    const KEY = "cg_cookie_notice_v1";
+    try { if (localStorage.getItem(KEY)) return; } catch (e) { /* bez localStorage pokazujemy baner za każdym razem */ }
+    if (document.getElementById("cookieNotice")) return;
+    const en = getLang() === "en";
+    const style = document.createElement("style");
+    style.textContent = `
+      #cookieNotice{position:fixed; left:50%; bottom:16px; transform:translateX(-50%); z-index:2000; width:min(720px, calc(100% - 24px));
+        background:#141821; border:1px solid #262c3a; border-radius:12px; box-shadow:0 10px 40px -10px rgba(0,0,0,.8);
+        padding:14px 16px; display:flex; gap:14px; align-items:center; font-family:'Inter',sans-serif; color:#c9d0de; font-size:12.5px; line-height:1.5;}
+      #cookieNotice a{color:#ff9500;}
+      #cookieNotice button{flex:none; background:#ff9500; color:#1a1200; border:none; border-radius:8px; padding:9px 16px; font-weight:700; font-size:12.5px; cursor:pointer; font-family:inherit;}
+      @media (max-width:560px){ #cookieNotice{flex-direction:column; align-items:stretch;} }
+    `;
+    document.head.appendChild(style);
+    const box = document.createElement("div");
+    box.id = "cookieNotice";
+    box.setAttribute("role", "dialog");
+    box.innerHTML = en
+      ? `<div>This site uses only cookies and browser storage that are necessary for it to work (login session, settings, game state). We do not use analytics or advertising cookies. Details: <a href="/polityka-prywatnosci.html">Privacy Policy</a>.</div><button type="button">OK</button>`
+      : `<div>Ta strona używa wyłącznie plików cookies i pamięci przeglądarki niezbędnych do jej działania (sesja logowania, ustawienia, stan gry). Nie stosujemy cookies analitycznych ani reklamowych. Szczegóły: <a href="/polityka-prywatnosci.html">Polityka prywatności</a>.</div><button type="button">Rozumiem</button>`;
+    box.querySelector("button").onclick = () => {
+      try { localStorage.setItem(KEY, String(Date.now())); } catch (e) { /* ignorujemy */ }
+      box.remove();
+    };
+    document.body.appendChild(box);
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initCookieNotice);
+  } else {
+    initCookieNotice();
   }
 
   window.SteamAuth = {

@@ -54,6 +54,10 @@
   ul li:last-child{margin-bottom:0;}
   a.inline-link{color:var(--hazard);}
   footer{text-align:center; color:var(--muted); font-size:11px; margin-top:34px; letter-spacing:.5px;}
+  .ph{background:rgba(255,149,0,.16); color:var(--hazard); border-radius:4px; padding:0 5px; font-weight:600;}
+  h3{font-family:'Oswald',sans-serif; font-size:14px; margin:18px 0 8px; color:var(--text);}
+  ol ol, ul ul{margin-top:8px;}
+  .seller{background:var(--panel-2); border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin:10px 0; font-size:14px; line-height:1.7;}
   .footer-legal{margin-top:10px;}
   .footer-legal a{color:var(--muted); text-decoration:underline; margin:0 8px; font-size:11px;}
   .footer-legal a:hover{color:var(--hazard);}
@@ -74,7 +78,15 @@
     <p class="doc-date">Obowiązuje od: 2026 r.</p>
 
     <h2>§ 1. Administrator Danych Osobowych</h2>
-    <p>Zarządcą i administratorem zgromadzonych informacji jest platforma CASEGOLD.EU. Wszelkie zapytania dotyczące przetwarzania danych należy kierować na adres e-mail: <a class="inline-link" href="mailto:casegoldpl@gmail.com">casegoldpl@gmail.com</a>.</p>
+    <p>Administratorem danych osobowych przetwarzanych w serwisie casegold.eu jest:</p>
+    <div class="seller">
+      <strong>Administrator:</strong> <span class="ph" data-company="name">[do uzupełnienia: pełna nazwa firmy]</span><br>
+      Adres: <span class="ph" data-company="address">[do uzupełnienia: adres siedziby]</span><br>
+      NIP: <span class="ph" data-company="nip">[do uzupełnienia: NIP]</span>, REGON: <span class="ph" data-company="regon">[do uzupełnienia: REGON]</span><br>
+      Telefon: <span class="ph" data-company="phone">[do uzupełnienia: telefon]</span><br>
+      E-mail: <a class="inline-link" href="mailto:casegoldpl@gmail.com">casegoldpl@gmail.com</a>
+    </div>
+    <p>Wszelkie zapytania dotyczące przetwarzania danych należy kierować na adres e-mail: <a class="inline-link" href="mailto:casegoldpl@gmail.com">casegoldpl@gmail.com</a>.</p>
 
     <h2>§ 2. Rodzaj Przetwarzanych Informacji</h2>
     <p>W ramach funkcjonowania serwisu zbierane są następujące dane:</p>
@@ -83,8 +95,10 @@
       <li>Publiczne dane z profilu Steam (nazwa użytkownika, zdjęcie profilowe),</li>
       <li>Adres IP urządzenia,</li>
       <li>Dane diagnostyczne oraz pliki cookies,</li>
-      <li>Informacje o transakcjach (przetwarzane bezpośrednio przez operatora Przelewy24).</li>
+      <li>Dane o aktywności w grze (stan konta vPLN, ekwipunek, poziom, historia otwarć skrzynek i bitew),</li>
+      <li>Informacje o transakcjach (przetwarzane bezpośrednio przez operatora Przelewy24; Serwis nie otrzymuje ani nie przechowuje numerów kart ani danych logowania do banku).</li>
     </ul>
+    <p>Nazwa użytkownika, zdjęcie profilowe i poziom konta są publicznie widoczne w Serwisie (rankingi, strona profilu, pasek najnowszych wygranych). Podanie danych jest dobrowolne, ale niezbędne do korzystania z konta w Serwisie.</p>
 
     <h2>§ 3. Cel Zbierania i Wykorzystywania Danych</h2>
     <p>Dane użytkowników przetwarzane są wyłącznie w celu:</p>
@@ -92,23 +106,29 @@
       <li>Prawidłowego świadczenia usług i obsługi konta gracza,</li>
       <li>Sprawnej realizacji transakcji finansowych,</li>
       <li>Monitorowania, stabilizacji i optymalizacji działania serwisu,</li>
-      <li>Weryfikacji bezpieczeństwa oraz wykrywania nadużyć i nieuprawnionych działań.</li>
+      <li>Weryfikacji bezpieczeństwa oraz wykrywania nadużyć i nieuprawnionych działań,</li>
+      <li>Wypełnienia obowiązków podatkowych i rachunkowych związanych z płatnościami,</li>
+      <li>Obsługi reklamacji i dochodzenia lub obrony przed roszczeniami.</li>
     </ul>
 
     <h2>§ 4. Podstawy Prawne Przetwarzania</h2>
     <p>Przetwarzanie odbywa się w zgodzie z przepisami RODO na podstawie:</p>
     <ul>
       <li>Art. 6 ust. 1 lit. b RODO – niezbędność do realizacji świadczonej usługi,</li>
-      <li>Prawnie uzasadnionego interesu administratora – w zakresie zapewnienia bezpieczeństwa i rozwoju serwisu,</li>
-      <li>Dobrowolnej zgody użytkownika – w przypadku plików cookies.</li>
+      <li>Art. 6 ust. 1 lit. c RODO – wypełnienie obowiązków prawnych (m.in. podatkowych i rachunkowych),</li>
+      <li>Art. 6 ust. 1 lit. f RODO – prawnie uzasadniony interes administratora w zakresie zapewnienia bezpieczeństwa i rozwoju serwisu oraz dochodzenia roszczeń,</li>
+      <li>Art. 6 ust. 1 lit. a RODO – dobrowolna zgoda użytkownika, jeżeli serwis wykorzystuje pliki cookies wymagające zgody.</li>
     </ul>
 
     <h2>§ 5. Odbiorcy Danych (Podmioty Trzecie)</h2>
     <p>Dane mogą być udostępniane podmiotom zewnętrznym w zakresie niezbędnym do funkcjonowania witryny:</p>
     <ul>
-      <li>Przelewy24 – obsługa i rozliczanie e-płatności,</li>
-      <li>Valve Corporation – autoryzacja oraz logowanie poprzez konto Steam.</li>
+      <li>Przelewy24 (PayPro S.A.) – obsługa i rozliczanie e-płatności,</li>
+      <li>Valve Corporation – autoryzacja oraz logowanie poprzez konto Steam,</li>
+      <li>Dostawca usług hostingowych i informatycznych – przechowywanie danych serwisu,</li>
+      <li>Organy publiczne – wyłącznie gdy obowiązek wynika z przepisów prawa.</li>
     </ul>
+    <p>Logowanie przez Steam odbywa się na stronach Valve Corporation (USA), która jest odrębnym administratorem danych i stosuje własną politykę prywatności. W związku z tym dane mogą być przetwarzane poza Europejskim Obszarem Gospodarczym.</p>
 
     <h2>§ 6. Przysługujące Uprawnienia</h2>
     <p>Każdemu użytkownikowi przysługuje prawo do:</p>
@@ -116,26 +136,31 @@
       <li>Wglądu w treść swoich danych osobowych,</li>
       <li>Żądania ich sprostowania lub aktualizacji,</li>
       <li>Wniesienia o ich całkowite usunięcie („prawo do bycia zapomnianym”),</li>
-      <li>Wnioskowania o ograniczenie zakresu ich przetwarzania.</li>
+      <li>Wnioskowania o ograniczenie zakresu ich przetwarzania,</li>
+      <li>Przenoszenia danych oraz wniesienia sprzeciwu wobec przetwarzania opartego na prawnie uzasadnionym interesie,</li>
+      <li>Cofnięcia zgody w dowolnym momencie (bez wpływu na zgodność z prawem przetwarzania sprzed cofnięcia),</li>
+      <li>Wniesienia skargi do Prezesa Urzędu Ochrony Danych Osobowych (uodo.gov.pl).</li>
     </ul>
+    <p>Dane nie są wykorzystywane do zautomatyzowanego podejmowania decyzji ani profilowania w rozumieniu art. 22 RODO.</p>
 
     <h2>§ 7. Czas Przechowywania Danych</h2>
-    <p>Dane osobowe będą magazynowane przez cały okres posiadania aktywnego konta w serwisie lub do momentu zgłoszenia przez użytkownika żądania ich usunięcia.</p>
+    <p>Dane osobowe będą magazynowane przez cały okres posiadania aktywnego konta w serwisie lub do momentu zgłoszenia przez użytkownika żądania ich usunięcia. Dane dotyczące transakcji są przechowywane przez okres wymagany przepisami podatkowymi i rachunkowymi, a dane potrzebne do obrony przed roszczeniami – do czasu ich przedawnienia.</p>
 
     <h2>§ 8. Polityka Plików Cookies</h2>
-    <p>Strona stosuje pliki cookies (ciasteczka) w celach:</p>
+    <p>Strona stosuje pliki cookies (ciasteczka) oraz pamięć lokalną przeglądarki (localStorage) w celach:</p>
     <ul>
-      <li>Utrzymania sesji i zapamiętania zalogowanego użytkownika,</li>
-      <li>Analitycznych oraz statystycznych,</li>
+      <li>Utrzymania sesji i zapamiętania zalogowanego użytkownika (ciasteczko sesyjne – niezbędne do działania serwisu),</li>
+      <li>Zapisu ustawień i stanu gry w przeglądarce (np. wybór języka, stan konta),</li>
       <li>Zapewnienia prawidłowej nawigacji i wyświetlania elementów witryny.</li>
     </ul>
+    <p>Obecnie serwis nie stosuje analitycznych ani reklamowych plików cookies. Ciasteczka można usunąć lub zablokować w ustawieniach przeglądarki, co może jednak uniemożliwić logowanie i korzystanie z konta.</p>
 
     <h2>§ 9. Kontakt w Sprawach RODO</h2>
     <p>Wszelkie zgłoszenia, pytania oraz wnioski dotyczące ochrony prywatności można przesyłać na adres: <a class="inline-link" href="mailto:casegoldpl@gmail.com">casegoldpl@gmail.com</a>.</p>
   </div>
 
   <footer>
-    Symulacja edukacyjna / rozrywkowa — fikcyjna waluta, brak realnych transakcji.
+    Serwis rozrywkowy dla osób pełnoletnich (18+). Waluta wirtualna (vPLN) — nie można jej wypłacić ani wymienić na prawdziwe pieniądze.
     <div class="footer-legal">
       <a href="regulamin.html">Regulamin</a>
       <a href="polityka-prywatnosci.html">Polityka prywatności</a>
@@ -144,5 +169,6 @@
 </div>
 </div>
 
+<script src="company-info.js"></script>
 </body>
 </html>
