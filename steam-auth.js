@@ -1866,7 +1866,10 @@
 
     const fitCount = () => Math.max(1, Math.floor((viewport.clientWidth + GAP) / STEP));
     function layout() {
-      cards.forEach((c, i) => { c.el.style.transform = `translateX(${i * STEP}px)`; });
+      // Prawe wyrównanie: najnowsza karta zawsze przy prawej krawędzi, starsze
+      // ustawiają się na lewo od niej - pasek "rośnie" od prawej do lewej.
+      const vw = viewport.clientWidth;
+      cards.forEach((c, i) => { c.el.style.transform = `translateX(${vw - CARD_W - (cards.length - 1 - i) * STEP}px)`; });
       emptyMsg.style.display = cards.length ? "none" : "";
     }
 
@@ -1933,10 +1936,6 @@
       }
       void viewport.offsetWidth; // zapisz pozycję startową przed animacją
       layout();
-      if (!animate) {
-        void viewport.offsetWidth;
-        el.style.transition = "";
-      }
     }
 
     function enqueue(list) {
@@ -1975,6 +1974,8 @@
             lastId = Math.max(lastId, d.id);
             addCard(d, false);
           });
+          void viewport.offsetWidth;
+          cards.forEach((c) => { c.el.style.transition = ""; });
         } else {
           enqueue(body.drops);
         }
