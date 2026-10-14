@@ -936,6 +936,10 @@
   }
   @keyframes topPullRingSpin{ to{ transform:rotate(360deg); } }
   .round-stage .r-img img{max-width:94%; max-height:94%; object-fit:contain;}
+  .round-stage .r-potbest{
+    font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:.6px; text-transform:uppercase;
+    color:var(--r-gold); margin-bottom:6px;
+  }
   .round-stage .r-img .fb{font-size:10px; color:var(--muted); font-family:'JetBrains Mono',monospace; text-align:center; line-height:1.2;}
   .round-stage .r-info{min-width:0; max-width:100%;}
   .round-stage .r-wp{font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:.5px; font-size:16px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
@@ -4218,6 +4222,61 @@ function spawnConfetti(idx){
   }
 }
 
+/* After a win the winner's stage should show the priciest item of the WHOLE
+   won pot (items that dropped to opponents included), not just the last pull
+   that happened to land on the winner's own reel. The pull that used to be on
+   display moves down into the history row so nothing disappears. */
+function showPotBestForWinners(lobby, winnerIndices){
+  let best = null;
+  lobby.results.forEach((r, slotIdx) => r.rounds.forEach((it, roundIdx) => {
+    if(it && (!best || it.price > best.item.price)) best = { item: it, slotIdx, roundIdx };
+  }));
+  if(!best) return;
+  winnerIndices.forEach(i => {
+    const stage = document.getElementById(`stage-${i}`);
+    const rounds = lobby.results[i].rounds;
+    const lastIdx = rounds.length - 1;
+    if(!stage || lastIdx < 0 || stage.dataset.potBest === "1") return;
+    // best item already shown in the stage (it was this player's last pull)
+    const alreadyShown = best.slotIdx === i && best.roundIdx === lastIdx;
+    stage.dataset.potBest = "1";
+    const it = best.item;
+    stage.classList.add("reveal-stage");
+    stage.classList.toggle("top-pull-stage", isTopStandardowePull(it, lobby.rounds[best.roundIdx]));
+    stage.style.setProperty("--rarity", rarityColor(it));
+    const img = getSkinImage(it);
+    stage.innerHTML = `
+      <div class="r-potbest">🏆 Najdroższy z wygranej puli</div>
+      <div class="r-img">${img ? `<img src="${img}" alt="${it.weapon}">` : `<div class="fb">${it.weapon}</div>`}</div>
+      <div class="r-info"><div class="r-wp">${it.weapon}</div><div class="r-nm">${it.skin}</div><div class="r-wear">${wearFull(it.wear)}</div></div>
+      <div class="r-pr">${fmt(it.price)}</div>
+    `;
+    if(alreadyShown) return;
+    const history = document.getElementById(`history-${i}`);
+    if(!history) return;
+    // the winner's own earlier pull is now on display up top - drop its
+    // duplicate from the history (newest-first: round r sits at lastIdx-1-r)
+    if(best.slotIdx === i){
+      const dup = history.children[lastIdx - 1 - best.roundIdx];
+      if(dup) dup.remove();
+    }
+    const last = rounds[lastIdx];
+    if(!last) return;
+    const lastImg = getSkinImage(last);
+    const entry = document.createElement("div");
+    entry.className = "history-entry" + (isTopStandardowePull(last, lobby.rounds[lastIdx]) ? " top-standardowe" : "");
+    entry.style.setProperty("--rarity", rarityColor(last));
+    entry.innerHTML = `
+      <span class="h-wear-tag">${last.wear}</span>
+      <span class="h-star">⭐</span>
+      <div class="h-img">${lastImg ? `<img src="${lastImg}" alt="${last.weapon}">` : `<div class="fb">${last.weapon}</div>`}</div>
+      <div class="h-info"><div class="h-wp">${last.weapon}</div><div class="h-nm">${last.skin}</div></div>
+      <div class="h-pr">${fmt(last.price)}</div>
+    `;
+    history.insertBefore(entry, history.firstChild);
+  });
+}
+
 function renderOutcomeBanner(lobby, outcome){
   document.querySelectorAll(".player-col.leading").forEach(el => el.classList.remove("leading"));
   const mySlotIdx = lobby.slots.findIndex(s => s.tabId === myTabId);
@@ -4231,6 +4290,7 @@ function renderOutcomeBanner(lobby, outcome){
       setResultBadge(i, "Zwycięzca", perPlayer);
       spawnConfetti(i);
     });
+    showPotBestForWinners(lobby, lobby.slots.map((x, i) => i));
     document.getElementById("outcomeHeadline").textContent = "Pula podzielona równo";
     document.getElementById("outcomeHeadline").className = "headline win";
     document.getElementById("outcomeDetail").textContent = `Wszyscy gracze dzielą się pulą o łącznej wartości ${fmt(wonValue)} — po równo między ${lobby.totalPlayers} graczy (${fmt(perPlayer)} na osobę).`;
@@ -4256,6 +4316,7 @@ function renderOutcomeBanner(lobby, outcome){
       setResultBadge(i, "Zwycięzca", perWinner);
       spawnConfetti(i);
     });
+    showPotBestForWinners(lobby, winnerIndices);
     lobby.slots.forEach((s, i) => {
       if(!winnerIndices.includes(i)){
         document.getElementById(`player-${i}`).classList.add("loser");
