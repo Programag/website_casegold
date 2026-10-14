@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../inc/db.php';
 require_once __DIR__ . '/../inc/battle.php';
 require_once __DIR__ . '/../inc/battle_economy.php';
+require_once __DIR__ . '/../inc/battle_bots.php';
 
 header('Content-Type: application/json');
 
@@ -38,6 +39,7 @@ try {
     }
 
     foreach ($refunds as $steamid => $amount) battle_refund_user($pdo, (string) $steamid, $amount);
+    if (battle_bot_fill_if_due($lobby)) $changed = true; // okno na dołączenie do bitwy botów minęło
 
     if ($tabId !== null && $tabId !== '' && battle_find_slot_idx($lobby, $tabId) !== -1) {
         $lobby = battle_touch_slot($lobby, $tabId);

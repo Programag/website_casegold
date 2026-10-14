@@ -13,6 +13,12 @@ const BATTLE_TARGET_ACTIVE = 5;
 const BOT_BATTLE_MAX_COST = 10000;
 const BOT_BATTLE_ROUND_MS = 7000;
 const BOT_BATTLE_BASE_MS = 8000;
+// Bitwa botów najpierw czeka w poczekalni z jednym botem i pustymi miejscami -
+// przez minimum 15 s (plus losowy dodatek, żeby kolejne bitwy nie startowały
+// jednocześnie) prawdziwy gracz może do niej dołączyć. Dopiero potem boty
+// zajmują wolne miejsca i bitwa startuje.
+const BOT_BATTLE_JOIN_WINDOW_MS = 15000;
+const BOT_BATTLE_JOIN_JITTER_MS = 5000;
 
 function battle_has_human(array $lobby): bool {
     foreach ($lobby['slots'] ?? [] as $s) {
@@ -58,18 +64,43 @@ function battle_bot_random_config(): array {
     return ['rounds' => $rounds, 'mode' => $mode, 'teams' => $teams, 'shared' => $shared, 'totalPlayers' => $players];
 }
 
+/* Zajmuje wolne miejsca botami (unikalne imiona w obrębie bitwy), losuje
+   wyniki i startuje bitwę. Wołać na zablokowanym lobby (albo świeżo
+   utworzonym) - zapis lobby należy do wołającego. */
+function battle_bot_start(array &$lobby): void {
+    $used = [];
+    foreach ($lobby['slots'] as $s) if (($s['type'] ?? '') === 'bot') $used[] = $s['name'];
+    $free = array_values(array_filter(BOT_ROSTER, fn($b) => !in_array($b['name'], $used, true)));
+    shuffle($free);
+    foreach ($lobby['slots'] as $i => $s) {
+        if (($s['type'] ?? '') !== 'empty') continue;
+        $b = array_shift($free);
+        if (!$b) $b = ['id' => null, 'name' => 'Bot ' . ($i + 1)];
+        $lobby['slots'][$i] = ['type' => 'bot', 'name' => $b['name'], 'tabId' => null] + ($b['id'] ? ['botId' => $b['id'], 'slug' => bot_slug($b['id'])] : []);
+    }
+    $lobby['results'] = battle_generate_results($lobby);
+    $lobby['status'] = 'running';
+    $lobby['startedAt'] = now_ms();
+}
+
+/* Gdy minął czas na dołączenie, bitwa botów (także z dołączonym już graczem)
+   dostaje resztę botów i startuje. Zwraca true, jeśli lobby się zmieniło. */
+function battle_bot_fill_if_due(array &$lobby): bool {
+    if (empty($lobby['botMatch']) || $lobby['status'] !== 'lobby' || empty($lobby['botFillAt'])) return false;
+    if (now_ms() < $lobby['botFillAt']) return false;
+    battle_bot_start($lobby);
+    return true;
+}
+
 function battle_create_bot_battle(PDO $pdo): void {
     $cfg = battle_bot_random_config();
     $cost = battle_entry_cost($cfg['rounds']);
     if ($cost === null || $cost > BOT_BATTLE_MAX_COST) return;
 
-    $names = BOT_ROSTER;
-    shuffle($names);
-    $slots = [];
-    for ($i = 0; $i < $cfg['totalPlayers']; $i++) {
-        $b = $names[$i];
-        $slots[] = ['type' => 'bot', 'name' => $b['name'], 'tabId' => null, 'botId' => $b['id'], 'slug' => bot_slug($b['id'])];
-    }
+    $first = BOT_ROSTER[random_int(0, count(BOT_ROSTER) - 1)];
+    $slots = [['type' => 'bot', 'name' => $first['name'], 'tabId' => null, 'botId' => $first['id'], 'slug' => bot_slug($first['id'])]];
+    for ($i = 1; $i < $cfg['totalPlayers']; $i++) $slots[] = ['type' => 'empty'];
+    $now = now_ms();
     $lobby = [
         'id' => battle_new_id(),
         'hostTabId' => 'bot-host',
@@ -81,16 +112,14 @@ function battle_create_bot_battle(PDO $pdo): void {
         'cost' => $cost,
         'totalPlayers' => $cfg['totalPlayers'],
         'slots' => $slots,
-        'status' => 'running',
+        'status' => 'lobby',
+        'results' => null,
         'stakedTotal' => 0,
         'serverEconomy' => true,
         'botMatch' => true,
-        'createdAt' => now_ms(),
+        'botFillAt' => $now + BOT_BATTLE_JOIN_WINDOW_MS + random_int(0, BOT_BATTLE_JOIN_JITTER_MS),
+        'createdAt' => $now,
     ];
-    $lobby['results'] = battle_generate_results($lobby);
-    // Losowe "zaawansowanie", żeby bitwy nie startowały i nie kończyły się
-    // wszystkie w tej samej chwili.
-    $lobby['startedAt'] = now_ms() - random_int(0, (int) (battle_bot_duration_ms($lobby) * 0.6));
     $pdo->beginTransaction();
     try {
         battle_save($pdo, $lobby);
@@ -117,14 +146,32 @@ function battle_bots_maintain(PDO $pdo): void {
             foreach ($rows as $row) {
                 $l = json_decode($row['data'], true);
                 if (!is_array($l)) continue;
-                if (!empty($l['botMatch'])) {
+                $id = (string) $row['id'];
+                $pureBot = !empty($l['botMatch']) && !battle_has_human($l);
+                if (!empty($l['botMatch']) && $l['status'] === 'lobby' && !empty($l['botFillAt']) && $now >= $l['botFillAt']) {
+                    // Okno na dołączenie minęło - boty zajmują wolne miejsca i bitwa startuje
+                    // (także gdy dołączył już prawdziwy gracz).
+                    $pdo->beginTransaction();
+                    try {
+                        $locked = battle_load_for_update($pdo, $id);
+                        if ($locked && battle_bot_fill_if_due($locked)) battle_save($pdo, $locked);
+                        $pdo->commit();
+                        if ($locked) $l = $locked;
+                    } catch (Throwable $e) {
+                        $pdo->rollBack();
+                        error_log('battle_bots_maintain: start bitwy: ' . $e->getMessage());
+                    }
+                    $pureBot = !empty($l['botMatch']) && !battle_has_human($l);
+                }
+                if ($pureBot) {
                     if ($l['status'] === 'running' && !empty($l['startedAt']) && $now >= $l['startedAt'] + battle_bot_duration_ms($l)) {
                         // Skończona: rozlicz (statystyki botów) i usuń z listy.
-                        battle_finish_lobby($pdo, (string) $row['id']);
-                        $pdo->prepare('DELETE FROM battle_lobbies WHERE id = ?')->execute([$row['id']]);
+                        battle_finish_lobby($pdo, $id);
+                        $pdo->prepare('DELETE FROM battle_lobbies WHERE id = ?')->execute([$id]);
                     } else {
                         $botActive++;
-                        $botRemaining[(string) $row['id']] = ($l['startedAt'] ?? $now) + battle_bot_duration_ms($l) - $now;
+                        $startsAt = $l['status'] === 'lobby' ? ($l['botFillAt'] ?? $now) : ($l['startedAt'] ?? $now);
+                        $botRemaining[$id] = $startsAt + battle_bot_duration_ms($l) - $now;
                     }
                 } elseif ((int) $row['is_private'] === 0 && battle_has_human($l)) {
                     $humanActive++;

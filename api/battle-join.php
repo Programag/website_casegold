@@ -4,6 +4,7 @@ require_once __DIR__ . '/../inc/users.php';
 require_once __DIR__ . '/../inc/auth.php';
 require_once __DIR__ . '/../inc/battle.php';
 require_once __DIR__ . '/../inc/battle_economy.php';
+require_once __DIR__ . '/../inc/battle_bots.php';
 
 header('Content-Type: application/json');
 $user = current_user();
@@ -69,6 +70,11 @@ try {
     ];
     $lobby['stakedTotal'] = ($lobby['stakedTotal'] ?? $lobby['cost']) + $lobby['cost'];
 
+    // Bitwa założona przez serwer (botMatch) nie ma hosta-klienta, który by ją
+    // wystartował - gdy gracz zajął ostatnie wolne miejsce, startuje od razu.
+    if (!empty($lobby['botMatch']) && !array_filter($lobby['slots'], fn($s) => ($s['type'] ?? '') === 'empty')) {
+        battle_bot_start($lobby);
+    }
     battle_save($pdo, $lobby);
     $pdo->commit();
     echo json_encode(['ok' => true, 'lobby' => $lobby, 'state' => fix_state_object_fields($state)]);
