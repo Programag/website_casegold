@@ -1811,7 +1811,7 @@
   function initLiveFeed() {
     if (document.querySelector('meta[name="no-live-feed"]') || document.getElementById("liveFeedBar")) return;
 
-    const CARD_W = 124, GAP = 8, STEP = CARD_W + GAP, POLL_MS = 3000, MAX_QUEUE = 10, INITIAL = 20;
+    const CARD_W = 124, GAP = 8, POLL_MS = 3000, MAX_QUEUE = 10, INITIAL = 20;
 
     const style = document.createElement("style");
     style.textContent = `
@@ -1828,7 +1828,7 @@
       @keyframes lf-pulse{70%{box-shadow:0 0 0 8px rgba(61,220,132,0);} 100%{box-shadow:0 0 0 0 rgba(61,220,132,0);}}
       .lf-viewport{flex:1; min-width:0; position:relative; overflow:hidden;}
       .lf-card{
-        --rc:#4b69ff; position:absolute; top:8px; left:0; width:${CARD_W}px; height:92px; border-radius:8px; background:#161a24;
+        --rc:#4b69ff; position:absolute; top:8px; left:0; width:var(--lf-card-w, ${CARD_W}px); height:92px; border-radius:8px; background:#161a24;
         box-shadow:inset 0 -26px 26px -20px var(--rc); border-bottom:2px solid var(--rc);
         display:flex; flex-direction:column; align-items:center; padding:5px 6px 4px; overflow:hidden; cursor:default; will-change:transform;
         transition:transform .6s cubic-bezier(.22,.8,.3,1);
@@ -1864,11 +1864,22 @@
     const queue = [];
     let lastId = 0, seeded = false, pumping = false;
 
-    const fitCount = () => Math.max(1, Math.floor((viewport.clientWidth + GAP) / STEP));
+    // Liczba kart mieszczących się na pasku; szerokość karty jest dopasowana
+    // tak, żeby te karty DOKŁADNIE wypełniały pasek (bez pustego odstępu
+    // przy prawej krawędzi) - patrz fitCount() i zmienna --lf-card-w.
+    let step = CARD_W + GAP;
+    function fitCount() {
+      const vw = viewport.clientWidth;
+      const fit = Math.max(1, Math.floor((vw + GAP) / (CARD_W + GAP)));
+      const w = (vw - (fit - 1) * GAP) / fit;
+      step = w + GAP;
+      bar.style.setProperty("--lf-card-w", `${w}px`);
+      return fit;
+    }
     function layout() {
       // Lewe wyrównanie: najnowsza karta zawsze przy lewej krawędzi, starsze
       // ustawiają się na prawo od niej - pasek "rośnie" od lewej do prawej.
-      cards.forEach((c, i) => { c.el.style.transform = `translateX(${(cards.length - 1 - i) * STEP}px)`; });
+      cards.forEach((c, i) => { c.el.style.transform = `translateX(${(cards.length - 1 - i) * step}px)`; });
       emptyMsg.style.display = cards.length ? "none" : "";
     }
 
@@ -1922,12 +1933,12 @@
     }
 
     function addCard(d, animate) {
+      const fit = fitCount();
       const el = buildCard(d);
       if (!animate) el.style.transition = "none";
-      el.style.transform = `translateX(${-STEP}px)`;
+      el.style.transform = `translateX(${-step}px)`;
       viewport.appendChild(el);
       cards.push({ el });
-      const fit = fitCount();
       while (cards.length > fit) {
         const old = cards.shift();
         old.el.style.transform = `translateX(${viewport.clientWidth}px)`;
