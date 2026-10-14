@@ -1572,6 +1572,11 @@
         font-family:'Inter',sans-serif;
       }
       #topUpOverlay.show .tu-panel{transform:translateY(0) scale(1);}
+      .tu-panel{scrollbar-width:thin; scrollbar-color:#3a4256 transparent;}
+      .tu-panel::-webkit-scrollbar{width:8px;}
+      .tu-panel::-webkit-scrollbar-track{background:transparent; margin:16px 0;}
+      .tu-panel::-webkit-scrollbar-thumb{background:#2e3547; border-radius:8px; border:2px solid transparent; background-clip:padding-box;}
+      .tu-panel::-webkit-scrollbar-thumb:hover{background:var(--hazard,#ff9500); background-clip:padding-box;}
       .tu-close{
         position:absolute; top:12px; right:12px; width:28px; height:28px; border-radius:8px;
         background:var(--panel-2,#1b202b); border:1px solid var(--line,#262c3a); color:var(--muted,#7d879b);
@@ -1632,7 +1637,19 @@
       }
       .tu-consents{margin-bottom:14px; display:flex; flex-direction:column; gap:9px;}
       .tu-check{display:flex; gap:9px; align-items:flex-start; font-size:11.5px; line-height:1.45; color:var(--muted,#7d879b); cursor:pointer;}
-      .tu-check input{margin-top:2px; flex:none; accent-color:var(--hazard,#ff9500); width:15px; height:15px;}
+      .tu-check input{
+        -webkit-appearance:none; appearance:none; flex:none; width:18px; height:18px; margin:1px 0 0;
+        border-radius:5px; border:1.5px solid #3a4256; background:#0f131b; cursor:pointer;
+        display:grid; place-content:center; transition:background .12s ease, border-color .12s ease, box-shadow .12s ease;
+      }
+      .tu-check input::after{
+        content:""; width:10px; height:10px; background:#1a1200; transform:scale(0); transition:transform .12s ease;
+        clip-path:polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+      }
+      .tu-check input:hover{border-color:var(--hazard,#ff9500);}
+      .tu-check input:checked{background:var(--hazard,#ff9500); border-color:var(--hazard,#ff9500); box-shadow:0 0 0 3px rgba(255,149,0,.15);}
+      .tu-check input:checked::after{transform:scale(1);}
+      .tu-check input:focus-visible{outline:2px solid rgba(255,149,0,.55); outline-offset:2px;}
       .tu-check a, .auth-wall-note a{color:var(--hazard,#ff9500);}
       .tu-price-note{font-size:11px; color:var(--muted,#7d879b);}
       .tu-disclaimer{
