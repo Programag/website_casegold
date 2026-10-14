@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../inc/db.php';
 require_once __DIR__ . '/../inc/auth.php';
 require_once __DIR__ . '/../inc/state_ops.php';
+require_once __DIR__ . '/../inc/live_drops.php';
 
 header('Content-Type: application/json');
 
@@ -171,6 +172,8 @@ try {
 
     $saved = state_save($pdo, $me['steamid'], $state);
     $pdo->commit();
+
+    live_drops_record($pdo, $me['steamid'], (string) ($me['display_name'] ?? 'Gracz'), $caseId, $wonItems);
 
     echo json_encode(['ok' => true, 'items' => $wonItems, 'cost' => $cost, 'state' => fix_state_object_fields($saved)]);
 } catch (Throwable $e) {

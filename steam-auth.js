@@ -1803,6 +1803,189 @@
     buildUI();
   }
 
+  // ---- Pasek "na żywo" z najnowszymi wygranymi graczy (na górze każdej
+  // strony). Dane: api/live-drops.php (zapis w api/apply-case-open.php).
+  // Obrazki i kolor rzadkości biorą się z skin-images.js / rarity-data.js -
+  // jeśli strona ich nie ma, doładowujemy je dynamicznie. Strona może
+  // wyłączyć pasek przez <meta name="no-live-feed">. ----
+  function initLiveFeed() {
+    if (document.querySelector('meta[name="no-live-feed"]') || document.getElementById("liveFeedBar")) return;
+
+    const CARD_W = 124, GAP = 8, STEP = CARD_W + GAP, SPEED = 45, MAX_DROPS = 40, POLL_MS = 5000;
+
+    const style = document.createElement("style");
+    style.textContent = `
+      .lf-bar{
+        --r-milspec:#4b69ff; --r-restricted:#8847ff; --r-classified:#d32ce6; --r-covert:#eb4b4b; --r-gold:#ffd700;
+        display:flex; align-items:stretch; height:108px; background:#0c0f15; border-bottom:1px solid #262c3a;
+        font-family:'Inter',sans-serif; overflow:hidden; position:relative; z-index:60;
+      }
+      .lf-live{
+        flex:none; width:92px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+        background:#11151d; border-right:1px solid #262c3a; color:#e9ecf3; font-size:11px; font-weight:700; letter-spacing:1px;
+      }
+      .lf-dot{width:10px; height:10px; border-radius:50%; background:#3ddc84; box-shadow:0 0 0 0 rgba(61,220,132,.6); animation:lf-pulse 1.8s infinite;}
+      @keyframes lf-pulse{70%{box-shadow:0 0 0 8px rgba(61,220,132,0);} 100%{box-shadow:0 0 0 0 rgba(61,220,132,0);}}
+      .lf-viewport{flex:1; min-width:0; position:relative; overflow:hidden; padding:8px 0;}
+      .lf-track{display:flex; gap:${GAP}px; will-change:transform; width:max-content;}
+      .lf-card{
+        --rc:#4b69ff; flex:none; width:${CARD_W}px; height:92px; border-radius:8px; background:#161a24; position:relative;
+        box-shadow:inset 0 -26px 26px -20px var(--rc); border-bottom:2px solid var(--rc);
+        display:flex; flex-direction:column; align-items:center; padding:5px 6px 4px; overflow:hidden; cursor:default;
+      }
+      .lf-img{height:46px; width:100%; display:flex; align-items:center; justify-content:center;}
+      .lf-img img{max-width:100%; max-height:46px; object-fit:contain;}
+      .lf-fallback{font-size:11px; color:#7d879b; text-align:center;}
+      .lf-skin{width:100%; text-align:center; font-size:11.5px; font-weight:600; color:var(--rc); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px;}
+      .lf-meta{width:100%; display:flex; justify-content:center; font-size:10px; color:#7d879b; white-space:pre; margin-top:1px;}
+      .lf-meta span{min-width:0; overflow:hidden; text-overflow:ellipsis;}
+      .lf-meta b{flex:none; color:#e9ecf3; font-weight:600;}
+      .lf-empty{position:absolute; inset:0; display:flex; align-items:center; padding-left:18px; color:#7d879b; font-size:12.5px;}
+      @media (max-width:600px){ .lf-live{width:64px; font-size:9px;} }
+    `;
+    document.head.appendChild(style);
+
+    const bar = document.createElement("div");
+    bar.className = "lf-bar";
+    bar.id = "liveFeedBar";
+    bar.innerHTML = `
+      <div class="lf-live"><span class="lf-dot"></span>NA ŻYWO</div>
+      <div class="lf-viewport"><div class="lf-track"></div><div class="lf-empty">Czekamy na pierwsze wygrane graczy…</div></div>
+    `;
+    document.body.insertBefore(bar, document.body.firstChild);
+    const viewport = bar.querySelector(".lf-viewport");
+    const track = bar.querySelector(".lf-track");
+    const emptyMsg = bar.querySelector(".lf-empty");
+
+    const drops = [];
+    let nextIdx = 0, offset = 0, lastId = 0, paused = false, lastTs = 0;
+
+    bar.addEventListener("mouseenter", () => { paused = true; });
+    bar.addEventListener("mouseleave", () => { paused = false; });
+
+    function rarityOf(d) {
+      const known = typeof getSkinRarityColor === "function" ? getSkinRarityColor(d.weapon, d.skin) : null;
+      if (known) return known;
+      if (d.price < 2) return "var(--r-milspec)";
+      if (d.price < 4) return "var(--r-restricted)";
+      if (d.price < 10) return "var(--r-classified)";
+      if (d.price < 100) return "var(--r-covert)";
+      return "var(--r-gold)";
+    }
+
+    function buildCard(d) {
+      const priceTxt = d.price.toLocaleString("pl-PL", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " zł";
+      const card = document.createElement("div");
+      card.className = "lf-card";
+      card.style.setProperty("--rc", rarityOf(d));
+      card.title = `${d.display_name} — ${d.weapon} | ${d.skin} (${d.wear}) — ${priceTxt}`;
+      const imgWrap = document.createElement("div");
+      imgWrap.className = "lf-img";
+      const src = typeof getSkinImage === "function" ? getSkinImage(d) : "";
+      const fallback = () => {
+        imgWrap.textContent = "";
+        const f = document.createElement("div");
+        f.className = "lf-fallback";
+        f.textContent = d.weapon;
+        imgWrap.appendChild(f);
+      };
+      if (src) {
+        const img = document.createElement("img");
+        img.alt = d.weapon;
+        img.onerror = fallback;
+        img.src = src;
+        imgWrap.appendChild(img);
+      } else {
+        fallback();
+      }
+      const skin = document.createElement("div");
+      skin.className = "lf-skin";
+      skin.textContent = d.skin;
+      const meta = document.createElement("div");
+      meta.className = "lf-meta";
+      const name = document.createElement("span");
+      name.textContent = d.display_name + " · ";
+      const price = document.createElement("b");
+      price.textContent = priceTxt;
+      meta.append(name, price);
+      card.append(imgWrap, skin, meta);
+      return card;
+    }
+
+    function addDrops(list) {
+      let ins = nextIdx;
+      for (const d of list) {
+        if (d.id <= lastId) continue;
+        lastId = d.id;
+        drops.splice(ins++, 0, d);
+      }
+      while (drops.length > MAX_DROPS) {
+        let minI = 0;
+        for (let i = 1; i < drops.length; i++) if (drops[i].id < drops[minI].id) minI = i;
+        drops.splice(minI, 1);
+        if (minI < nextIdx) nextIdx--;
+      }
+      if (nextIdx >= drops.length) nextIdx = 0;
+      emptyMsg.style.display = drops.length ? "none" : "";
+    }
+
+    function tick(ts) {
+      const dt = lastTs ? Math.min(0.1, (ts - lastTs) / 1000) : 0;
+      lastTs = ts;
+      if (drops.length) {
+        if (!paused) offset -= SPEED * dt;
+        while (track.firstElementChild && -offset >= STEP) {
+          track.removeChild(track.firstElementChild);
+          offset += STEP;
+        }
+        const need = viewport.clientWidth + STEP;
+        let guard = 0;
+        while (track.children.length * STEP + offset < need && guard++ < 200) {
+          track.appendChild(buildCard(drops[nextIdx]));
+          nextIdx = (nextIdx + 1) % drops.length;
+        }
+        track.style.transform = `translateX(${offset}px)`;
+      }
+      requestAnimationFrame(tick);
+    }
+
+    async function poll(initial) {
+      if (document.hidden && !initial) return;
+      try {
+        const res = await fetch(initial ? "/api/live-drops.php?limit=20" : `/api/live-drops.php?after=${lastId}`, { credentials: "same-origin" });
+        const body = await res.json().catch(() => null);
+        if (res.ok && body && Array.isArray(body.drops)) addDrops(body.drops);
+      } catch (e) {
+        // sieć chwilowo niedostępna - następne odpytanie spróbuje ponownie
+      }
+    }
+
+    poll(true);
+    setInterval(() => poll(false), POLL_MS);
+    requestAnimationFrame(tick);
+  }
+
+  function startLiveFeed() {
+    const needs = [];
+    if (typeof getSkinImage === "undefined") needs.push("skin-images.js");
+    if (typeof getSkinRarityColor === "undefined") needs.push("rarity-data.js");
+    let pending = needs.length;
+    if (!pending) { initLiveFeed(); return; }
+    const done = () => { if (--pending === 0) initLiveFeed(); };
+    needs.forEach((file) => {
+      const s = document.createElement("script");
+      s.src = "/" + file;
+      s.onload = done;
+      s.onerror = done;
+      document.head.appendChild(s);
+    });
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", startLiveFeed);
+  } else {
+    startLiveFeed();
+  }
+
   window.SteamAuth = {
     getUser: () => (me.loggedIn ? me.user : null),
     refreshUI: buildUI,

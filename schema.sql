@@ -71,3 +71,17 @@ CREATE TABLE IF NOT EXISTS topup_orders (
   INDEX idx_steamid (steamid)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Strumień "najnowszych wygranych" dla paska na górze strony
+-- (api/live-drops.php). Tabela tworzy się też sama przy pierwszym użyciu
+-- (inc/live_drops.php) - ta definicja jest tu dla kompletności.
+CREATE TABLE IF NOT EXISTS live_drops (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  steamid VARCHAR(32) NOT NULL,
+  display_name VARCHAR(191) NOT NULL,
+  case_id VARCHAR(40) NOT NULL,
+  weapon VARCHAR(100) NOT NULL,
+  skin VARCHAR(100) NOT NULL,
+  wear VARCHAR(20) NOT NULL,
+  price DECIMAL(12,2) NOT NULL,
+  created_at BIGINT NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
