@@ -955,7 +955,7 @@
   // type "affiliate" - prawdziwy kod partnera (affiliate.html), sprawdzony
   //                    serwerowo (lookupAffiliateCode). Kliknięcie "Kup"
   //                    wysyła ten kod razem z zamówieniem (topup-create.php);
-  //                    twórca dostaje 1000 wirt. zł za każdą PRAWDZIWIE
+  //                    twórca dostaje 100 wirt. zł za każdą PRAWDZIWIE
   //                    wpłaconą złotówkę, ale dopiero po potwierdzeniu
   //                    płatności przez webhook, nie w tym miejscu.
   let topUpPromo = { active: false, type: null, code: "", ownerName: "" };

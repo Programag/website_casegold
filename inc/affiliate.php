@@ -9,7 +9,7 @@
 require_once __DIR__ . '/state_ops.php';
 
 // Ile wirtualnych złotych dostaje twórca za każdą prawdziwą wpłaconą złotówkę.
-const AFFILIATE_VIRTUAL_PER_PLN = 1000;
+const AFFILIATE_VIRTUAL_PER_PLN = 100;
 
 /* $code - znormalizowany (trim+uppercase) kod partnerski zastosowany PRZY
    zakupie (zapisany na zamówieniu w topup_orders w momencie
