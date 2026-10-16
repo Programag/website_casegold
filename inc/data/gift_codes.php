@@ -27,4 +27,5 @@ return [
     'ULTRASYF' => ['type' => 'case', 'caseId' => 'case_ultra', 'label' => 'Ultra Case', 'addedAt' => '2026-08-09'],
     'DARMOWE2000' => ['type' => 'money', 'amount' => 2000, 'addedAt' => '2026-08-09'],
     'DEARDOG' => ['type' => 'money', 'amount' => 3000, 'addedAt' => '2026-10-04'],
+    'JMM100%' => ['type' => 'money', 'amount' => 5000, 'addedAt' => '2026-10-16'],
 ];
