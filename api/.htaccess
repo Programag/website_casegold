@@ -1,0 +1,3 @@
+# Odpowiedzi 404 z endpointów API (JSON) mają zostać nietknięte - bez tego
+# ErrorDocument z katalogu głównego mógłby podmienić ich treść na stronę 404.
+ErrorDocument 404 default

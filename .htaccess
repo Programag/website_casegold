@@ -12,3 +12,7 @@
 <FilesMatch "^(config\.php|config\.example\.php|schema\.sql)$">
     Require all denied
 </FilesMatch>
+
+# Czyste adresy bez ".html" - patrz page-router.php (ErrorDocument zamiast
+# mod_rewrite, który na tym hostingu nie działa).
+ErrorDocument 404 /page-router.php
