@@ -2737,8 +2737,10 @@ socket.on("battle:lobbies", (list) => {
   // "list" to już publiczne (nie-prywatne) lobby w stanie "lobby" albo
   // "running" - patrz publicLobbies() w battle-lobby.js - więc to jest
   // dokładnie liczba aktywnych bitew widoczna z zewnątrz w danym momencie.
-  document.getElementById("activeBattlesChip").textContent = `🔴 Liczba aktywnych bitew: ${list.length}`;
-  if(!myLobbyId){ renderOpenLobbies(); renderRunningLobbies(); }
+  document.getElementById("activeBattlesChip").textContent = `🔴 Liczba aktywnych bitew: ${list.filter(l => !(l.status === "running" && l.startedAt && Date.now() > l.startedAt + l.rounds.length * ROUND_PERIOD_MS + 25000)).length}`;
+  // Listy odświeżamy zawsze, gdy widać ekran startowy - także gdy w
+  // sessionStorage został zapamiętany myLobbyId (inaczej lista stała w miejscu).
+  if(!myLobbyId || landingEl.style.display === "block"){ renderOpenLobbies(); renderRunningLobbies(); }
 });
 socket.on("battle:lobby", (lobby) => {
   lobbyCache[lobby.id] = lobby;
@@ -4687,7 +4689,10 @@ function renderOpenLobbies(){
 
 function renderRunningLobbies(){
   const lobbies = loadLobbies();
-  const running = Object.values(lobbies).filter(l => l.status === "running" && !l.private);
+  // Bitwa, której animacja dawno się skończyła, a serwer jeszcze jej nie
+  // zdjął z listy (rozlicza ją przy najbliższym odpytaniu), nie jest już "w trakcie".
+  const running = Object.values(lobbies).filter(l => l.status === "running" && !l.private &&
+    !(l.startedAt && Date.now() > l.startedAt + l.rounds.length * ROUND_PERIOD_MS + 25000));
   if(running.length === 0){
     runningLobbiesList.innerHTML = `<div class="landing-empty">Żadna bitwa nie jest teraz w trakcie.</div>`;
     return;

@@ -16,8 +16,13 @@ require_once __DIR__ . '/bots.php';
 const BATTLE_XP_PER_ZL = 1 / 10; // XP_PER_ZL ze steam-auth.js
 // Bitwa "running" bez zgłoszenia końca (wszyscy zamknęli karty) jest sama
 // rozliczana po tym czasie: stała część + czas na rundę.
-const BATTLE_SETTLE_BASE_MS = 180 * 1000;
-const BATTLE_SETTLE_PER_ROUND_MS = 20 * 1000;
+// Animacja bitwy trwa ok. 4,5 s na rundę (ROUND_PERIOD_MS w battle.html) -
+// ten zapas pozwala spóźnionemu graczowi sam zgłosić koniec, a po nim serwer
+// rozlicza bitwę i zdejmuje ją z listy "w trakcie" (wcześniej: 180 s + 20 s na
+// rundę, więc porzucona bitwa wisiała jako trwająca przez kilka minut i
+// blokowała też tworzenie nowych bitew botów).
+const BATTLE_SETTLE_BASE_MS = 20 * 1000;
+const BATTLE_SETTLE_PER_ROUND_MS = 5 * 1000;
 
 /* ---------------- skrzynki, koszt, losowanie ---------------- */
 function battle_cases(): array {
@@ -419,6 +424,47 @@ function battle_settle_overdue(PDO $pdo): void {
         }
     } catch (Throwable $e) {
         error_log('battle_settle_overdue błąd: ' . $e->getMessage());
+    }
+}
+
+/* Sprząta poczekalnie, z których gracze zniknęli (zamknięta karta bez
+   "Anuluj"): zwalnia ich miejsca (ze zwrotem wpisowego), a gdy zniknął host,
+   kasuje całą poczekalnię. Wcześniej robiło to dopiero czyjeś wejście w tę
+   konkretną bitwę, więc opuszczone poczekalnie wisiały na liście jako
+   "do dołączenia", choć nikogo w nich nie było. Wołane z api/battle-lobbies.php. */
+function battle_sweep_waiting(PDO $pdo): void {
+    try {
+        $rows = $pdo->query("SELECT id, data FROM battle_lobbies WHERE status = 'lobby'")->fetchAll();
+        $now = now_ms();
+        foreach ($rows as $row) {
+            $l = json_decode($row['data'], true);
+            if (!is_array($l)) continue;
+            $stale = false;
+            foreach ($l['slots'] ?? [] as $s) {
+                if (($s['type'] ?? 'empty') === 'empty' || ($s['type'] ?? '') === 'bot') continue;
+                if (isset($s['lastSeen']) && ($now - $s['lastSeen']) > BATTLE_DISCONNECT_GRACE_MS) { $stale = true; break; }
+            }
+            if (!$stale) continue;
+            $pdo->beginTransaction();
+            try {
+                $lobby = battle_load_for_update($pdo, (string) $row['id']);
+                if (!$lobby || $lobby['status'] !== 'lobby') { $pdo->rollBack(); continue; }
+                [$lobby, $changed, $deleted, $refunds] = battle_sweep_stale($lobby);
+                if ($deleted) {
+                    battle_refund_all_seated($pdo, $lobby);
+                    battle_delete($pdo, (string) $row['id']);
+                } else {
+                    foreach ($refunds as $steamid => $amount) battle_refund_user($pdo, (string) $steamid, $amount);
+                    if ($changed) battle_save($pdo, $lobby);
+                }
+                $pdo->commit();
+            } catch (Throwable $e) {
+                $pdo->rollBack();
+                error_log('battle_sweep_waiting błąd: ' . $e->getMessage());
+            }
+        }
+    } catch (Throwable $e) {
+        error_log('battle_sweep_waiting błąd: ' . $e->getMessage());
     }
 }
 
