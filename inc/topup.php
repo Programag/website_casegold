@@ -33,7 +33,17 @@ function topup_ensure_table(PDO $pdo): void {
     if (!$pdo->query("SHOW COLUMNS FROM topup_orders LIKE 'note'")->fetch()) {
         $pdo->exec('ALTER TABLE topup_orders ADD COLUMN note VARCHAR(255) NULL');
     }
+    if (!$pdo->query("SHOW COLUMNS FROM topup_orders LIKE 'fail_reason'")->fetch()) {
+        $pdo->exec('ALTER TABLE topup_orders ADD COLUMN fail_reason VARCHAR(32) NULL');
+    }
     $done = true;
+}
+
+/* Oznacza zamówienie jako odrzucone (z powodem pokazywanym na topup-return).
+   Dotyczy tylko jeszcze niezaksięgowanych zamówień. */
+function topup_mark_failed(PDO $pdo, string $sessionId, string $reason, string $note): void {
+    $pdo->prepare('UPDATE topup_orders SET status = "failed", fail_reason = ? WHERE session_id = ? AND status = "pending"')->execute([$reason, $sessionId]);
+    topup_note($pdo, $sessionId, $note);
 }
 
 /* Krótka notatka diagnostyczna na zamówieniu (widoczna tylko adminowi na
@@ -64,8 +74,8 @@ function topup_finalize(PDO $pdo, array $order, $orderId): string {
     }
     if (!$confirmed) {
         error_log("topup_finalize: verify() odrzucił $sessionId / orderId=$orderId");
-        $pdo->prepare('UPDATE topup_orders SET status = "failed", p24_order_id = ? WHERE session_id = ? AND status = "pending"')->execute([(string) $orderId, $sessionId]);
-        topup_note($pdo, $sessionId, 'verify: P24 nie potwierdziło transakcji');
+        $pdo->prepare('UPDATE topup_orders SET p24_order_id = ? WHERE session_id = ? AND status = "pending"')->execute([(string) $orderId, $sessionId]);
+        topup_mark_failed($pdo, $sessionId, 'rejected', 'verify: P24 nie potwierdziło transakcji');
         return 'not_confirmed';
     }
 
@@ -73,7 +83,7 @@ function topup_finalize(PDO $pdo, array $order, $orderId): string {
     try {
         // UPDATE ... WHERE status='pending' jest atomowy - równoległe wywołanie
         // (np. webhook + odpytanie) nie zaksięguje drugi raz (rowCount() == 0).
-        $claim = $pdo->prepare('UPDATE topup_orders SET status = "paid", p24_order_id = ?, paid_at = ? WHERE session_id = ? AND status = "pending"');
+        $claim = $pdo->prepare('UPDATE topup_orders SET status = "paid", fail_reason = NULL, p24_order_id = ?, paid_at = ? WHERE session_id = ? AND status IN ("pending", "failed")');
         $claim->execute([(string) $orderId, now_ms(), $sessionId]);
         if ($claim->rowCount() === 0) {
             $pdo->rollBack();

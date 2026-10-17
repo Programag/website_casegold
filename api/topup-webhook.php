@@ -54,7 +54,7 @@ if ($order['status'] === 'paid') {
 
 if ($amountGrosze !== (int) $order['price_grosze']) {
     error_log("POST /api/topup-webhook niezgodna kwota dla $sessionId: oczekiwano {$order['price_grosze']}, otrzymano $amountGrosze");
-    topup_note($pdo, $sessionId, "webhook: niezgodna kwota ($amountGrosze zamiast {$order['price_grosze']})");
+    topup_mark_failed($pdo, $sessionId, 'amount', "webhook: niezgodna kwota ($amountGrosze zamiast {$order['price_grosze']})");
     http_response_code(400);
     echo 'amount_mismatch';
     exit;
