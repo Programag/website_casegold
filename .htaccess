@@ -16,3 +16,9 @@
 # Czyste adresy bez ".html" - patrz page-router.php (ErrorDocument zamiast
 # mod_rewrite, który na tym hostingu nie działa).
 ErrorDocument 404 /page-router.php
+
+# Stare adresy z ".html" przekierowuj na czyste (mod_alias, nie mod_rewrite).
+# Zapytanie (?u=..., ?lobby=...) mod_alias dołącza samo; #hash zostaje po
+# stronie przeglądarki.
+RedirectMatch 301 ^/index\.html$ /
+RedirectMatch 301 ^/([A-Za-z0-9_-]+)\.html$ /$1

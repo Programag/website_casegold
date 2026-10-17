@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<script src="steam-auth.js?v=33"></script>
+<script src="steam-auth.js?v=34"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CASEGOLD</title>
 <link rel="icon" type="image/png" href="casegold_logo.PNG">
@@ -386,11 +386,11 @@
   </div>
   <div class="nav-links">
     <a class="nav-link active" href="/" id="navCases">Skrzynki</a>
-    <a class="nav-link" href="/darmowe.html" id="navFree">Darmowe</a>
-    <a class="nav-link" href="/battle.html">Case Battle</a>
-    <a class="nav-link" href="/upgrade.html">Upgrader</a>
-    <a class="nav-link" href="/zadania.html" id="navTasks">Zadania</a>
-    <a class="nav-link" href="/equipment.html" id="navInventory">Ekwipunek</a>
+    <a class="nav-link" href="/darmowe" id="navFree">Darmowe</a>
+    <a class="nav-link" href="/battle">Case Battle</a>
+    <a class="nav-link" href="/upgrade">Upgrader</a>
+    <a class="nav-link" href="/zadania" id="navTasks">Zadania</a>
+    <a class="nav-link" href="/equipment" id="navInventory">Ekwipunek</a>
   </div>
   <div class="nav-right">
     <button class="daily-btn" id="dailyBonusBtn">🎁 Daily Bonus</button>
@@ -469,7 +469,7 @@
     <div class="lb-list" id="leaderboardList"></div>
   </div>
 
-  <footer><span id="footerTxt">Serwis rozrywkowy. Waluta wirtualna (vPLN) — nie można jej wypłacić ani wymienić na prawdziwe pieniądze. CASEGOLD nie jest powiązany z Valve Corporation ani przez nią wspierany; Counter-Strike i Steam są znakami towarowymi Valve Corporation.</span><div class="footer-legal"><a href="regulamin.html">Regulamin</a><a href="polityka-prywatnosci.html">Polityka prywatności</a></div></footer>
+  <footer><span id="footerTxt">Serwis rozrywkowy. Waluta wirtualna (vPLN) — nie można jej wypłacić ani wymienić na prawdziwe pieniądze. CASEGOLD nie jest powiązany z Valve Corporation ani przez nią wspierany; Counter-Strike i Steam są znakami towarowymi Valve Corporation.</span><div class="footer-legal"><a href="/regulamin">Regulamin</a><a href="/polityka-prywatnosci">Polityka prywatności</a></div></footer>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -485,7 +485,7 @@ const CASES = [
   {
     name: "Dirt Case",
     price: 1.60,
-    file: "/case_simulator.html",
+    file: "/case_simulator",
     accent: "var(--r-milspec)",
     desc: "56 możliwych przedmiotów, od podstawowej broni po rzadkie wykończenia.",
     img: "dirt_case.png",
@@ -494,7 +494,7 @@ const CASES = [
   {
     name: "Water Case",
     price: 2.70,
-    file: "/case_water.html",
+    file: "/case_water",
     accent: "var(--r-classified)",
     desc: "20 przedmiotów, w tym AK-47 Frontside Misty — niski koszt, przyzwoite stawki.",
     img: "case_water.PNG",
@@ -503,7 +503,7 @@ const CASES = [
   {
     name: "Noir Case",
     price: 5.40,
-    file: "/case_noir.html",
+    file: "/case_noir",
     accent: "var(--r-covert)",
     desc: "36 przedmiotów, w tym M4A4 Neo-Noir — niski koszt, mroczny klimat.",
     img: "case_noir.PNG",
@@ -512,7 +512,7 @@ const CASES = [
   {
     name: "Iron Case",
     price: 9.60,
-    file: "/case_restricted.html",
+    file: "/case_restricted",
     accent: "var(--r-restricted)",
     desc: "48 przedmiotów wyższej klasy — wyższy koszt, wyższe stawki.",
     img: "iron_case.png",
@@ -521,7 +521,7 @@ const CASES = [
   {
     name: "Gold Case",
     price: 20.30,
-    file: "/case_gold.html",
+    file: "/case_gold",
     accent: "var(--r-gold)",
     desc: "24 przedmioty, w tym noże i rękawice — najwyższe stawki.",
     img: "gold_case.png",
@@ -530,7 +530,7 @@ const CASES = [
   {
     name: "Ultra Case",
     price: 228.10,
-    file: "/case_ultra.html",
+    file: "/case_ultra",
     accent: "var(--r-gold)",
     desc: "15 przedmiotów, w tym noże, rękawice i Howl — absolutny szczyt stawek.",
     img: "ultra_case.png",
@@ -539,7 +539,7 @@ const CASES = [
   {
     name: "Neon Case",
     price: 196.70,
-    file: "/case_neon.html",
+    file: "/case_neon",
     accent: "var(--r-gold)",
     desc: "18 przedmiotów, w tym rękawice i noże Fade — jaskrawe wykończenia, wysokie stawki.",
     img: "neon_case.png",
@@ -548,7 +548,7 @@ const CASES = [
   {
     name: "Snow Case",
     price: 71.80,
-    file: "/case_snow.html",
+    file: "/case_snow",
     accent: "var(--r-covert)",
     desc: "5 przedmiotów, w tym cztery Printstreamy — 91% szans na naklejkę, reszta to gigantyczny jackpot.",
     img: "snow_case.png",
@@ -557,7 +557,7 @@ const CASES = [
   {
     name: "Waste Case",
     price: 1921.90,
-    file: "/case_waste.html",
+    file: "/case_waste",
     accent: "var(--r-gold)",
     desc: "16 przedmiotów, same noże i bronie w Gamma Doppler Emerald — absolutny szczyt stawek.",
     img: "waste_case.png",
@@ -566,7 +566,7 @@ const CASES = [
   {
     name: "Jungle Case",
     price: 22.00,
-    file: "/case_jungle.html",
+    file: "/case_jungle",
     accent: "var(--r-classified)",
     desc: "21 przedmiotów, w tym nóż i rękawice — dżunglowe wykończenia, ogromny jackpot.",
     img: "case_jungle.PNG",
@@ -575,7 +575,7 @@ const CASES = [
   {
     name: "Diamond Case",
     price: 108.00,
-    file: "/case_diamond.html",
+    file: "/case_diamond",
     accent: "var(--r-gold)",
     desc: "27 przedmiotów, w tym Dragon Lore i trzy noże Lore — absolutny szczyt stawek.",
     img: "case_diamond.PNG",
@@ -584,7 +584,7 @@ const CASES = [
   {
     name: "Sand Case",
     price: 9.20,
-    file: "/case_sand.html",
+    file: "/case_sand",
     accent: "var(--r-restricted)",
     desc: "21 przedmiotów, w tym rękawice Desert Shamagh — pustynny klimat, wysokie stawki.",
     img: "case_sand.PNG",
@@ -593,7 +593,7 @@ const CASES = [
   {
     name: "Poland Case",
     price: 665.70,
-    file: "/case_poland.html",
+    file: "/case_poland",
     accent: "var(--r-gold)",
     desc: "21 przedmiotów, w tym Gungnir i rękawice Spearmint — absolutny szczyt stawek.",
     img: "case_poland.PNG",
@@ -602,7 +602,7 @@ const CASES = [
   {
     name: "Knifes Case",
     price: 998.50,
-    file: "/case_knifes.html",
+    file: "/case_knifes",
     accent: "var(--r-gold)",
     desc: "68 przedmiotów, wyłącznie noże — Karambit, Butterfly Knife i M9 Bayonet w najlepszych patternach, absolutny szczyt stawek.",
     img: "case_knifes.PNG",
@@ -611,7 +611,7 @@ const CASES = [
   {
     name: "Cosmos Case",
     price: 3501.80,
-    file: "/case_cosmos.html",
+    file: "/case_cosmos",
     accent: "var(--r-gold)",
     desc: "22 przedmioty, same noże w Doppler Black Pearl — absolutny szczyt stawek.",
     img: "case_cosmos.PNG",
@@ -620,7 +620,7 @@ const CASES = [
   {
     name: "Web Case",
     price: 3998.50,
-    file: "/case_web.html",
+    file: "/case_web",
     accent: "var(--r-gold)",
     desc: "34 przedmioty, w tym AWP Dragon Lore, M4A4 Howl i rękawice Sport Gloves Vice — absolutny szczyt stawek.",
     img: "case_web.PNG",
@@ -629,7 +629,7 @@ const CASES = [
   {
     name: "Devil Case",
     price: 6542.80,
-    file: "/case_devil.html",
+    file: "/case_devil",
     accent: "var(--r-gold)",
     desc: "49 przedmiotów, wyłącznie noże w mrocznych wykończeniach: Crimson Web, Slaughter i Doppler Black Pearl — absolutny szczyt stawek.",
     img: "case_devil.PNG",
@@ -638,7 +638,7 @@ const CASES = [
   {
     name: "Angel Case",
     price: 18253.30,
-    file: "/case_angel.html",
+    file: "/case_angel",
     accent: "var(--r-gold)",
     desc: "25 przedmiotów, wyłącznie noże w jasnych wykończeniach: Marble Fade, Fade i Gamma Doppler Emerald, plus dwa AWP Dragon Lore — absolutny szczyt stawek.",
     img: "case_angel.PNG",
@@ -647,7 +647,7 @@ const CASES = [
   {
     name: "Slime Case",
     price: 1056.70,
-    file: "/case_slime.html",
+    file: "/case_slime",
     accent: "var(--r-gold)",
     desc: "10 przedmiotów — 90% szans na tani M249, reszta to gigantyczny jackpot: rękawice Hedge Maze i noże w Gamma Doppler Emerald.",
     img: "case_slime.PNG",
@@ -656,7 +656,7 @@ const CASES = [
   {
     name: "Lava Case",
     price: 436.70,
-    file: "/case_lava.html",
+    file: "/case_lava",
     accent: "var(--r-gold)",
     desc: "15 przedmiotów — 90% szans na tani SCAR-20, reszta to gigantyczny jackpot: MP9 Wild Lily i M4A1-S Knight.",
     img: "lava_case.png",
@@ -665,7 +665,7 @@ const CASES = [
   {
     name: "Flower Sticker",
     price: 12.40,
-    file: "/case_flower.html",
+    file: "/case_flower",
     accent: "var(--r-classified)",
     desc: "22 naklejki, w tym rox (Holo) | Antwerp 2022 — kwiatowy klimat, wysokie stawki.",
     img: "sticker_flower.PNG",
@@ -674,7 +674,7 @@ const CASES = [
   {
     name: "Ice Sticker",
     price: 1020.80,
-    file: "/case_ice.html",
+    file: "/case_ice",
     accent: "var(--r-milspec)",
     desc: "23 naklejki Katowice 2015, w tym Titan (Holo) — legendarny major, absolutny szczyt stawek.",
     img: "sticker_ice.PNG",
@@ -683,7 +683,7 @@ const CASES = [
   {
     name: "Robot Sticker",
     price: 198.40,
-    file: "/case_robot_sticker.html",
+    file: "/case_robot_sticker",
     accent: "var(--r-classified)",
     desc: "24 naklejki pro-graczy, w tym Team LDLC.com — legendy sceny, wysokie stawki.",
     img: "sticker_robot.PNG",
@@ -756,7 +756,7 @@ const settingsBtn = document.getElementById("settingsBtn");
 const settingsMenu = document.getElementById("settingsMenu");
 settingsBtn.onclick = (e) => { e.stopPropagation(); settingsMenu.classList.toggle("open"); };
 document.addEventListener("click", () => settingsMenu.classList.remove("open"));
-document.getElementById("inventoryBtn").onclick = () => { window.location.href = "/equipment.html"; };
+document.getElementById("inventoryBtn").onclick = () => { window.location.href = "/equipment"; };
 
 /* ---- free case (3h) + daily bonus (24h): small virtual rewards on a cooldown ---- */
 function fmtCountdown(ms){
@@ -794,7 +794,7 @@ function renderCooldownButtons(){
 }
 document.getElementById("freeCaseBtn").onclick = () => {
   if(!window.SteamAuth.requireLogin()) return;
-  location.href = "/darmowe.html";
+  location.href = "/darmowe";
 };
 document.getElementById("dailyBonusBtn").onclick = () => {
   if(!window.SteamAuth.requireLogin()) return;
@@ -1046,7 +1046,7 @@ function renderLeaderboard(){
       row.title = LB_REWARD_TITLES[leaderboardTab] || "";
     }
     if(entry){
-      row.href = `/profile.html?u=${encodeURIComponent(entry.slug || "")}`;
+      row.href = `/profile?u=${encodeURIComponent(entry.slug || "")}`;
     }
     const rank = document.createElement("div");
     rank.className = "lb-rank";

@@ -1116,7 +1116,7 @@
         <div class="tu-section-label">💰 Pakiety balansu</div>
         <div class="tu-packages" id="tuPackages"></div>
         <div class="tu-consents">
-          <label class="tu-check"><input type="checkbox" id="tuConsentTerms"><span>Akceptuję <a href="/regulamin.html" target="_blank" rel="noopener">Regulamin</a> i <a href="/polityka-prywatnosci.html" target="_blank" rel="noopener">Politykę prywatności</a>.</span></label>
+          <label class="tu-check"><input type="checkbox" id="tuConsentTerms"><span>Akceptuję <a href="/regulamin" target="_blank" rel="noopener">Regulamin</a> i <a href="/polityka-prywatnosci" target="_blank" rel="noopener">Politykę prywatności</a>.</span></label>
           <label class="tu-check"><input type="checkbox" id="tuConsentWaiver"><span>Żądam rozpoczęcia świadczenia usługi cyfrowej (dopisania vPLN do konta) przed upływem 14-dniowego terminu odstąpienia od umowy. Przyjmuję do wiadomości, że po jej wykonaniu utracę prawo odstąpienia od umowy.</span></label>
           <div class="tu-price-note">Ceny podane w PLN są cenami brutto. Płatność obsługuje Przelewy24 (BLIK, karty, przelewy online).</div>
         </div>
@@ -1465,14 +1465,14 @@
       wallTitle: "Wymagane logowanie",
       wallDesc: "Zaloguj się przez Steam, aby korzystać z tej funkcji.",
       wallSteamBtn: "Zaloguj się przez Steam",
-      wallNote: "Logując się, akceptujesz <a href=\"/regulamin.html\" target=\"_blank\" rel=\"noopener\">Regulamin</a> oraz <a href=\"/polityka-prywatnosci.html\" target=\"_blank\" rel=\"noopener\">Politykę prywatności</a>. Symulator używa wirtualnej waluty.",
+      wallNote: "Logując się, akceptujesz <a href=\"/regulamin\" target=\"_blank\" rel=\"noopener\">Regulamin</a> oraz <a href=\"/polityka-prywatnosci\" target=\"_blank\" rel=\"noopener\">Politykę prywatności</a>. Symulator używa wirtualnej waluty.",
     },
     en: {
       login: "Log in with Steam", logout: "Log out", myProfile: "My profile",
       wallTitle: "Login required",
       wallDesc: "Log in with Steam to use this feature.",
       wallSteamBtn: "Log in with Steam",
-      wallNote: "By logging in you accept the <a href=\"/regulamin.html\" target=\"_blank\" rel=\"noopener\">Terms</a> and <a href=\"/polityka-prywatnosci.html\" target=\"_blank\" rel=\"noopener\">Privacy Policy</a>. The simulator uses virtual currency.",
+      wallNote: "By logging in you accept the <a href=\"/regulamin\" target=\"_blank\" rel=\"noopener\">Terms</a> and <a href=\"/polityka-prywatnosci\" target=\"_blank\" rel=\"noopener\">Privacy Policy</a>. The simulator uses virtual currency.",
     },
   };
   function getLang() { return localStorage.getItem(LANG_KEY) === "en" ? "en" : "pl"; }
@@ -1864,11 +1864,11 @@
     // nie tylko dla kont z już ustawionym kodem.
     const affiliateBtn = document.getElementById("affiliateBtn");
     if (affiliateBtn) {
-      affiliateBtn.onclick = () => { if (requireLogin()) window.location.href = "/affiliate.html"; };
+      affiliateBtn.onclick = () => { if (requireLogin()) window.location.href = "/affiliate"; };
     }
 
     if (me.loggedIn && me.user) {
-      const profileUrl = me.user.slug ? `/profile.html?u=${encodeURIComponent(me.user.slug)}` : "/profile.html";
+      const profileUrl = me.user.slug ? `/profile?u=${encodeURIComponent(me.user.slug)}` : "/profile";
       if (avatar) {
         avatar.innerHTML = "";
         const img = document.createElement("img");
@@ -1899,7 +1899,7 @@
         const btn = document.createElement("button");
         btn.id = "adminPanelBtn";
         btn.textContent = "🛠 Panel admina";
-        btn.onclick = () => { window.location.href = "/admin.html"; };
+        btn.onclick = () => { window.location.href = "/admin"; };
         menu.appendChild(btn);
       }
 
@@ -2063,7 +2063,7 @@
       const priceTxt = d.price.toLocaleString("pl-PL", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " zł";
       const card = document.createElement(d.slug ? "a" : "div");
       card.className = "lf-card";
-      if (d.slug) card.href = `/profile.html?u=${encodeURIComponent(d.slug)}`;
+      if (d.slug) card.href = `/profile?u=${encodeURIComponent(d.slug)}`;
       card.style.setProperty("--rc", rarityOf(d));
       card.setAttribute("aria-label", `${d.display_name} — ${d.weapon} | ${d.skin} (${d.wear}) — ${priceTxt}`);
       const imgWrap = document.createElement("div");
@@ -2248,8 +2248,8 @@
     box.id = "cookieNotice";
     box.setAttribute("role", "dialog");
     box.innerHTML = en
-      ? `<div>This site uses only cookies and browser storage that are necessary for it to work (login session, settings, game state). We do not use analytics or advertising cookies. Details: <a href="/polityka-prywatnosci.html">Privacy Policy</a>.</div><button type="button">OK</button>`
-      : `<div>Ta strona używa wyłącznie plików cookies i pamięci przeglądarki niezbędnych do jej działania (sesja logowania, ustawienia, stan gry). Nie stosujemy cookies analitycznych ani reklamowych. Szczegóły: <a href="/polityka-prywatnosci.html">Polityka prywatności</a>.</div><button type="button">Rozumiem</button>`;
+      ? `<div>This site uses only cookies and browser storage that are necessary for it to work (login session, settings, game state). We do not use analytics or advertising cookies. Details: <a href="/polityka-prywatnosci">Privacy Policy</a>.</div><button type="button">OK</button>`
+      : `<div>Ta strona używa wyłącznie plików cookies i pamięci przeglądarki niezbędnych do jej działania (sesja logowania, ustawienia, stan gry). Nie stosujemy cookies analitycznych ani reklamowych. Szczegóły: <a href="/polityka-prywatnosci">Polityka prywatności</a>.</div><button type="button">Rozumiem</button>`;
     box.querySelector("button").onclick = () => {
       try { localStorage.setItem(KEY, String(Date.now())); } catch (e) { /* ignorujemy */ }
       box.remove();

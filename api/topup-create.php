@@ -100,7 +100,7 @@ try {
         $package['priceGrosze'],
         'Doładowanie CASEGOLD - ' . number_format($package['virtualAmount'], 0, ',', ' ') . ' zł wirtualnych',
         $syntheticEmail,
-        $siteUrl . '/topup-return.html?session=' . urlencode($sessionId),
+        $siteUrl . '/topup-return?session=' . urlencode($sessionId),
         $siteUrl . '/api/topup-webhook.php'
     );
 } catch (Throwable $e) {

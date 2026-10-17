@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<script src="steam-auth.js?v=33"></script>
+<script src="steam-auth.js?v=34"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CASEGOLD // Sand Case</title>
 <link rel="icon" type="image/png" href="casegold_logo.PNG">
@@ -567,11 +567,11 @@
   </div>
   <div class="nav-links">
     <a class="nav-link active" href="/">Skrzynki</a>
-    <a class="nav-link" href="/darmowe.html">Darmowe</a>
-    <a class="nav-link" href="/battle.html">Case Battle</a>
-    <a class="nav-link" href="/upgrade.html">Upgrader</a>
-    <a class="nav-link" href="/zadania.html">Zadania</a>
-    <a class="nav-link" href="/equipment.html">Ekwipunek</a>
+    <a class="nav-link" href="/darmowe">Darmowe</a>
+    <a class="nav-link" href="/battle">Case Battle</a>
+    <a class="nav-link" href="/upgrade">Upgrader</a>
+    <a class="nav-link" href="/zadania">Zadania</a>
+    <a class="nav-link" href="/equipment">Ekwipunek</a>
   </div>
   <div class="nav-right">
     <button class="daily-btn" id="dailyBonusBtn">🎁 Daily Bonus</button>
@@ -610,7 +610,7 @@
         </div>
         <div class="nav-links">
           <a class="back-link" href="/">← Strona główna</a>
-          <a class="back-link" href="/equipment.html">→ Ekwipunek</a>
+          <a class="back-link" href="/equipment">→ Ekwipunek</a>
         </div>
       </div>
     </div>
@@ -653,7 +653,7 @@
   <div class="contents-title">Zawartość skrzynki</div>
   <div class="contents-grid" id="contentsGrid"></div>
 
-  <footer>Serwis rozrywkowy. Waluta wirtualna (vPLN) — nie można jej wypłacić ani wymienić na prawdziwe pieniądze. CASEGOLD nie jest powiązany z Valve Corporation ani przez nią wspierany; Counter-Strike i Steam są znakami towarowymi Valve Corporation.<div class="footer-legal"><a href="regulamin.html">Regulamin</a><a href="polityka-prywatnosci.html">Polityka prywatności</a></div></footer>
+  <footer>Serwis rozrywkowy. Waluta wirtualna (vPLN) — nie można jej wypłacić ani wymienić na prawdziwe pieniądze. CASEGOLD nie jest powiązany z Valve Corporation ani przez nią wspierany; Counter-Strike i Steam są znakami towarowymi Valve Corporation.<div class="footer-legal"><a href="/regulamin">Regulamin</a><a href="/polityka-prywatnosci">Polityka prywatności</a></div></footer>
 </div>
 </div>
 
@@ -673,7 +673,7 @@
 <script src="sound.js"></script>
 <script src="rarity-data.js"></script>
 <script src="jester-mode.js"></script>
-<script src="nav-i18n.js"></script>
+<script src="nav-i18n.js?v=2"></script>
 <script>
 const ITEMS = [
   {weapon:"AWP", skin:"Desert Hydra", wear:"FN", price:8087.04, start:1, end:2, chance:0.002},
@@ -997,7 +997,7 @@ function commitResults(){
   pendingResults = null;
 }
 
-document.getElementById("inventoryBtn").onclick = () => { window.location.href = "/equipment.html"; };
+document.getElementById("inventoryBtn").onclick = () => { window.location.href = "/equipment"; };
 
 /* ---- shared top-nav widgets: settings dropdown + daily bonus (24h cooldown) ---- */
 document.querySelectorAll("[data-soon]").forEach(el => {
