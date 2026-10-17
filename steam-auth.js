@@ -1164,6 +1164,67 @@
     document.getElementById("tuPromoEdit").onclick = () => resetTopUpPromo(overlay);
     return overlay;
   }
+  // ---- Historia płatności (menu ustawień) ----
+  function escapeHtml(s) { return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+  function paymentStatusInfo(o) {
+    if (o.status === "paid") return { cls: "paid", label: "Opłacona" };
+    if (o.status === "failed") return { cls: "failed", label: o.reason === "amount" ? "Odrzucona (zła kwota)" : "Odrzucona" };
+    // "pending" starsze niż pół godziny to porzucona/niedokończona płatność
+    if (Date.now() - o.createdAt > 30 * 60 * 1000) return { cls: "failed", label: "Nieopłacona" };
+    return { cls: "pending", label: "Oczekuje na płatność" };
+  }
+  function renderPaymentHistory(listEl, orders) {
+    if (!orders.length) {
+      listEl.innerHTML = `<div class="ph-empty">Nie masz jeszcze żadnych płatności.</div>`;
+      return;
+    }
+    listEl.innerHTML = orders.map((o) => {
+      const st = paymentStatusInfo(o);
+      const when = new Date(o.paidAt || o.createdAt).toLocaleString("pl-PL", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+      const price = (o.priceGrosze / 100).toLocaleString("pl-PL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return `
+        <div class="ph-row">
+          <div class="ph-main">
+            <div class="ph-amount">${o.virtualAmount.toLocaleString("pl-PL")} zł <span class="ph-sub">za ${price} PLN</span></div>
+            <div class="ph-meta">${escapeHtml(when)} · zamówienie #${o.id}</div>
+          </div>
+          <span class="ph-status ${st.cls}">${st.label}</span>
+        </div>`;
+    }).join("");
+  }
+  function openPaymentHistoryModal() {
+    injectStyle();
+    let overlay = document.getElementById("payHistOverlay");
+    if (!overlay) {
+      overlay = document.createElement("div");
+      overlay.id = "payHistOverlay";
+      overlay.innerHTML = `
+        <div class="tu-panel">
+          <button class="tu-close" id="phClose" aria-label="Zamknij">✕</button>
+          <div class="tu-header">
+            <h2>🧾 Historia płatności</h2>
+            <p>Twoje doładowania salda przez Przelewy24 (od najnowszych).</p>
+          </div>
+          <div id="phList" class="ph-list"></div>
+        </div>`;
+      document.body.appendChild(overlay);
+      const hide = () => overlay.classList.remove("show");
+      overlay.addEventListener("click", (e) => { if (e.target === overlay) hide(); });
+      overlay.querySelector("#phClose").onclick = hide;
+      document.addEventListener("keydown", (e) => { if (e.key === "Escape") hide(); });
+    }
+    overlay.classList.add("show");
+    const listEl = overlay.querySelector("#phList");
+    listEl.innerHTML = `<div class="ph-empty">Wczytywanie…</div>`;
+    fetch("/api/topup-history.php", { credentials: "same-origin" })
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data || !data.ok) throw new Error("bad_response");
+        renderPaymentHistory(listEl, data.orders || []);
+      })
+      .catch(() => { listEl.innerHTML = `<div class="ph-empty">Nie udało się wczytać historii płatności. Spróbuj ponownie za chwilę.</div>`; });
+  }
+
   function openTopUpModal() {
     const overlay = buildTopUpModal();
     overlay.classList.add("show");
@@ -1461,14 +1522,14 @@
   // ---- UI: avatar + przycisk logowania w menu ustawień ----
   const DICT = {
     pl: {
-      login: "Zaloguj przez Steam", logout: "Wyloguj", myProfile: "Mój profil",
+      login: "Zaloguj przez Steam", logout: "Wyloguj", myProfile: "Mój profil", payHistory: "Historia płatności",
       wallTitle: "Wymagane logowanie",
       wallDesc: "Zaloguj się przez Steam, aby korzystać z tej funkcji.",
       wallSteamBtn: "Zaloguj się przez Steam",
       wallNote: "Logując się, akceptujesz <a href=\"/regulamin\" target=\"_blank\" rel=\"noopener\">Regulamin</a> oraz <a href=\"/polityka-prywatnosci\" target=\"_blank\" rel=\"noopener\">Politykę prywatności</a>. Symulator używa wirtualnej waluty.",
     },
     en: {
-      login: "Log in with Steam", logout: "Log out", myProfile: "My profile",
+      login: "Log in with Steam", logout: "Log out", myProfile: "My profile", payHistory: "Payment history",
       wallTitle: "Login required",
       wallDesc: "Log in with Steam to use this feature.",
       wallSteamBtn: "Log in with Steam",
@@ -1733,6 +1794,28 @@
       .tu-check input:checked::after{transform:scale(1);}
       .tu-check input:focus-visible{outline:2px solid rgba(255,149,0,.55); outline-offset:2px;}
       .tu-check a, .auth-wall-note a{color:var(--hazard,#ff9500);}
+      #payHistOverlay{
+        position:fixed; inset:0; z-index:9998; display:none;
+        align-items:center; justify-content:center; padding:20px;
+        background:rgba(6,8,13,.72); backdrop-filter:blur(6px);
+        opacity:0; transition:opacity .18s ease;
+      }
+      #payHistOverlay.show{display:flex; opacity:1;}
+      #payHistOverlay .tu-panel{transform:translateY(10px) scale(.98);}
+      #payHistOverlay.show .tu-panel{transform:translateY(0) scale(1);}
+      .ph-list{display:flex; flex-direction:column; gap:8px;}
+      .ph-empty{padding:26px 10px; text-align:center; font-size:13px; color:var(--muted,#7d879b);}
+      .ph-row{
+        display:flex; align-items:center; justify-content:space-between; gap:12px;
+        background:var(--panel-2,#1b202b); border:1px solid var(--line,#262c3a); border-radius:10px; padding:11px 13px;
+      }
+      .ph-amount{font-weight:700; font-size:14px; color:var(--text,#e9ecf3);}
+      .ph-sub{font-weight:500; font-size:12px; color:var(--muted,#7d879b);}
+      .ph-meta{font-size:11.5px; color:var(--muted,#7d879b); margin-top:3px;}
+      .ph-status{flex:none; font-size:11px; font-weight:700; padding:4px 9px; border-radius:20px; border:1px solid transparent; white-space:nowrap;}
+      .ph-status.paid{color:var(--good,#3ddc84); background:rgba(61,220,132,.12); border-color:rgba(61,220,132,.4);}
+      .ph-status.failed{color:var(--bad,#ff5a5a); background:rgba(255,90,90,.12); border-color:rgba(255,90,90,.4);}
+      .ph-status.pending{color:var(--hazard,#ff9500); background:rgba(255,149,0,.12); border-color:rgba(255,149,0,.4);}
       .tu-price-note{font-size:11px; color:var(--muted,#7d879b);}
       .tu-disclaimer{
         background:var(--hazard-dim,#3a2712); border:1px solid rgba(255,149,0,.35); border-radius:10px;
@@ -1892,6 +1975,14 @@
         btn.id = "myProfileBtn";
         btn.textContent = `👤 ${t.myProfile}`;
         btn.onclick = () => { window.location.href = profileUrl; };
+        menu.appendChild(btn);
+      }
+
+      if (menu && !document.getElementById("paymentHistoryBtn")) {
+        const btn = document.createElement("button");
+        btn.id = "paymentHistoryBtn";
+        btn.textContent = `🧾 ${t.payHistory}`;
+        btn.onclick = () => openPaymentHistoryModal();
         menu.appendChild(btn);
       }
 
