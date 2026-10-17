@@ -109,3 +109,33 @@ function topup_finalize(PDO $pdo, array $order, $orderId): string {
     credit_affiliate_for_deposit($pdo, $order['affiliate_code'], $order['steamid'], $order['price_grosze'] / 100);
     return 'paid';
 }
+
+
+/* Uzgadnia ZALEGŁE zamówienie ze stanem w P24 (używane przez topup-status
+   i topup-history): opłacone -> księguje, zła kwota/zwrot -> odrzuca.
+   Zwraca true, gdy P24 wprost mówi, że wpłaty nie ma (brak transakcji albo
+   status 0) - sama NIE odrzuca takiego zamówienia (wpłata mogła jeszcze
+   nie dotrzeć), to decyduje wołający. false = nieznane/już rozstrzygnięte. */
+function topup_reconcile(PDO $pdo, array $order): bool {
+    $sessionId = $order['session_id'];
+    try {
+        $t = p24_get_transaction_by_session($sessionId);
+        $p24Status = $t ? (int) ($t['status'] ?? 0) : 0;
+        if ($t && $p24Status === 2 && (int) ($t['amount'] ?? 0) !== (int) $order['price_grosze']) {
+            topup_mark_failed($pdo, $sessionId, 'amount', 'odpytanie P24: niezgodna kwota (' . (int) ($t['amount'] ?? 0) . ' zamiast ' . $order['price_grosze'] . ')');
+        } elseif ($t && $p24Status === 2 && !empty($t['orderId'])) {
+            topup_finalize($pdo, $order, $t['orderId']);
+        } elseif ($t && $p24Status === 3) {
+            topup_mark_failed($pdo, $sessionId, 'returned', 'odpytanie P24: płatność zwrócona');
+        } else {
+            topup_note($pdo, $sessionId, 'odpytanie P24: status=' . ($t['status'] ?? 'brak danych') . ' (brak wpłaty)');
+            return true;
+        }
+    } catch (Throwable $e) {
+        topup_note($pdo, $sessionId, 'odpytanie P24 błąd: ' . $e->getMessage());
+        // Błąd API (np. 404 - transakcja nie istnieje, bo nikt nie zapłacił) to
+        // brak wpłaty; błąd połączenia to nieznany stan - nie oceniamy.
+        return strpos($e->getMessage(), 'błąd API') !== false;
+    }
+    return false;
+}

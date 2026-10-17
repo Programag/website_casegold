@@ -43,27 +43,17 @@ if (!$order) {
 // status 0) - strona powrotu po kilku takich odpowiedziach pokazuje "odrzucona".
 $noPayment = false;
 if ($order['status'] === 'pending' && now_ms() - (int) $order['created_at'] > 12000) {
-    try {
-        $t = p24_get_transaction_by_session($sessionId);
-        $p24Status = $t ? (int) ($t['status'] ?? 0) : 0;
-        if ($t && $p24Status === 2 && (int) ($t['amount'] ?? 0) !== (int) $order['price_grosze']) {
-            topup_mark_failed($pdo, $sessionId, 'amount', 'odpytanie P24: niezgodna kwota (' . (int) ($t['amount'] ?? 0) . ' zamiast ' . $order['price_grosze'] . ')');
-        } elseif ($t && $p24Status === 2 && !empty($t['orderId'])) {
-            topup_finalize($pdo, $order, $t['orderId']);
-        } elseif ($t && $p24Status === 3) {
-            topup_mark_failed($pdo, $sessionId, 'returned', 'odpytanie P24: płatność zwrócona');
-        } else {
-            $noPayment = true;
-            topup_note($pdo, $sessionId, 'odpytanie P24: status=' . ($t['status'] ?? 'brak danych') . ' (brak wpłaty)');
-        }
-    } catch (Throwable $e) {
-        // Błąd API (np. 404 - transakcja nie istnieje, bo nikt nie zapłacił) to
-        // brak wpłaty; błąd połączenia to nieznany stan - nie oceniamy.
-        if (strpos($e->getMessage(), 'błąd API') !== false) $noPayment = true;
-        topup_note($pdo, $sessionId, 'odpytanie P24 błąd: ' . $e->getMessage());
-    }
+    $noPayment = topup_reconcile($pdo, $order);
     $find->execute([$sessionId, $me['steamid']]);
     $order = $find->fetch() ?: $order;
+    // Strona powrotu prosi o potwierdzenie ("confirm"), gdy kilka razy z rzędu
+    // usłyszała "brak wpłaty" - wtedy zamówienie trwale oznaczamy jako
+    // anulowane (nadal da się je zaksięgować, jeśli P24 później potwierdzi wpłatę).
+    if ($noPayment && $order['status'] === 'pending' && ($_GET['confirm'] ?? '') === '1') {
+        topup_mark_failed($pdo, $sessionId, 'cancelled', 'płatność anulowana lub odrzucona (brak wpłaty w P24)');
+        $find->execute([$sessionId, $me['steamid']]);
+        $order = $find->fetch() ?: $order;
+    }
 }
 
 $out = [

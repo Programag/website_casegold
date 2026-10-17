@@ -83,6 +83,7 @@
 
   let attempts = 0;
   let noPaymentStreak = 0;
+  let confirming = false;
   async function poll() {
     attempts++;
     try {
@@ -102,7 +103,9 @@
       }
       if (data.status === 'failed') {
         const contact = 'Jeśli pieniądze zostały pobrane z Twojego konta, napisz do nas: <a href="mailto:casegoldpl@gmail.com" style="color:var(--hazard)">casegoldpl@gmail.com</a>.';
-        if (data.reason === 'amount') {
+        if (data.reason === 'cancelled' || data.reason === 'expired') {
+          render('❌', 'var(--bad)', 'Płatność została odrzucona', 'Nie otrzymaliśmy wpłaty - płatność została anulowana lub odrzucona przez bank. Nic nie zostało pobrane ani zaksięgowane. Jeśli jednak zapłaciłeś, saldo zaktualizuje się automatycznie po otrzymaniu potwierdzenia z Przelewy24. W razie problemów napisz: <a href="mailto:casegoldpl@gmail.com" style="color:var(--hazard)">casegoldpl@gmail.com</a>.', false, true);
+        } else if (data.reason === 'amount') {
           render('❌', 'var(--bad)', 'Płatność została odrzucona', 'Kwota wpłaty nie zgadza się z zamówieniem, więc nic nie zostało zaksięgowane na Twoim koncie. ' + contact, false, true);
         } else {
           render('❌', 'var(--bad)', 'Płatność została odrzucona', 'Przelewy24 nie potwierdziło tej transakcji, więc nic nie zostało zaksięgowane na Twoim koncie. ' + contact, false, true);
@@ -112,6 +115,11 @@
       // P24 kilka razy z rzędu mówi, że nie ma wpłaty (anulowanie, odrzucenie
       // przez bank, brak płatności) - nie każ czekać pełnej minuty.
       noPaymentStreak = data.noPayment ? noPaymentStreak + 1 : 0;
+      if (noPaymentStreak >= 3 && !confirming) {
+        // potwierdź na serwerze (zapisze zamówienie jako anulowane) i dopiero pokaż wynik
+        confirming = true;
+        try { await fetch('api/topup-status.php?confirm=1&session=' + encodeURIComponent(sessionId), { credentials: 'same-origin' }); } catch (e) {}
+      }
       if (noPaymentStreak >= 3) {
         render('❌', 'var(--bad)', 'Płatność została odrzucona', 'Nie otrzymaliśmy wpłaty - płatność została anulowana lub odrzucona przez bank. Nic nie zostało pobrane ani zaksięgowane. Jeśli jednak zapłaciłeś, saldo zaktualizuje się automatycznie po otrzymaniu potwierdzenia z Przelewy24. W razie problemów napisz: <a href="mailto:casegoldpl@gmail.com" style="color:var(--hazard)">casegoldpl@gmail.com</a>.', true, true);
         return;

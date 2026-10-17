@@ -1168,9 +1168,12 @@
   function escapeHtml(s) { return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
   function paymentStatusInfo(o) {
     if (o.status === "paid") return { cls: "paid", label: "Opłacona" };
-    if (o.status === "failed") return { cls: "failed", label: o.reason === "amount" ? "Odrzucona (zła kwota)" : "Odrzucona" };
-    // "pending" starsze niż pół godziny to porzucona/niedokończona płatność
-    if (Date.now() - o.createdAt > 30 * 60 * 1000) return { cls: "failed", label: "Nieopłacona" };
+    if (o.status === "failed") {
+      const labels = { amount: "Odrzucona (zła kwota)", cancelled: "Anulowana", expired: "Nieopłacona", returned: "Zwrócona" };
+      return { cls: "failed", label: labels[o.reason] || "Odrzucona" };
+    }
+    // "pending" starsze niż 15 minut to porzucona/niedokończona płatność (serwer uzgodni ją z P24 przy następnym otwarciu)
+    if (Date.now() - o.createdAt > 15 * 60 * 1000) return { cls: "failed", label: "Nieopłacona" };
     return { cls: "pending", label: "Oczekuje na płatność" };
   }
   function renderPaymentHistory(listEl, orders) {
