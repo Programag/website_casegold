@@ -708,7 +708,12 @@
   }
   .player-col.tie-spin{border-color:var(--hazard); animation:tieSpinPulse .16s ease-in-out infinite;}
   .player-col.tie-spin-final{border-color:var(--r-gold); box-shadow:0 0 0 2px var(--r-gold), 0 0 32px 4px rgba(255,215,0,.65); animation:none;}
-  .player-head{display:flex; align-items:center; justify-content:space-between; gap:8px;}
+  .player-col{min-width:0;}
+  .player-head{display:flex; align-items:center; justify-content:space-between; gap:8px; min-width:0;}
+  /* długa nazwa nie może wypychać sumy poza ramkę - nazwa się skraca (…), suma zostaje cała */
+  .player-head .player-name{min-width:0; flex:1 1 auto; overflow:hidden;}
+  .player-name .player-link, .player-name .player-nick{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .player-head .player-total{flex:none; white-space:nowrap; max-width:100%;}
   .round-stage + .player-head{padding-top:12px; border-top:1px solid var(--line);}
   .player-link{color:inherit; text-decoration:none;}
   .player-link:hover{text-decoration:underline; color:var(--hazard);}
@@ -3489,7 +3494,7 @@ function escHtml(s){ return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<"
 function playerNameHtml(slot, truncate){
   const raw = truncate ? truncatePlayerName(slot.name) : String(slot.name || "");
   const safe = escHtml(raw);
-  if(!slot.slug) return safe;
+  if(!slot.slug) return `<span class="player-nick">${safe}</span>`;
   return `<a class="player-link" href="/profile?u=${encodeURIComponent(slot.slug)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${safe}</a>`;
 }
 function avatarHtml(slot){
